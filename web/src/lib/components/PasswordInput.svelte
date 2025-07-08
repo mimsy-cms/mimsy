@@ -1,6 +1,6 @@
 <script lang="ts">
-	import EyeOffIcon from 'lucide-svelte/icons/eye-off';
-	import EyeIcon from 'lucide-svelte/icons/eye';
+	import EyeOffIcon from '@lucide/svelte/icons/eye-off';
+	import EyeIcon from '@lucide/svelte/icons/eye';
 	import Input from './Input.svelte';
 	import { cn } from '$lib/cn';
 
