@@ -49,7 +49,9 @@
 	},
 	"dependencies": {
 		"bits-ui": "^2.8.10",
+		"clsx": "^2.1.1",
 		"sveltekit-superforms": "^2.27.1",
+		"tailwind-merge": "^3.3.1",
 		"zod": "^3.25.75"
 	}
 }
