@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { cn } from '$lib/cn';
+	import type { Snippet } from 'svelte';
 
 	type Props = {
 		id?: string;
