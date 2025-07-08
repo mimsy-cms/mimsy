@@ -11,6 +11,7 @@ The mimsy API is a Go-based backend service that manages the lifecycle of mimsy 
 - Docker Compose
 - [air](https://github.com/air-verse/air)
 - [pgroll](https://pgroll.com)
+- [just](https://just.systems/)
 
 ## Installation
 
