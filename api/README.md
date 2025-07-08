@@ -14,6 +14,12 @@ The mimsy API is a Go-based backend service that manages the lifecycle of mimsy 
 
 ## Installation
 
+Create the `.env` file based on the `.env.example` file:
+
+```bash
+cp .env.example .env
+```
+
 Start the compose services:
 
 ```bash
