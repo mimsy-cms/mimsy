@@ -1,13 +1,12 @@
 <script lang="ts">
 	import { cn } from '$lib/cn';
-	import type { Snippet } from 'svelte';
 
 	type Props = {
 		id?: string;
 		name?: string;
 		value?: string | number;
 		placeholder?: string;
-		type?: 'text' | 'email' | 'password' | 'date' | 'url' | 'number';
+		type?: 'text' | 'email' | 'password' | 'search' | 'date' | 'url' | 'number';
 		disabled?: boolean;
 		required?: boolean;
 		error?: boolean;

@@ -46,9 +46,9 @@
 		onclick={() => (showPassword = !showPassword)}
 	>
 		{#if showPassword}
-			<EyeOffIcon class="h-5 w-5" />
+			<EyeOffIcon class="size-5" />
 		{:else}
-			<EyeIcon class="h-5 w-5" />
+			<EyeIcon class="size-5" />
 		{/if}
 	</button>
 </div>
