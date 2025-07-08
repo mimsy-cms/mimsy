@@ -11,6 +11,9 @@ importers:
       sveltekit-superforms:
         specifier: ^2.27.1
         version: 2.27.1(@sveltejs/kit@2.22.2(@sveltejs/vite-plugin-svelte@5.1.0(svelte@5.35.4)(vite@6.3.5(jiti@2.4.2)(lightningcss@1.30.1)))(svelte@5.35.4)(vite@6.3.5(jiti@2.4.2)(lightningcss@1.30.1)))(@types/json-schema@7.0.15)(esbuild@0.25.6)(svelte@5.35.4)(typescript@5.8.3)
+      zod:
+        specifier: ^3.25.75
+        version: 3.25.75
     devDependencies:
       '@eslint/compat':
         specifier: ^1.2.5
@@ -3667,5 +3670,4 @@ snapshots:
       zod: 3.25.75
     optional: true
 
-  zod@3.25.75:
-    optional: true
+  zod@3.25.75: {}
