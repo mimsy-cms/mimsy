@@ -4,11 +4,11 @@
 	let { children } = $props();
 </script>
 
-<div class="min-h-screen">
+<div class="flex min-h-screen">
 	<Sidebar />
 
-	<main class="py-6">
-		<div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+	<main class="flex-1 py-6">
+		<div class="px-4 sm:px-6 lg:px-8">
 			{@render children()}
 		</div>
 	</main>

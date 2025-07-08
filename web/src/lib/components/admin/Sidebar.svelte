@@ -20,15 +20,16 @@
 	];
 </script>
 
-<div class="hidden lg:fixed lg:inset-y-0 lg:flex lg:w-64 lg:flex-col">
-	<div class="flex flex-grow flex-col overflow-y-auto border-r border-gray-200 bg-white">
+<div class="hidden lg:inset-y-0 lg:flex lg:min-w-64">
+	<div class="flex flex-grow flex-col border-r border-gray-200 bg-white">
 		<nav class="mt-4 flex-1 space-y-1 px-2">
 			<a
 				href="/"
 				class={cn(
 					'group flex w-full items-center rounded-md py-2 pl-2 pr-1 text-left text-sm font-medium text-gray-600 hover:bg-gray-50 hover:text-gray-900',
 					{
-						'bg-blue-200/80 text-blue-800': page.url.pathname === '/'
+						'bg-blue-200/80 text-blue-800 hover:bg-blue-200 hover:text-blue-800':
+							page.url.pathname === '/'
 					}
 				)}
 			>

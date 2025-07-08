@@ -42,7 +42,8 @@
 						class={cn(
 							'group flex w-full items-center rounded-md py-2 pl-2 pr-1 text-left text-sm text-gray-600 hover:bg-gray-50 hover:text-gray-900',
 							{
-								'bg-blue-200/80 text-blue-800': page.url.pathname === item.href
+								'bg-blue-200/80 text-blue-800 hover:bg-blue-200 hover:text-blue-800':
+									page.url.pathname === item.href
 							}
 						)}
 					>
