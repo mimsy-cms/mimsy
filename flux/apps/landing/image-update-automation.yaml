@@ -14,7 +14,7 @@ spec:
         branch: main
     commit:
       author:
-        email: flux-automation@mimsy-cms.com
+        email: flux-automation+mimsy@kodai.ch
         name: Flux Image Automation
       messageTemplate: |
         Update landing page image
