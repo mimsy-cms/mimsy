@@ -20,7 +20,7 @@ spec:
         - name: regcred
       containers:
         - name: landing
-          image: ghcr.io/mimsy-cms/landing:latest
+          image: ghcr.io/mimsy-cms/landing:latest # {"$imagepolicy": "flux-system:landing"}
           ports:
             - name: http
               containerPort: 3000
