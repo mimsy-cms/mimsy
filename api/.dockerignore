@@ -1,0 +1,8 @@
+.env
+.env.example
+.git
+tmp
+.air.toml
+justfile
+.gitignore
+compose.yaml
