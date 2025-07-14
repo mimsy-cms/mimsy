@@ -5,10 +5,6 @@ metadata:
   namespace: mimsy
 spec:
   interval: 1m
-  kubeConfig:
-    secretRef:
-      name: gitops-reconciler-kubeconfig
-      key: kubeconfig
   sourceRef:
     kind: GitRepository
     name: mimsy
