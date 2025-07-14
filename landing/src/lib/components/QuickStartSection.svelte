@@ -39,7 +39,7 @@ mimsy deploy`}
 
 		<div class="text-center">
 			<a
-				href="https://github.com/[your-org]/mimsy"
+				href="https://github.com/mimsy/mimsy"
 				class="inline-block bg-black px-6 py-3 text-white transition-colors hover:bg-gray-800"
 			>
 				View Full Documentation on GitHub →
