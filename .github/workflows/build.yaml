@@ -210,7 +210,16 @@ jobs:
   build-status:
     name: Build status
     runs-on: ubuntu-latest
-    needs: [changes, test-api, test-web, build-landing, build-web, build-api]
+    needs:
+      [
+        changes,
+        test-landing,
+        test-api,
+        test-web,
+        build-landing,
+        build-web,
+        build-api,
+      ]
     if: always()
     steps:
       - name: Report status
