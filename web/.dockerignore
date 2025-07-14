@@ -1,0 +1,12 @@
+Dockerfile
+.dockerignore
+.gitignore
+README.md
+.npmrc
+.prettierignore
+.prettierrc
+.editorconfig
+.svelte-kit
+node_modules
+build
+**/.env
