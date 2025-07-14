@@ -36,11 +36,22 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Setup Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Generate metadata
+        uses: docker/metadata-action@v5
+        id: metadata
+        with:
+          images: ghcr.io/mimsy-cms/landing
+          tags: latest
+
       - name: Build and push docker
-        uses: docker/build-push-action@v4
+        uses: docker/build-push-action@v6
         with:
           context: landing
           push: true
-          tags: ghcr.io/mimsy-cms/landing:latest
-          cache-from: type=registry,ref=ghcr.io/mimsy-cms/landing:cache
-          cache-to: type=registry,ref=ghcr.io/mimsy-cms/landing:cache,mode=max
+          tags: ${{ steps.metadata.outputs.tags }}
+          labels: ${{ steps.metadata.outputs.labels }}
+          cache-from: type=gha,scope=ghcr.io/mimsy-cms/landing
+          cache-to: type=gha,scope=ghcr.io/mimsy-cms/landing,mode=max
