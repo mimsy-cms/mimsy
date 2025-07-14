@@ -1,0 +1,13 @@
+apiVersion: v1
+kind: Service
+metadata:
+  namespace: mimsy
+  name: landing
+spec:
+  selector:
+    app: landing
+  ports:
+    - name: http
+      protocol: TCP
+      port: 80
+      targetPort: http
