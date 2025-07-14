@@ -10,5 +10,5 @@ spec:
     numerical:
       order: asc
   filterTags:
-    pattern: "^[0-9]{8}-[0-9]{6}-[a-f0-9]+$"
-    extract: "$0"
+    pattern: "^(?P<date>[0-9]+)-(?P<time>[0-9]+)-([a-zA-Z0-9]*)"
+    extract: "$date$time"
