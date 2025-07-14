@@ -16,6 +16,8 @@ spec:
       labels:
         app: landing
     spec:
+      imagePullSecrets:
+        - name: regcred
       containers:
         - name: landing
           image: ghcr.io/mimsy-cms/landing:latest
