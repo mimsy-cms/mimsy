@@ -1,0 +1,14 @@
+apiVersion: image.toolkit.fluxcd.io/v1beta2
+kind: ImagePolicy
+metadata:
+  name: landing
+  namespace: flux-system
+spec:
+  imageRepositoryRef:
+    name: landing
+  policy:
+    numerical:
+      order: asc
+  filterTags:
+    pattern: '^[0-9]{8}-[0-9]{6}-[a-f0-9]+$'
+    extract: '$0'
