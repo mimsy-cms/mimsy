@@ -61,6 +61,9 @@ jobs:
       - name: Install dependencies
         run: pnpm install
 
+      - name: Setup playwright
+        run: pnpm exec playwright install
+
       - name: Run unit tests
         run: pnpm test:unit
 
@@ -112,6 +115,9 @@ jobs:
 
       - name: Install dependencies
         run: pnpm install
+
+      - name: Setup playwright
+        run: pnpm exec playwright install
 
       - name: Run unit tests
         run: pnpm test:unit
