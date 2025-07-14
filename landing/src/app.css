@@ -1,1 +1,13 @@
 @import 'tailwindcss';
+
+@font-face {
+  font-family: 'Fira Code';
+  src: url('/fonts/FiraCode-VF.ttf') format('truetype-variations');
+  font-weight: 300 700;
+  font-style: normal;
+  font-display: swap;
+}
+
+@theme {
+  --font-family-mono: 'Fira Code', ui-monospace, SFMono-Regular, 'SF Mono', Consolas, 'Liberation Mono', Menlo, monospace;
+}
