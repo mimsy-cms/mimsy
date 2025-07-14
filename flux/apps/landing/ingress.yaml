@@ -3,6 +3,8 @@ kind: Ingress
 metadata:
   name: landing-ingress
   namespace: mimsy
+  labels:
+    kodai.ch/dns-create: "true"
   annotations:
     cert-manager.io/cluster-issuer: letsencrypt
 spec:
