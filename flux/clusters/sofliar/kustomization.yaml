@@ -6,7 +6,7 @@ patches:
   - patch: |
       - op: replace
         path: /spec/path
-        value: ./clusters/sofliar/overrides/landing
+        value: ./flux/clusters/sofliar/overrides/landing
     target:
       kind: Kustomization
       name: "landing"

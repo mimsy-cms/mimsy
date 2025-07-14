@@ -16,5 +16,5 @@ spec:
     provider: sops
     secretRef:
       name: age-secret
-  path: ./apps/landing/
+  path: ./flux/apps/landing/
   prune: true
