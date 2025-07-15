@@ -29,5 +29,5 @@ spec:
     provider: sops
     secretRef:
       name: age-secret
-  path: ./flux/apps/cms
+  path: ./flux/apps/cms/
   prune: true
