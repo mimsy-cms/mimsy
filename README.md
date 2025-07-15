@@ -1,5 +1,11 @@
 <p align="center">
-  <img src="docs/imgs/header.png" alt="Mimsy github header" />
+    <picture>
+      <source media="(prefers-color-scheme: dark)" srcset="docs/imgs/header.dark.png">
+      <source media="(prefers-color-scheme: light)" srcset="docs/imgs/header.png">
+      <img alt="Mimsy github header" src="docs/imgs/header.png">
+    </picture>
+
+  <img src="" alt="Mimsy github header" />
 </p>
 
 # Mimsy CMS
