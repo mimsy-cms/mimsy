@@ -1,1 +1,44 @@
 @import 'tailwindcss';
+
+@theme {
+	--color-lilac-50: #f4f5fd;
+	--color-lilac-100: #e5e7fa;
+	--color-lilac-200: #cfd2f6;
+	--color-lilac-300: #b2b5ef;
+	--color-lilac-400: #9593e6;
+	--color-lilac-500: #8379db;
+	--color-lilac-600: #735ecd;
+	--color-lilac-700: #634eb4;
+	--color-lilac-800: #514291;
+	--color-lilac-900: #443b74;
+	--color-lilac-950: #282244;
+
+	--animate-accordion-down: accordion-down 0.2s ease-out;
+	--animate-accordion-up: accordion-up 0.2s ease-out;
+
+	@keyframes accordion-down {
+		from {
+			height: 0;
+		}
+		to {
+			height: var(--bits-accordion-content-height);
+		}
+	}
+
+	@keyframes accordion-up {
+		from {
+			height: var(--bits-accordion-content-height);
+		}
+		to {
+			height: 0;
+		}
+	}
+}
+
+body {
+	@apply bg-lilac-50;
+}
+
+.btn {
+	@apply rounded-md bg-blue-700 px-4 py-2 font-medium text-white transition-colors duration-200 hover:bg-blue-600;
+}
