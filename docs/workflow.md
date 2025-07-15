@@ -14,7 +14,6 @@ Our development workflow is designed to maintain high code quality while enablin
 - **Templates**: Follow issue templates when creating new issues to ensure consistent information capture
 
 ### Discussion Period
-- **24-hour guideline**: Allow approximately 24 hours for team discussion and feedback before starting work on an issue
 - **Purpose**: This gives team members time to:
   - Provide input on the approach
   - Suggest alternatives or improvements
@@ -95,11 +94,6 @@ Add user stories to `docs/user_stories.md` using this format:
 
 As a [type of user], I want [some goal] so that [some reason].
 
-Acceptance Criteria:
-- [Criterion 1]
-- [Criterion 2]
-- [Criterion 3]
-
 #<issue-number>
 ```
 
@@ -108,12 +102,6 @@ Acceptance Criteria:
 ---
 
 As a project manager, I want to view a dashboard of all open issues so that I can track project progress at a glance.
-
-Acceptance Criteria:
-- Dashboard shows count of open issues by status
-- Issues are grouped by priority
-- Data refreshes automatically every 5 minutes
-- Dashboard is accessible to users with manager role or higher
 
 #123
 ```
