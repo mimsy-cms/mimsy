@@ -1,10 +1,10 @@
 apiVersion: image.toolkit.fluxcd.io/v1beta2
 kind: ImageUpdateAutomation
 metadata:
-  name: api
+  name: cms
   namespace: mimsy
 spec:
-  interval: 30m
+  interval: 1m
   sourceRef:
     kind: GitRepository
     name: mimsy
@@ -17,7 +17,7 @@ spec:
         email: flux-automation+mimsy@kodai.ch
         name: Flux Image Automation
       messageTemplate: |
-        Update api page image
+        Update cms image
 
         {{range .Updated.Images}}
         - {{.}}
