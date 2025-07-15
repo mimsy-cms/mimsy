@@ -5,171 +5,57 @@
 The Mimsy project aims to create a modern and developer-oriented headless CMS for resource management.
 
 ### Resource Management
+
 - **Code-First Schema Definition**: Enable developers to define collections, fields, and types entirely in configuration files.
 - **Type Safety**: Provide compile-time validation through an in-house SDK to leverage TypeScripts type system.
 - **Simplified Resource Creation**: Reduce the complexity and initial setup costs compared to highly customizable solutions like Payload CMS.
 
 ### Seamless SvelteKit Integration
+
 - **First-Class Ecosystem Support**: Provide integration with Svelte/SvelteKit applications as the primary development framework.
 - **SDK-Driven Development**: Offer a homemade SDK that allows efficient resource access and management within SvelteKit applications.
 - **Dynamic API Generation**: Automatically generate REST API endpoints based on resource definitions without manual configuration.
 
 ### Zero-Downtime Operations
+
 - **Live Migration Support**: Enable schema changes without service interruption using pgroll for PostgreSQL.
 - **Kubernetes-Compatible Deployments**: Support deployment patterns where old and new versions run simultaneously for validation.
 - **Version-Controlled Schema Evolution**: Use Git commit hashes to track and manage different schema versions.
 
 ### Operational Excellence
+
 - **Source of Truth Clarity**: Eliminate confusion by making code the single source of truth for all schema modifications.
 - **Simplified Technology Stack**: Minimize language complexity and overlap by using Go for the backend and TypeScript for the frontend/SDK.
 
-
-
 ## Functional requirements
 
-### Core CMS Functionality
-
-#### Resource Definition Management
-- The system shall allow developers to define collections using TypeScript interfaces and configurations.
-- The system shall support field types including `text`, `number`, `boolean`, `date`, `relationships`, and `media`.
-- The system shall validate resource definitions at compile time using TypeScript type checking.
-- The system shall generate schema definitions for multiple versions from TypeScript resource definitions.
-
-#### CLI Tool Operations
-- The CLI shall discover and process TypeScript resource definitions from project files.
-- The CLI shall store migration decisions in a `.mimsy` folder for future reference.
-- The CLI shall generate migration scripts compatible with pgroll for PostgreSQL.
-- The CLI shall validate resource definitions before processing.
-- The CLI shall support both incremental and full schema regeneration.
-
-#### Admin Panel Interface
-- The admin panel shall dynamically generate forms based on resource definitions.
-- The admin panel shall provide CRUD operations (Create, Read, Update, Delete) for all defined collections.
-- The admin panel shall support media upload and management.
-- The admin panel shall provide user authentication and authorization.
-- The admin panel shall display validation errors and success messages.
-- The admin panel shall NOT allow schema modifications through the UI.
-
-#### Backend API Services
-- The backend shall expose REST API endpoints dynamically based on resource definitions.
-- The backend shall handle authentication for both the admin panel and the external API access.
-- The backend shall serve the admin panel static files.
-- The backend shall provide filtering, sorting, and pagination for collection queries.
-- The backend shall support relationship queries between collections.
-- The backend shall validate incoming data against resource definitions.
-
-#### SDK Integration
-- The SDK shall provide type-safe resource access for SvelteKit applications.
-- The SDK shall support querying collections with filtering and sorting.
-- The SDK shall handle caching and request optimization.
-- The SDK shall provide TypeScript interfaces for all defined resources.
-- The SDK shall support both development and production environments.
-
-### Migration and Versioning
-
-#### Live Migration Support
-- The system shall support zero-downtime schema migrations using pgroll.
-- The system shall maintain multiple schema versions simultaneously during migrations.
-- The system shall use commit hashes to identify and query specific schema versions.
-- The system shall provide rollback capabilities for failed migrations.
-- The system shall automatically clean up old schema versions after successful migrations.
-
-#### Version Control Integration
-- The system shall track schema changes through Git commits.
-- The system shall support branching and merging of schema changes.
-- The system shall detect conflicts in concurrent schema modifications.
-
-
+1. The CMS must allow developers to define collections and their fields in a definition file.
+2. Generate the SDK from the definition file, either using TypeScript's reflection, or code generation
+3. The CMS must automatically generate REST API endpoints based on the defined collections.
+4. The CMS must support generating and running schema migrations using the definition file.
+5. The CMS must perform zero-downtime migrations for schema changes.
+6. The admin interface must be accessible only to authenticated users.
+7. The CMS must provide user account management features.
+8. Users of the CMS must be able to version their definition file inside Git.
+9. The admin interface must allow users to create, read, update, and delete resources defined in any collection.
+10. The admin interface must display forms for each collection based on the defined fields for the collection.
+11. The definition file must be the single source of truth for the schema.
 
 ## Non-functional requirements
 
-### Performance Requirements
+1. The CMS backend must be stateless and must support horizontal scaling.
+2. During active schema migrations, the CMS backend must support handling requests that specify a particular schema version.
+3. The actions performed on resources inside collections must adhere to the ACID properties.
 
-#### Response Time
-- The API responses shall complete within 200ms for "simple" queries under normal load.
-- The admin panel page loads shall complete within 1 second.
-- The schema migrations shall complete within 5 minutes for datasets up to 1 million records.
-- The CLI processing shall complete within 30 seconds for projects with up to 100 collections.
+## User Stories
 
-#### Throughput
-- The system shall handle at least 1,000 concurrent API requests.
-- The database shall support at least 10,000 read operations per second.
-- The admin panel shall support at least 100 concurrent users.
-
-### Scalability Requirements
-
-#### Horizontal Scaling
-- The backend services shall be stateless to support horizontal scaling.
-- The system shall support container orchestration platforms (e.g. Kubernetes).
-
-#### Data Volume
-- The system shall support databases with up to 100GB of content data.
-- The system shall handle collections with up to 1 million records.
-- The system shall support file storage up to 10GB.
-
-### Reliability Requirements
-
-#### Availability
-- The system shall maintain 99% uptime during business hours.
-- The schema migrations shall not cause service downtime.
-- The system shall support graceful degradation during partial failures.
-
-#### Data Integrity
-- The system shall ensure ACID compliance for all database operations.
-- The system shall provide automatic backups with point-in-time recovery.
-- The system shall validate all data against schema definitions before persistence.
-
-### Security Requirements
-
-#### Authentication & Authorization
-- The system shall support role-based access control.
-- The admin panel shall require authentication for all operations.
-- The system shall enforce password complexity requirements.
-  - SPECIFICS??
-
-#### Data Protection
-- The system shall encrypt sensitive data at rest.
-- The system shall use HTTPS for all client-server communications.
-- The system shall sanitize all user inputs to prevent injection attacks.
-- The system shall provide audit logging for all administrative actions.
-
-### Usability Requirements
-
-#### Developer Experience
-- The resource definitions shall provide support in TypeScript-compatible editors.
-- The error messages shall be clear and actionable.
-- The documentation shall include code examples for common use cases.
-- The CLI shall provide helpful error messages and suggestions.
-
-#### Admin Interface
-- The admin panel shall be responsive and work on mobile devices.
-- The admin panel shall provide intuitive navigation for content management.
-- The admin panel shall provide contextual help and tooltips.
-
-### Maintainability Requirements
-
-#### Code Quality
-- The system shall use consistent coding standards across all components.
-- The system shall provide comprehensive API documentation.
-- The system shall support automated testing for all major functionalities.
-
-#### Deployment
-- The system shall support containerized deployment.
-- The system shall provide database migration scripts for version upgrades.
-- The system shall support environment-specific configurations.
-- The system shall provide monitoring and logging capabilities.
-
-### Compatibility Requirements
-
-#### Platform Support
-- The backend shall run on Linux, macOS, and Windows.
-- The admin panel shall work on modern browsers (Chrome, Firefox, Safari, Edge).
-- The SDK shall be compatible with Node.js 18+ and SvelteKit 1.0+.
-- The system shall support PostgreSQL 14+ with pgroll compatibility.
-
-#### Interoperability
-- The resource definition format shall be language-agnostic and JSON-serializable.
-- The API shall follow REST conventions for third-party integration.
-- The system shall provide OpenAPI specifications for all endpoints.
-- The system shall support standard authentication protocols (JWT, OAuth2).
-
+| Name                                                                                | Role                | Goal                                                                                                                                 | Benefit                                                                          |
+| ----------------------------------------------------------------------------------- | ------------------- | ------------------------------------------------------------------------------------------------------------------------------------ | -------------------------------------------------------------------------------- |
+| [Definition file](https://github.com/mimsy-cms/mimsy/issues/22)                     | As a developer      | I want to define collections and fields in a configuration file                                                                      | In order to version control my schema.                                           |
+| [Typesafe resource management](https://github.com/mimsy-cms/mimsy/issues/23)        | As a developer      | I want to use a TypeScript SDK for type-safe resource management                                                                     | In order to avoid runtime errors.                                                |
+| [Content editing](https://github.com/mimsy-cms/mimsy/issues/24)                     | As a content editor | I want to edit the content of the resources of my application                                                                        | In order to make changes to the content displayed in my application.             |
+| [Automated migrations](https://github.com/mimsy-cms/mimsy/issues/25)                | As a developer      | I want Mimsy to automatically generate migrations between schema versions                                                            | In order to remove the burden of manual migration.                               |
+| [Transparent schema migrations](https://github.com/mimsy-cms/mimsy/issues/26)       | As a developer      | I want the resources inside Mimsy to always be accessible even when performing schema updates                                        | In order to remove downtime during schema updates.                               |
+| [Editor access management](https://github.com/mimsy-cms/mimsy/issues/27)            | As a developer      | I want to give access to the resources in Mimsy to content editors                                                                   | In order to enable them to manage content without developer assistance.          |
+| [SDK resource management](https://github.com/mimsy-cms/mimsy/issues/28)             | As a developer      | I want to manage resources in collections using the SDK                                                                              | In order to have typesafety guarantees when working with resources.              |
+| [Collection management UI generation](https://github.com/mimsy-cms/mimsy/issues/29) | As a developer      | I want the content editor to have access to an up-to-date resource management interface the moment the collections schema is updated | In order to remove friction and delay between the developers and content editors |
