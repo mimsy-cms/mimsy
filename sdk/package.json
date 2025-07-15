@@ -1,0 +1,49 @@
+{
+  "name": "sdk",
+  "version": "1.0.0",
+  "description": "",
+  "main": "dist/index.cjs",
+  "module": "lib/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "dev": "nodemon",
+    "prepublishOnly": "pnpm i && node --run build",
+    "build": "node --run validate-typescript && node --run build:clean && node --run generate-dist",
+    "generate-dist": "tsup src/index.ts --minify --tsconfig tsconfig.prod.json --dts --format cjs,esm --out-dir dist",
+    "validate-typescript": "tsc -p tsconfig.prod.json --noEmit",
+    "test": "rimraf coverage && node --run test:unit",
+    "test:unit": "vitest run --coverage",
+    "build:clean": "rimraf dist; exit 0"
+  },
+  "files": [
+    "dist"
+  ],
+  "exports": {
+    ".": {
+      "import": {
+        "types": "./dist/index.d.ts",
+        "default": "./dist/index.js"
+      },
+      "require": {
+        "types": "./dist/index.d.cts",
+        "default": "./dist/index.cjs"
+      }
+    }
+  },
+  "keywords": [],
+  "author": "Mimsy Contributors",
+  "license": "ISC",
+  "packageManager": "pnpm@10.12.4",
+  "devDependencies": {
+    "@vitest/coverage-istanbul": "2.1.9",
+    "nodemon": "^3.1.10",
+    "rimraf": "^6.0.1",
+    "tsconfig-paths": "^4.2.0",
+    "tsup": "^8.4.0",
+    "tsx": "^4.19.3",
+    "typescript": "^5.8.2",
+    "unplugin-swc": "^1.5.5",
+    "vite": "^5.4.12",
+    "vitest": "^2.1.4"
+  }
+}
