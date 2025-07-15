@@ -11,3 +11,10 @@ patches:
     target:
       kind: Kustomization
       name: "landing"
+  - patch: |
+      - op: replace
+        path: /spec/path
+        value: ./flux/clusters/sofliar/overrides/web
+    target:
+      kind: Kustomization
+      name: "web"
