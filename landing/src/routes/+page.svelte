@@ -6,6 +6,7 @@
 	import FeaturesSection from '$lib/components/FeaturesSection.svelte';
 	import QuickStartSection from '$lib/components/QuickStartSection.svelte';
 	import StatusSection from '$lib/components/StatusSection.svelte';
+	import TeamSection from '$lib/components/TeamSection.svelte';
 	import FooterSection from '$lib/components/FooterSection.svelte';
 </script>
 
@@ -22,6 +23,7 @@
 	<FeaturesSection />
 	<QuickStartSection />
 	<StatusSection />
+	<TeamSection />
 	<FooterSection />
 </div>
 
