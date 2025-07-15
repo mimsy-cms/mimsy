@@ -15,7 +15,6 @@ Thank you for your interest in contributing to Mimsy! This document provides gui
 ### Issue Management
 - All tasks must be assigned to an issue (bugs, features, chores, etc.)
 - Use issue templates and labels appropriately
-- Allow approximately 24 hours for team discussion before starting work
 - For new features, consider adding user stories to the issue
 
 ### Branch Management
@@ -43,11 +42,11 @@ Thank you for your interest in contributing to Mimsy! This document provides gui
 ### Documentation
 - Highly encouraged to create/update documentation as you develop
 - All documentation should be placed in the `docs/` folder
-- For new features requiring user stories, add them to `docs/USER_STORIES.md`
+- For new features requiring user stories, add them to `docs/user_stories.md`
 
 ### User Stories
 - Required for significant new features (not minor changes like label updates)
-- Format in `docs/USER_STORIES.md`:
+- Format in `docs/user_stories.md`:
   ```
   ---
 

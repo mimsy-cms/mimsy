@@ -26,7 +26,7 @@ Our development workflow is designed to maintain high code quality while enablin
 ### Branch Creation
 - **Base branch**: Always create new branches from the latest `main` branch
 - **Naming convention**: `<conventional-commit-prefix>/<issue-number>/<description>`
-  
+
   Examples:
   - `feat/123/add-user-authentication`
   - `fix/456/resolve-login-bug`
@@ -88,7 +88,7 @@ Use the standard [Conventional Commits](https://www.conventionalcommits.org/en/v
 User stories are required for significant new features (not for minor changes like label updates).
 
 #### Format
-Add user stories to `docs/USER_STORIES.md` using this format:
+Add user stories to `docs/user_stories.md` using this format:
 
 ```
 ---
