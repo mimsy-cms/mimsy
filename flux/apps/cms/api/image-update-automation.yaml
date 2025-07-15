@@ -1,0 +1,29 @@
+apiVersion: image.toolkit.fluxcd.io/v1beta2
+kind: ImageUpdateAutomation
+metadata:
+  name: api
+  namespace: mimsy
+spec:
+  interval: 30m
+  sourceRef:
+    kind: GitRepository
+    name: mimsy
+  git:
+    checkout:
+      ref:
+        branch: main
+    commit:
+      author:
+        email: flux-automation+mimsy@kodai.ch
+        name: Flux Image Automation
+      messageTemplate: |
+        Update api page image
+
+        {{range .Updated.Images}}
+        - {{.}}
+        {{end}}
+    push:
+      branch: main
+  update:
+    path: "./flux"
+    strategy: Setters
