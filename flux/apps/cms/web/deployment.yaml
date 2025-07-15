@@ -20,7 +20,7 @@ spec:
         - name: regcred
       containers:
         - name: web
-          image: ghcr.io/mimsy-cms/web:latest
+          image: ghcr.io/mimsy-cms/web:latest # {"$imagepolicy": "mimsy:web"}
           ports:
             - name: http
               containerPort: 3000
