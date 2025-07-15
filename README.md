@@ -4,8 +4,6 @@
       <source media="(prefers-color-scheme: light)" srcset="docs/imgs/header.png">
       <img alt="Mimsy github header" src="docs/imgs/header.png">
     </picture>
-
-  <img src="" alt="Mimsy github header" />
 </p>
 
 # Mimsy CMS
