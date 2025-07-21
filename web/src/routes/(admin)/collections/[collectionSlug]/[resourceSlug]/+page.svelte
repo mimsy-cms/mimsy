@@ -11,6 +11,7 @@
 	let plainTextValue = $state('');
 	let emailValue = $state('');
 	let numberValue = $state<number>();
+	let dateValue = $state<Date>();
 </script>
 
 <div class="flex flex-col gap-6">
@@ -43,8 +44,14 @@
 				<NumberField id="numberField" name="numberField" bind:value={numberValue} />
 			</div>
 
-			<DateField />
-			<CheckboxField />
+			<div class="flex flex-col gap-2">
+				<DateField id="dateField" name="dateField" bind:value={dateValue} label={'DateField'} />
+			</div>
+
+			<div class="flex flex-col gap-2">
+				<CheckboxField id="checkboxField" name="checkboxField" label={'CheckboxField'} />
+			</div>
+
 			<SelectField />
 			<RelationshipField />
 		</div>
