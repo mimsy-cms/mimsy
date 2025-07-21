@@ -1,6 +1,7 @@
 @import 'tailwindcss';
+@plugin 'tailwindcss-animate';
 
-@theme {
+@theme inline {
 	--color-lilac-50: #f4f5fd;
 	--color-lilac-100: #e5e7fa;
 	--color-lilac-200: #cfd2f6;
@@ -13,8 +14,16 @@
 	--color-lilac-900: #443b74;
 	--color-lilac-950: #282244;
 
-	--animate-accordion-down: accordion-down 0.2s ease-out;
-	--animate-accordion-up: accordion-up 0.2s ease-out;
+	--animate-accordion-down: accordion-down 0.1s ease-out;
+	--animate-accordion-up: accordion-up 0.1s ease-out;
+	--animate-scale-in: scale-in 0.1s ease;
+	--animate-scale-out: scale-out 0.1s ease;
+	--animate-fade-in: fade-in 0.1s ease;
+	--animate-fade-out: fade-out 0.1s ease;
+	--animate-enter-from-left: enter-from-left 0.1s ease;
+	--animate-enter-from-right: enter-from-right 0.1s ease;
+	--animate-exit-to-left: exit-to-left 0.1s ease;
+	--animate-exit-to-right: exit-to-right 0.1s ease;
 
 	@keyframes accordion-down {
 		from {
@@ -31,6 +40,90 @@
 		}
 		to {
 			height: 0;
+		}
+	}
+
+	@keyframes enter-from-right {
+		from {
+			opacity: 0;
+			transform: translateX(200px);
+		}
+		to {
+			opacity: 1;
+			transform: translateX(0);
+		}
+	}
+
+	@keyframes enter-from-left {
+		from {
+			opacity: 0;
+			transform: translateX(-200px);
+		}
+		to {
+			opacity: 1;
+			transform: translateX(0);
+		}
+	}
+
+	@keyframes exit-to-right {
+		from {
+			opacity: 1;
+			transform: translateX(0);
+		}
+		to {
+			opacity: 0;
+			transform: translateX(200px);
+		}
+	}
+
+	@keyframes exit-to-left {
+		from {
+			opacity: 1;
+			transform: translateX(0);
+		}
+		to {
+			opacity: 0;
+			transform: translateX(-200px);
+		}
+	}
+
+	@keyframes scale-in {
+		from {
+			opacity: 0;
+			transform: rotateX(-10deg) scale(0.9);
+		}
+		to {
+			opacity: 1;
+			transform: rotateX(0deg) scale(1);
+		}
+	}
+
+	@keyframes scale-out {
+		from {
+			opacity: 1;
+			transform: rotateX(0deg) scale(1);
+		}
+		to {
+			opacity: 0;
+			transform: rotateX(-10deg) scale(0.95);
+		}
+	}
+
+	@keyframes fade-in {
+		from {
+			opacity: 0;
+		}
+		to {
+			opacity: 1;
+		}
+	}
+
+	@keyframes fade-out {
+		from {
+			opacity: 1;
+		}
+		to {
+			opacity: 0;
 		}
 	}
 }
