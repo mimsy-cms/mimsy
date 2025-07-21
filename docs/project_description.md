@@ -2,7 +2,7 @@
 
 ## Problem
 
-currently, no CMS exists that is easy to use, customize, and developer-friendly. While there are solutions that are close to our objectives, they often lack the most important limitation that allows for an easy
+Currently, no CMS exists that is easy to use and customize and remains developer-friendly. While there are solutions that are close to our objectives, they often lack the most important limitation that allows for an easy
 implementation: being opinionated.
 
 We do not need or want to be a one-size-fits-all solution, that ends up being either one-size-fits-some, or implement-your-own-size situations. We want to have a tool that works for us, and for anyone else who
