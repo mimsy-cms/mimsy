@@ -6,6 +6,35 @@ This document provides detailed information about our development workflow and p
 
 Our development workflow is designed to maintain high code quality while enabling fast iteration and collaboration. The process emphasizes small, focused changes with quick review cycles.
 
+## Trunk-Based Development
+
+We follow a trunk-based development model, where all developers work on short-lived branches that are frequently merged back to the main branch (`main`). This approach enables continuous integration and faster delivery cycles.
+
+### Key Decisions and Benefits
+
+Our choice of trunk-based development drives several architectural and process decisions:
+
+#### Continuous Integration and Merge Queues
+- **CI Validation**: We use continuous integration to validate that changes don't break anything before they reach `main`
+- **Merge Queue Ready**: Our setup is ready to enable merge queues to ensure that `main` can always be built and deployed
+- **Quality Gates**: All automated checks (linting, tests, builds) must pass before merging
+
+#### Fast Merge Culture
+- **24-Hour Target**: We target less than 24-hour turnaround time from PR creation to merge
+- **Merge Time Dashboard**: We have a system developed for another context that provides a dashboard of merge times to track our performance
+- **Quick Reviews**: Internal culture encourages fast reviews and merging to maintain velocity
+
+#### GitOps with FluxCD
+- **GitOps Approach**: We chose FluxCD for their excellent GitOps approach and git-based updates
+- **Infrastructure as Code**: All deployments and configurations are managed through git, ensuring consistency and traceability
+- **Automated Deployments**: Changes to `main` trigger automated deployments through FluxCD
+
+#### Monorepo Strategy
+- **Single Repository**: Everything is contained within a monorepo to ensure cohesive testing and versioning
+- **Component Integration**: Every part of the framework is tested with all components using the same version
+- **Simplified Dependencies**: Eliminates version mismatches and integration issues between components
+- **Atomic Changes**: Related changes across multiple components can be made in a single commit/PR
+
 ## Issue Management
 
 ### Issue Requirements
