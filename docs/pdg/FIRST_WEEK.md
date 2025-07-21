@@ -6,4 +6,4 @@
 - Landing Page: [Website](https://mimsy.kodai.ch) - [Source Code](../../landing)
 - [Technical Choices](../architecture_description.md#Technologies) (Same document as architecture description, scroll below)
 - Development Workflows + chosen tools: [High level overview](../../CONTRIBUTING.md) - [Detailed Workflow](../workflow.md)
-- Deployment, CI/CD: [Manifests](../../flux/) - [Github Actions workflow](../../.github/workflows/build.yml)
+- Deployment, CI/CD: [Manifests](../../flux/) - [Github Actions workflow](../../.github/workflows/build.yaml)
