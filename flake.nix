@@ -46,6 +46,7 @@
             # Nix tools
             nil
             nixpkgs-fmt
+            gh
           ];
 
           shellHook = ''
