@@ -1,0 +1,27 @@
+name: Feature Request
+description: Suggest a new feature or enhancement
+title: ""
+labels: ["enhancement", "triage"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for suggesting a new feature! Please provide as much detail as possible.
+
+  - type: textarea
+    id: description
+    attributes:
+      label: Description
+      description: A small description of the feature requested
+      placeholder: Describe the feature you'd like to see implemented...
+    validations:
+      required: true
+
+  - type: textarea
+    id: implementation
+    attributes:
+      label: Implementation Details
+      description: This section will be completed by maintainers as they work on the issue
+      placeholder: This will be filled out by maintainers during development...
+    validations:
+      required: false
