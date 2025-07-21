@@ -7,9 +7,13 @@ import (
 	"net"
 	"net/http"
 	"os"
+	"database/sql"
 
 	_ "github.com/joho/godotenv/autoload"
+	_ "github.com/lib/pq"
+
 	"github.com/mimsy-cms/mimsy/internal/migrations"
+	"github.com/mimsy-cms/mimsy/internal/auth"
 )
 
 func main() {
@@ -26,14 +30,19 @@ func main() {
 		fmt.Printf("Successfully ran %d migrations\n", migrationCount)
 	}
 
+	db, err := sql.Open("postgres", getPgURL())
+	if err != nil {
+		fmt.Println("Failed to connect to database:", err)
+		return
+	}
+	defer db.Close()
+
 	mux := http.NewServeMux()
 	v1 := http.NewServeMux()
 
 	mux.Handle("/v1/", http.StripPrefix("/v1", v1))
 
-	v1.HandleFunc("POST /auth/login", func(w http.ResponseWriter, r *http.Request) {
-		w.WriteHeader(http.StatusOK)
-	})
+	v1.HandleFunc("POST /auth/login", auth.LoginHandler(db))
 
 	server := &http.Server{
 		Addr:    net.JoinHostPort("localhost", cmp.Or(os.Getenv("APP_PORT"), "3000")),
