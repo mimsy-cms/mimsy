@@ -32,7 +32,8 @@ export const actions: Actions = {
 			headers: {
 				'Content-Type': 'application/json'
 			},
-			body: JSON.stringify(form.data)
+			body: JSON.stringify(form.data),
+			credentials: 'include'
 		});
 
 		if (!res.ok) {
@@ -41,6 +42,6 @@ export const actions: Actions = {
 			return fail(res.status, { form });
 		}
 
-		return redirect(302, '/');
+		throw redirect(302, '/');
 	}
 };

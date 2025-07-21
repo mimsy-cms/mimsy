@@ -6,6 +6,7 @@
 	import Accordion from './Accordion.svelte';
 	import { cn } from '$lib/cn';
 	import MenuItem from './MenuItem.svelte';
+	import { goto } from '$app/navigation';
 
 	type Props = {
 		class?: string;
@@ -25,6 +26,19 @@
 		{ name: 'Services', href: '/globals/services' },
 		{ name: 'Footer', href: '/globals/footer' }
 	];
+
+	async function logout() {
+		const res = await fetch(`/v1/auth/logout`, {
+			method: 'POST',
+			credentials: 'include'
+		});
+
+		if (res.ok) {
+			goto('/login');
+		} else {
+			alert('Logout failed.');
+		}
+	}
 </script>
 
 <div class={cn('lg:inset-y-0 lg:min-w-64', className)}>
@@ -41,14 +55,14 @@
 		</nav>
 
 		<div class="p-2">
-			<a
-				href="/logout"
-				data-sveltekit-preload-data="off"
-				class="group flex items-center rounded-md px-2 py-2 text-sm text-gray-600 hover:bg-gray-50 hover:text-gray-900"
+			<button
+				on:click={logout}
+				type="button"
+				class="group flex items-center w-full rounded-md px-2 py-2 text-sm text-gray-600 hover:bg-gray-50 hover:text-gray-900"
 			>
 				<LogOutIcon class="mr-3 h-5 w-5 flex-shrink-0" />
 				Logout
-			</a>
+			</button>
 		</div>
 	</div>
 </div>

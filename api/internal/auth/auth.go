@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"net/http"
 	"strings"
+	"time"
 
 	"golang.org/x/crypto/argon2"
 )
@@ -93,6 +94,15 @@ type User struct {
 	PasswordHash string
 }
 
+func generateSessionToken() (string, error) {
+	b := make([]byte, 32)
+	_, err := rand.Read(b)
+	if err != nil {
+		return "", err
+	}
+	return base64.RawURLEncoding.EncodeToString(b), nil
+}
+
 func LoginHandler(db *sql.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var req LoginRequest
@@ -118,7 +128,64 @@ func LoginHandler(db *sql.DB) http.HandlerFunc {
 			return
 		}
 
+		sessionToken, err := generateSessionToken()
+		if err != nil {
+			http.Error(w, "Failed to generate session", http.StatusInternalServerError)
+			return
+		}
+
+		expiresAt := time.Now().Add(1 * time.Hour) // session valid for 1 hour
+
+		_, err = db.Exec(`
+			INSERT INTO session (id, user_id, expires_at)
+			VALUES ($1, $2, $3)`, sessionToken, user.ID, expiresAt)
+		if err != nil {
+			http.Error(w, "Failed to create session", http.StatusInternalServerError)
+			return
+		}
+
+		http.SetCookie(w, &http.Cookie{
+			Name:     "session",
+			Value:    sessionToken,
+			Path:     "/",
+			Expires:  expiresAt,
+			HttpOnly: true,
+			// Secure:   true, TODO: Set to true in production
+			Secure:   false, // For local development
+			SameSite: http.SameSiteLaxMode,
+		})
+
 		w.WriteHeader(http.StatusOK)
 		json.NewEncoder(w).Encode(map[string]string{"message": "Login successful"})
+	}
+}
+
+func LogoutHandler(db *sql.DB) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		cookie, err := r.Cookie("session")
+		if err != nil {
+			http.Error(w, "No session found", http.StatusUnauthorized)
+			return
+		}
+
+		_, err = db.Exec(`DELETE FROM session WHERE id = $1`, cookie.Value)
+		if err != nil {
+			http.Error(w, "Failed to delete session", http.StatusInternalServerError)
+			return
+		}
+
+		http.SetCookie(w, &http.Cookie{
+			Name:     "session",
+			Value:    "",
+			Path:     "/",
+			MaxAge:   -1,
+			HttpOnly: true,
+			// Secure:   true, TODO: Set to true in production
+			Secure:   false, // For local development
+			SameSite: http.SameSiteLaxMode,
+		})
+
+		w.WriteHeader(http.StatusOK)
+		json.NewEncoder(w).Encode(map[string]string{"message": "Logged out successfully"})
 	}
 }

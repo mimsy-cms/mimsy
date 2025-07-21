@@ -3,17 +3,17 @@ package main
 import (
 	"cmp"
 	"context"
+	"database/sql"
 	"fmt"
 	"net"
 	"net/http"
 	"os"
-	"database/sql"
 
 	_ "github.com/joho/godotenv/autoload"
 	_ "github.com/lib/pq"
 
-	"github.com/mimsy-cms/mimsy/internal/migrations"
 	"github.com/mimsy-cms/mimsy/internal/auth"
+	"github.com/mimsy-cms/mimsy/internal/migrations"
 )
 
 func main() {
@@ -43,6 +43,7 @@ func main() {
 	mux.Handle("/v1/", http.StripPrefix("/v1", v1))
 
 	v1.HandleFunc("POST /auth/login", auth.LoginHandler(db))
+	v1.HandleFunc("POST /auth/logout", auth.LogoutHandler(db))
 
 	server := &http.Server{
 		Addr:    net.JoinHostPort("localhost", cmp.Or(os.Getenv("APP_PORT"), "3000")),
