@@ -30,7 +30,7 @@
 			</table>
 		</div>
 		
-		<div class="bg-gray-100 p-6">
+		<div class="bg-gray-100 p-6 shadow-[4px_4px_0px_0px_theme(colors.gray.400)]">
 			<h3 class="font-bold mb-4">Agency Reality Check</h3>
 			<div class="space-y-2">
 				<div>✗ Clients change requirements mid-project</div>
