@@ -31,7 +31,7 @@
 	}
 </script>
 
-<section class="container mx-auto px-4 py-16 border-t order-gray-200">
+<section class="container mx-auto px-4 py-16 border-t border-gray-200">
 	<div class="max-w-4xl mx-auto">
 		<h2 class="text-3xl md:text-4xl font-bold mb-8">Status & Roadmap</h2>
 
