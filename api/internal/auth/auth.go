@@ -62,7 +62,7 @@ func CheckPasswordHash(password, encoded string) error {
 		return fmt.Errorf("could not decode hash: %v", err)
 	}
 
-	hash := argon2.IDKey([]byte(password), salt, Time, Memory, uint8(Threads), uint32(len(expectedHash)))
+	hash := argon2.IDKey([]byte(password), salt, Time, Memory, uint8(Threads), HashLength)
 
 	if !compareHashes(hash, expectedHash) {
 		return errors.New("password does not match")
@@ -114,7 +114,7 @@ func LoginHandler(db *sql.DB) http.HandlerFunc {
 		}
 
 		if err := CheckPasswordHash(req.Password, user.PasswordHash); err != nil {
-			http.Error(w, "Invalid password", http.StatusUnauthorized)
+			http.Error(w, "Invalid credentials", http.StatusUnauthorized)
 			return
 		}
 

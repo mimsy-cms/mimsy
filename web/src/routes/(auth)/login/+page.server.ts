@@ -37,9 +37,10 @@ export const actions: Actions = {
 
 		if (!res.ok) {
 			const msg = await res.text();
-			throw error(res.status, msg || 'An error occurred while logging in');
+			form.message = msg || 'Invalid credentials';
+			return fail(res.status, { form });
 		}
 
-		redirect(302, '/');
+		return redirect(302, '/');
 	}
 };
