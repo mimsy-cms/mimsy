@@ -9,13 +9,15 @@
 	import SelectField from '$lib/components/admin/fields/SelectField.svelte';
 
 	let plainTextValue = $state('');
+	let emailValue = $state('');
+	let numberValue = $state<number>();
 </script>
 
 <div class="flex flex-col gap-6">
 	<h1 class="text-4xl font-medium">Pages</h1>
 
 	<div class="flex gap-4">
-		<div class="flex-1 rounded-md border border-gray-300 bg-white p-4">
+		<div class="flex flex-1 flex-col gap-2 rounded-md border border-gray-300 bg-white p-4">
 			<div class="flex flex-col gap-2">
 				<label for="plainTextField">PlainTextField</label>
 				<PlainTextField
@@ -31,8 +33,16 @@
 				<RichTextField />
 			</div>
 
-			<EmailField />
-			<NumberField />
+			<div class="flex flex-col gap-2">
+				<label for="emailField">EmailField</label>
+				<EmailField id="emailField" name="emailField" bind:value={emailValue} />
+			</div>
+
+			<div class="flex flex-col gap-2">
+				<label for="numberField">NumberField</label>
+				<NumberField id="numberField" name="numberField" bind:value={numberValue} />
+			</div>
+
 			<DateField />
 			<CheckboxField />
 			<SelectField />
