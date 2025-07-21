@@ -5,7 +5,7 @@
 	import NumberField from '$lib/components/admin/fields/NumberField.svelte';
 	import PlainTextField from '$lib/components/admin/fields/PlainTextField.svelte';
 	import RelationshipField from '$lib/components/admin/fields/RelationshipField.svelte';
-	import RichTextField from '$lib/components/admin/fields/RichTextField.svelte';
+	import RichTextField from '$lib/components/admin/fields/RichTextField/RichTextField.svelte';
 	import SelectField from '$lib/components/admin/fields/SelectField.svelte';
 
 	let plainTextValue = $state('');
@@ -26,7 +26,11 @@
 				/>
 			</div>
 
-			<RichTextField />
+			<div class="flex flex-col gap-2">
+				<label for="richTextField">RichTextField</label>
+				<RichTextField />
+			</div>
+
 			<EmailField />
 			<NumberField />
 			<DateField />
