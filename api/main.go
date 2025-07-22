@@ -103,7 +103,6 @@ func initLogger() {
 	} else {
 		handler = slog.NewTextHandler(os.Stdout, options)
 	}
-}
 
 	slog.SetDefault(slog.New(handler))
 }
