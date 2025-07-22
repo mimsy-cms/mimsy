@@ -1,12 +1,14 @@
 package auth
 
 import (
+	"context"
 	"crypto/rand"
 	"database/sql"
 	"encoding/base64"
 	"encoding/json"
 	"errors"
 	"fmt"
+	"log"
 	"net/http"
 	"strings"
 	"time"
@@ -15,6 +17,9 @@ import (
 )
 
 const (
+	adminEmail    = "admin@example.com"
+	adminPassword = "admin123"
+
 	// Parameters for Argon2
 	Memory     = 64 * 1024
 	Time       = 1
@@ -22,6 +27,43 @@ const (
 	SaltLength = 16
 	HashLength = 32
 )
+
+func CreateAdminUser(ctx context.Context, db *sql.DB) error {
+	var userCount int
+	err := db.QueryRowContext(ctx, `SELECT COUNT(*) FROM "user"`).Scan(&userCount)
+	if err != nil {
+		return fmt.Errorf("failed to count users: %w", err)
+	}
+	if userCount > 0 {
+		return nil // Admin user already exists
+	}
+
+	hash, err := generatePasswordHash(adminPassword)
+	if err != nil {
+		return fmt.Errorf("failed to create admin user hash: %w", err)
+	}
+
+	_, err = db.ExecContext(ctx, `INSERT INTO "user" (email, password, must_change_password, is_admin) VALUES ($1, $2, $3, $4)`, adminEmail, hash, true, true)
+	if err != nil {
+		return fmt.Errorf("failed to create admin user: %w", err)
+	}
+
+	log.Printf("Initial admin user %s created with temporary password %s", adminEmail, adminPassword)
+	return nil
+}
+
+func generatePasswordHash(password string) (string, error) {
+	salt, err := generateSalt(SaltLength)
+	if err != nil {
+		return "", err
+	}
+
+	hash := argon2.IDKey([]byte(password), salt, Time, Memory, uint8(Threads), HashLength)
+	saltB64 := base64.RawStdEncoding.EncodeToString(salt)
+	hashB64 := base64.RawStdEncoding.EncodeToString(hash)
+
+	return fmt.Sprintf("%s$%s", saltB64, hashB64), nil
+}
 
 func generateSalt(length int) ([]byte, error) {
 	salt := make([]byte, length)
@@ -89,9 +131,11 @@ type LoginRequest struct {
 }
 
 type User struct {
-	ID           int64
-	Email        string
-	PasswordHash string
+	ID                 int64
+	Email              string
+	PasswordHash       string
+	IsAdmin            bool
+	MustChangePassword bool
 }
 
 func generateSessionToken() (string, error) {
@@ -251,5 +295,88 @@ func ChangePasswordHandler(db *sql.DB) http.HandlerFunc {
 
 		w.WriteHeader(http.StatusOK)
 		json.NewEncoder(w).Encode(map[string]string{"message": "Password changed successfully"})
+	}
+}
+
+type CreateUserRequest struct {
+	Email    string `json:"email"`
+	Password string `json:"password"`
+	IsAdmin  bool   `json:"isAdmin"`
+}
+
+func RegisterHandler(db *sql.DB) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		var req CreateUserRequest
+		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+			http.Error(w, "Invalid request", http.StatusBadRequest)
+			return
+		}
+
+		email := strings.TrimSpace(req.Email)
+		if email == "" || len(req.Password) < 8 {
+			http.Error(w, "Invalid email or password too short", http.StatusBadRequest)
+			return
+		}
+
+		var exists bool
+		err := db.QueryRow(`SELECT EXISTS(SELECT 1 FROM "user" WHERE email=$1)`, email).Scan(&exists)
+		if err != nil {
+			http.Error(w, "Database error", http.StatusInternalServerError)
+			return
+		}
+		if exists {
+			http.Error(w, "User already exists", http.StatusBadRequest)
+			return
+		}
+
+		hashed, err := HashPassword(req.Password)
+		if err != nil {
+			http.Error(w, "Failed to hash password", http.StatusInternalServerError)
+			return
+		}
+
+		_, err = db.Exec(
+			`INSERT INTO "user" (email, password, is_admin, must_change_password) VALUES ($1, $2, $3, TRUE)`,
+			email, hashed, req.IsAdmin,
+		)
+		if err != nil {
+			http.Error(w, "Failed to create user", http.StatusInternalServerError)
+			return
+		}
+
+		w.WriteHeader(http.StatusCreated)
+		json.NewEncoder(w).Encode(map[string]string{"message": "User created successfully"})
+	}
+}
+
+func MeHandler(db *sql.DB) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		cookie, err := r.Cookie("session")
+		if err != nil || cookie.Value == "" {
+			http.Error(w, "Unauthorized", http.StatusUnauthorized)
+			return
+		}
+
+		var userID int64
+		err = db.QueryRow(`SELECT user_id FROM session WHERE id = $1 AND expires_at > NOW()`, cookie.Value).Scan(&userID)
+		if err != nil {
+			http.Error(w, "Invalid or expired session", http.StatusUnauthorized)
+			return
+		}
+
+		var user User
+		err = db.QueryRow(`SELECT id, email, is_admin, must_change_password FROM "user" WHERE id = $1`, userID).
+			Scan(&user.ID, &user.Email, &user.IsAdmin, &user.MustChangePassword)
+		if err != nil {
+			http.Error(w, "User not found", http.StatusInternalServerError)
+			return
+		}
+
+		json.NewEncoder(w).Encode(map[string]interface{}{
+			"id":                   user.ID,
+			"email":                user.Email,
+			"is_admin":             user.IsAdmin,
+			"must_change_password": user.MustChangePassword,
+		})
 	}
 }

@@ -42,8 +42,8 @@
 </script>
 
 <div class={cn('lg:inset-y-0 lg:min-w-64', className)}>
-	<div class="flex h-full flex-grow flex-col border-r border-gray-200 bg-white">
-		<nav class="mt-4 flex-1 space-y-1 px-2">
+	<div class="flex flex-col flex-1 border-r border-gray-200 bg-white">
+		<nav class="mt-4 flex-1 overflow-auto space-y-1 px-2">
 			<MenuItem href="/" class="font-medium" {onNavigate}>
 				<LayoutDashboardIcon class="mr-3 h-5 w-5 flex-shrink-0" />
 				<span class="flex-1">Dashboard</span>

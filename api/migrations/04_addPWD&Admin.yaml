@@ -15,6 +15,9 @@ operations:
         - name: must_change_password
           type: BOOLEAN
           default: "false"
+        - name: is_admin
+          type: BOOLEAN
+          default: "false"
       constraints:
         - columns:
             - id
