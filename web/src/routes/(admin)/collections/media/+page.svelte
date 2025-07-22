@@ -1,0 +1,160 @@
+<script lang="ts">
+	import { cn } from '$lib/cn';
+	import Dropzone from '$lib/components/admin/Dropzone.svelte';
+	import MediaCard from '$lib/components/admin/media/MediaCard.svelte';
+	import CloudUploadIcon from '@lucide/svelte/icons/cloud-upload';
+	import GridIcon from '@lucide/svelte/icons/grid-3x3';
+	import ListIcon from '@lucide/svelte/icons/list';
+
+	let fileInputElement = $state<HTMLInputElement>();
+	let layoutMode = $state<'grid' | 'list'>('grid');
+
+	const mediaItems = Array(10)
+		.fill(null)
+		.map((_, index) => ({
+			id: index.toString(),
+			url: 'https://placehold.co/600x400',
+			alt: '',
+			name: 'image.jpg',
+			size: 2393482934,
+			updatedAt: 'May 25th 2024, 08:12 PM'
+		}));
+
+	function handleFileDrop(files: FileList) {
+		// TODO: Upload files to the API
+		console.log(files);
+	}
+</script>
+
+<div class="flex flex-col gap-6">
+	<div class="flex flex-col">
+		<h1 class="text-4xl font-medium">Media</h1>
+
+		<div class="mt-4 flex items-center justify-between">
+			<div class="flex items-center gap-2">
+				<div class="flex overflow-hidden rounded-md border border-gray-300">
+					<button
+						class={cn('flex items-center gap-2 px-3 py-1.5 text-sm transition-colors', {
+							'bg-blue-700 text-white': layoutMode === 'grid',
+							'bg-white text-gray-700 hover:bg-gray-50': layoutMode !== 'grid'
+						})}
+						onclick={() => (layoutMode = 'grid')}
+					>
+						<GridIcon class="size-4" />
+						<span>Grid</span>
+					</button>
+					<button
+						class={cn(
+							'flex items-center gap-2 border-l border-gray-300 px-3 py-1.5 text-sm transition-colors',
+							{
+								'bg-blue-700 text-white': layoutMode === 'list',
+								'bg-white text-gray-700 hover:bg-gray-50': layoutMode !== 'list'
+							}
+						)}
+						onclick={() => (layoutMode = 'list')}
+					>
+						<ListIcon class="size-4" />
+						<span>List</span>
+					</button>
+				</div>
+			</div>
+
+			<button class="btn btn-sm flex items-center gap-2" onclick={() => fileInputElement?.click()}>
+				<CloudUploadIcon class="size-4" />
+				<span>Upload</span>
+			</button>
+		</div>
+	</div>
+
+	<Dropzone id="dropzone" name="dropzone" onChange={handleFileDrop}>
+		{#if layoutMode === 'grid'}
+			<div
+				class="grid grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5"
+			>
+				{#each mediaItems as item}
+					<MediaCard
+						href={`/collections/media/${item.id}`}
+						url={item.url}
+						alt={item.alt}
+						class="transition-transform duration-75 hover:scale-105"
+					/>
+				{/each}
+			</div>
+		{:else}
+			<div class="w-full overflow-hidden rounded-md border border-gray-200 bg-white">
+				<table class="w-full divide-y divide-gray-200">
+					<thead class="bg-gray-50">
+						<tr>
+							<th
+								scope="col"
+								class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500"
+							>
+								Preview
+							</th>
+							<th
+								scope="col"
+								class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500"
+							>
+								Name
+							</th>
+							<th
+								scope="col"
+								class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500"
+							>
+								Size
+							</th>
+							<th
+								scope="col"
+								class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500"
+							>
+								Updated
+							</th>
+						</tr>
+					</thead>
+					<tbody class="divide-y divide-gray-200">
+						{#each mediaItems as item}
+							<tr class="text-left hover:bg-gray-50">
+								<td class="px-6 py-3">
+									<div class="h-12 w-12 overflow-hidden rounded-md bg-gray-200">
+										<img src={item.url} alt={item.alt} class="h-full w-full object-cover" />
+									</div>
+								</td>
+								<td class="px-6 py-3">
+									<a
+										class="text-sm text-gray-900 hover:text-blue-600"
+										href={`/collections/media/${item.id}`}
+									>
+										{item.name}
+									</a>
+								</td>
+								<td class="whitespace-nowrap px-6 py-3">
+									<div class="text-sm text-gray-500">
+										{item.size}
+									</div>
+								</td>
+								<td class="whitespace-nowrap px-6 py-3">
+									<div class="text-sm text-gray-500">
+										{item.updatedAt}
+									</div>
+								</td>
+							</tr>
+						{/each}
+					</tbody>
+				</table>
+			</div>
+		{/if}
+	</Dropzone>
+</div>
+
+<input
+	bind:this={fileInputElement}
+	type="file"
+	multiple
+	class="hidden"
+	aria-hidden="true"
+	onchange={(e) => {
+		if (e.currentTarget?.files) {
+			handleFileDrop(e.currentTarget?.files);
+		}
+	}}
+/>
