@@ -12,7 +12,6 @@
 	let numberValue = $state<number>();
 	let dateValue = $state<Date>();
 	let selectValue = $state<string>();
-
 </script>
 
 <div class="flex flex-col gap-6">
