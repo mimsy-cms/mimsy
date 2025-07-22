@@ -1,0 +1,36 @@
+operations:
+  - create_table:
+      columns:
+        - generated:
+            identity:
+              user_specified_values: BY DEFAULT
+          name: id
+          type: BIGINT
+          pk: true
+        - name: uuid
+          type: UUID
+        - name: name
+          type: TEXT
+        - name: content_type
+          type: TEXT
+        - default: NOW()
+          name: created_at
+          type: TIMESTAMPTZ
+        - name: size
+          type: BIGINT
+        - name: uploaded_by
+          type: BIGINT
+      constraints:
+        - columns:
+            - name
+          name: uc__name
+          type: unique
+        - columns:
+            - uploaded_by
+          name: fk__uploaded_by
+          references:
+            columns:
+              - id
+            table: user
+          type: foreign_key
+      name: media
