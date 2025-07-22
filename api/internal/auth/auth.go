@@ -17,10 +17,13 @@ import (
 	"golang.org/x/crypto/argon2"
 )
 
-const (
+var (
+	// Admin credentials from environment variables
 	adminEmail    = os.Getenv("ADMIN_EMAIL")
 	adminPassword = os.Getenv("ADMIN_PASSWORD")
+)
 
+const (
 	// Parameters for Argon2
 	Memory     = 64 * 1024
 	Time       = 1
