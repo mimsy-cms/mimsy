@@ -9,6 +9,7 @@ import (
 	"net"
 	"net/http"
 	"os"
+	"time"
 
 	"github.com/google/uuid"
 	_ "github.com/joho/godotenv/autoload"
@@ -23,7 +24,7 @@ import (
 const (
 	// Argon2id parameters
 	memory     = 64 * 1024
-	time       = 1
+	argonTime  = 1
 	threads    = 4
 	saltLength = 16
 	keyLength  = 32
