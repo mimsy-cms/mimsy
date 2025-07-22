@@ -66,6 +66,11 @@ func main() {
 	}
 	defer db.Close()
 
+	// Clean up expired sessions every hour
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	go cleanupExpiredSessions(ctx, db)
+
 	if err := auth.CreateAdminUser(context.Background(), db); err != nil {
 		fmt.Println("Failed to create admin user:", err)
 		return
@@ -101,4 +106,20 @@ func getPgURL() string {
 		os.Getenv("POSTGRES_HOST"),
 		cmp.Or(os.Getenv("POSTGRES_PORT"), "5432"),
 		os.Getenv("POSTGRES_DATABASE"))
+}
+
+func cleanupExpiredSessions(ctx context.Context, db *sql.DB) {
+	for {
+		select {
+		case <-ctx.Done():
+			return
+		case <-time.After(time.Hour): // run every hour
+			_, err := db.ExecContext(ctx, `DELETE FROM session WHERE expires_at < NOW()`)
+			if err != nil {
+				fmt.Printf("Error cleaning up expired sessions: %v\n", err)
+			} else {
+				fmt.Println("Expired sessions cleaned up successfully")
+			}
+		}
+	}
 }

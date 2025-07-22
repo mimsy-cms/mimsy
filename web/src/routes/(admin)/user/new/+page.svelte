@@ -21,7 +21,6 @@
      style="max-width: calc(100vw - 280px - 48px);">
   <h1 class="text-4xl font-medium">Create user</h1>
 
-  <!-- Buttons above form box -->
   <div class="flex justify-end gap-2">
     <button
       type="button"
