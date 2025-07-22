@@ -10,6 +10,7 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"os"
 	"strings"
 	"time"
 
@@ -17,8 +18,8 @@ import (
 )
 
 const (
-	adminEmail    = "admin@example.com"
-	adminPassword = "admin123"
+	adminEmail    = os.Getenv("ADMIN_EMAIL")
+	adminPassword = os.Getenv("ADMIN_PASSWORD")
 
 	// Parameters for Argon2
 	Memory     = 64 * 1024
@@ -38,7 +39,7 @@ func CreateAdminUser(ctx context.Context, db *sql.DB) error {
 		return nil // Admin user already exists
 	}
 
-	hash, err := generatePasswordHash(adminPassword)
+	hash, err := HashPassword(adminPassword)
 	if err != nil {
 		return fmt.Errorf("failed to create admin user hash: %w", err)
 	}
@@ -50,19 +51,6 @@ func CreateAdminUser(ctx context.Context, db *sql.DB) error {
 
 	log.Printf("Initial admin user %s created with temporary password %s", adminEmail, adminPassword)
 	return nil
-}
-
-func generatePasswordHash(password string) (string, error) {
-	salt, err := generateSalt(SaltLength)
-	if err != nil {
-		return "", err
-	}
-
-	hash := argon2.IDKey([]byte(password), salt, Time, Memory, uint8(Threads), HashLength)
-	saltB64 := base64.RawStdEncoding.EncodeToString(salt)
-	hashB64 := base64.RawStdEncoding.EncodeToString(hash)
-
-	return fmt.Sprintf("%s$%s", saltB64, hashB64), nil
 }
 
 func generateSalt(length int) ([]byte, error) {
@@ -156,8 +144,8 @@ func LoginHandler(db *sql.DB) http.HandlerFunc {
 		}
 
 		var user User
-		err := db.QueryRow(`SELECT id, email, password FROM "user" WHERE email = $1`, req.Email).
-			Scan(&user.ID, &user.Email, &user.PasswordHash)
+		err := db.QueryRow(`SELECT id, email, password, must_change_password FROM "user" WHERE email = $1`, req.Email).
+			Scan(&user.ID, &user.Email, &user.PasswordHash, &user.MustChangePassword)
 		if err != nil {
 			if err == sql.ErrNoRows {
 				http.Error(w, "User not found", http.StatusUnauthorized)
@@ -188,14 +176,7 @@ func LoginHandler(db *sql.DB) http.HandlerFunc {
 			return
 		}
 
-		var mustChangePassword bool
-		err = db.QueryRow(`SELECT must_change_password FROM "user" WHERE id = $1`, user.ID).Scan(&mustChangePassword)
-		if err != nil {
-			http.Error(w, "Failed to check user settings", http.StatusInternalServerError)
-			return
-		}
-
-		if mustChangePassword {
+		if user.MustChangePassword {
 			json.NewEncoder(w).Encode(map[string]string{
 				"mustChangePassword": "true",
 				"session":            sessionToken,
@@ -222,19 +203,8 @@ func LogoutHandler(db *sql.DB) http.HandlerFunc {
 			return
 		}
 
-		http.SetCookie(w, &http.Cookie{
-			Name:     "session",
-			Value:    "",
-			Path:     "/",
-			MaxAge:   -1,
-			HttpOnly: true,
-			// Secure:   true, TODO: Set to true in production
-			Secure:   false, // For local development
-			SameSite: http.SameSiteLaxMode,
-		})
-
 		w.WriteHeader(http.StatusOK)
-		json.NewEncoder(w).Encode(map[string]string{"message": "Logged out successfully"})
+		json.NewEncoder(w).Encode(map[string]string{"message": "Logged out successfully", "session": cookie.Value})
 	}
 }
 
@@ -351,16 +321,25 @@ func RegisterHandler(db *sql.DB) http.HandlerFunc {
 
 func MeHandler(db *sql.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		w.Header().Set("Access-Control-Allow-Origin", "http://localhost:5173")
+		w.Header().Set("Access-Control-Allow-Credentials", "true")
+
 		cookie, err := r.Cookie("session")
 		if err != nil || cookie.Value == "" {
+			log.Printf("No session cookie found: %v", err)
 			http.Error(w, "Unauthorized", http.StatusUnauthorized)
 			return
 		}
 
 		var userID int64
 		err = db.QueryRow(`SELECT user_id FROM session WHERE id = $1 AND expires_at > NOW()`, cookie.Value).Scan(&userID)
-		if err != nil {
+		if err == sql.ErrNoRows {
 			http.Error(w, "Invalid or expired session", http.StatusUnauthorized)
+			return
+		} else if err != nil {
+			log.Printf("Session DB error: %v", err)
+			http.Error(w, "Database error", http.StatusInternalServerError)
 			return
 		}
 
@@ -368,15 +347,19 @@ func MeHandler(db *sql.DB) http.HandlerFunc {
 		err = db.QueryRow(`SELECT id, email, is_admin, must_change_password FROM "user" WHERE id = $1`, userID).
 			Scan(&user.ID, &user.Email, &user.IsAdmin, &user.MustChangePassword)
 		if err != nil {
+			log.Printf("User not found: %v", err)
 			http.Error(w, "User not found", http.StatusInternalServerError)
 			return
 		}
 
-		json.NewEncoder(w).Encode(map[string]interface{}{
+		if err := json.NewEncoder(w).Encode(map[string]interface{}{
 			"id":                   user.ID,
 			"email":                user.Email,
 			"is_admin":             user.IsAdmin,
 			"must_change_password": user.MustChangePassword,
-		})
+		}); err != nil {
+			log.Printf("Failed to encode user data: %v", err)
+			http.Error(w, "Failed to encode user data", http.StatusInternalServerError)
+		}
 	}
 }
