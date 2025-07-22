@@ -8,9 +8,12 @@ importers:
 
   .:
     devDependencies:
+      '@types/node':
+        specifier: ^24.0.15
+        version: 24.0.15
       '@vitest/coverage-istanbul':
         specifier: 2.1.9
-        version: 2.1.9(vitest@2.1.9)
+        version: 2.1.9(vitest@2.1.9(@types/node@24.0.15))
       nodemon:
         specifier: ^3.1.10
         version: 3.1.10
@@ -34,10 +37,10 @@ importers:
         version: 1.5.5(@swc/core@1.12.14)(rollup@4.45.0)
       vite:
         specifier: ^5.4.12
-        version: 5.4.19
+        version: 5.4.19(@types/node@24.0.15)
       vitest:
         specifier: ^2.1.4
-        version: 2.1.9
+        version: 2.1.9(@types/node@24.0.15)
 
 packages:
 
@@ -625,6 +628,9 @@ packages:
 
   '@types/estree@1.0.8':
     resolution: {integrity: sha512-dWHzHa2WqEXI/O1E9OjrocMTKJl2mSrEolh1Iomrv6U+JuNwaHXsXx9bLu5gG7BUWFIN0skIQJQ/L1rIex4X6w==}
+
+  '@types/node@24.0.15':
+    resolution: {integrity: sha512-oaeTSbCef7U/z7rDeJA138xpG3NuKc64/rZ2qmUFkFJmnMsAPaluIifqyWd8hSSMxyP9oie3dLAqYPblag9KgA==}
 
   '@vitest/coverage-istanbul@2.1.9':
     resolution: {integrity: sha512-vdYE4FkC/y2lxcN3Dcj54Bw+ericmDwiex0B8LV5F/YNYEYP1mgVwhPnHwWGAXu38qizkjOuyczKbFTALfzFKw==}
@@ -1295,6 +1301,9 @@ packages:
   undefsafe@2.0.5:
     resolution: {integrity: sha512-WxONCrssBM8TSPRqN5EmsjVrsv4A8X12J4ArBiiayv3DyyG3ZlIg6yysuuSYdZsVz3TKcTg2fd//Ujd4CHV1iA==}
 
+  undici-types@7.8.0:
+    resolution: {integrity: sha512-9UJ2xGDvQ43tYyVMpuHlsgApydB8ZKfVYTsLDhXkFL/6gfkp+U8xTGdh8pMJv1SpZna0zxG1DwsKZsreLbXBxw==}
+
   unplugin-swc@1.5.5:
     resolution: {integrity: sha512-BahYtYvQ/KSgOqHoy5FfQgp/oZNAB7jwERxNeFVeN/PtJhg4fpK/ybj9OwKtqGPseOadS7+TGbq6tH2DmDAYvA==}
     peerDependencies:
@@ -1811,7 +1820,11 @@ snapshots:
 
   '@types/estree@1.0.8': {}
 
-  '@vitest/coverage-istanbul@2.1.9(vitest@2.1.9)':
+  '@types/node@24.0.15':
+    dependencies:
+      undici-types: 7.8.0
+
+  '@vitest/coverage-istanbul@2.1.9(vitest@2.1.9(@types/node@24.0.15))':
     dependencies:
       '@istanbuljs/schema': 0.1.3
       debug: 4.4.1(supports-color@5.5.0)
@@ -1823,7 +1836,7 @@ snapshots:
       magicast: 0.3.5
       test-exclude: 7.0.1
       tinyrainbow: 1.2.0
-      vitest: 2.1.9
+      vitest: 2.1.9(@types/node@24.0.15)
     transitivePeerDependencies:
       - supports-color
 
@@ -1834,13 +1847,13 @@ snapshots:
       chai: 5.2.1
       tinyrainbow: 1.2.0
 
-  '@vitest/mocker@2.1.9(vite@5.4.19)':
+  '@vitest/mocker@2.1.9(vite@5.4.19(@types/node@24.0.15))':
     dependencies:
       '@vitest/spy': 2.1.9
       estree-walker: 3.0.3
       magic-string: 0.30.17
     optionalDependencies:
-      vite: 5.4.19
+      vite: 5.4.19(@types/node@24.0.15)
 
   '@vitest/pretty-format@2.1.9':
     dependencies:
@@ -2510,6 +2523,8 @@ snapshots:
 
   undefsafe@2.0.5: {}
 
+  undici-types@7.8.0: {}
+
   unplugin-swc@1.5.5(@swc/core@1.12.14)(rollup@4.45.0):
     dependencies:
       '@rollup/pluginutils': 5.2.0(rollup@4.45.0)
@@ -2531,13 +2546,13 @@ snapshots:
       escalade: 3.2.0
       picocolors: 1.1.1
 
-  vite-node@2.1.9:
+  vite-node@2.1.9(@types/node@24.0.15):
     dependencies:
       cac: 6.7.14
       debug: 4.4.1(supports-color@5.5.0)
       es-module-lexer: 1.7.0
       pathe: 1.1.2
-      vite: 5.4.19
+      vite: 5.4.19(@types/node@24.0.15)
     transitivePeerDependencies:
       - '@types/node'
       - less
@@ -2549,18 +2564,19 @@ snapshots:
       - supports-color
       - terser
 
-  vite@5.4.19:
+  vite@5.4.19(@types/node@24.0.15):
     dependencies:
       esbuild: 0.21.5
       postcss: 8.5.6
       rollup: 4.45.0
     optionalDependencies:
+      '@types/node': 24.0.15
       fsevents: 2.3.3
 
-  vitest@2.1.9:
+  vitest@2.1.9(@types/node@24.0.15):
     dependencies:
       '@vitest/expect': 2.1.9
-      '@vitest/mocker': 2.1.9(vite@5.4.19)
+      '@vitest/mocker': 2.1.9(vite@5.4.19(@types/node@24.0.15))
       '@vitest/pretty-format': 2.1.9
       '@vitest/runner': 2.1.9
       '@vitest/snapshot': 2.1.9
@@ -2576,9 +2592,11 @@ snapshots:
       tinyexec: 0.3.2
       tinypool: 1.1.1
       tinyrainbow: 1.2.0
-      vite: 5.4.19
-      vite-node: 2.1.9
+      vite: 5.4.19(@types/node@24.0.15)
+      vite-node: 2.1.9(@types/node@24.0.15)
       why-is-node-running: 2.3.0
+    optionalDependencies:
+      '@types/node': 24.0.15
     transitivePeerDependencies:
       - less
       - lightningcss
