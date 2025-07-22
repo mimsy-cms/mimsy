@@ -144,6 +144,21 @@ func LoginHandler(db *sql.DB) http.HandlerFunc {
 			return
 		}
 
+		var mustChangePassword bool
+		err = db.QueryRow(`SELECT must_change_password FROM "user" WHERE id = $1`, user.ID).Scan(&mustChangePassword)
+		if err != nil {
+			http.Error(w, "Failed to check user settings", http.StatusInternalServerError)
+			return
+		}
+
+		if mustChangePassword {
+			json.NewEncoder(w).Encode(map[string]string{
+				"mustChangePassword": "true",
+				"session":            sessionToken,
+			})
+			return
+		}
+
 		w.WriteHeader(http.StatusOK)
 		json.NewEncoder(w).Encode(map[string]string{"message": "Login successful", "session": sessionToken})
 	}
@@ -176,5 +191,65 @@ func LogoutHandler(db *sql.DB) http.HandlerFunc {
 
 		w.WriteHeader(http.StatusOK)
 		json.NewEncoder(w).Encode(map[string]string{"message": "Logged out successfully"})
+	}
+}
+
+type ChangePasswordRequest struct {
+	OldPassword string `json:"old_password"`
+	NewPassword string `json:"new_password"`
+}
+
+func ChangePasswordHandler(db *sql.DB) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		cookie, err := r.Cookie("session")
+		if err != nil || cookie.Value == "" {
+			http.Error(w, "Unauthorized", http.StatusUnauthorized)
+			return
+		}
+
+		var userID int64
+		err = db.QueryRow(`SELECT user_id FROM session WHERE id = $1 AND expires_at > NOW()`, cookie.Value).Scan(&userID)
+		if err != nil {
+			http.Error(w, "Invalid or expired session", http.StatusUnauthorized)
+			return
+		}
+
+		var req ChangePasswordRequest
+		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+			http.Error(w, "Invalid request body", http.StatusBadRequest)
+			return
+		}
+
+		if req.OldPassword == "" || req.NewPassword == "" {
+			http.Error(w, "Old and new passwords are required", http.StatusBadRequest)
+			return
+		}
+
+		var currentHash string
+		err = db.QueryRow(`SELECT password FROM "user" WHERE id = $1`, userID).Scan(&currentHash)
+		if err != nil {
+			http.Error(w, "User not found", http.StatusInternalServerError)
+			return
+		}
+
+		if err := CheckPasswordHash(req.OldPassword, currentHash); err != nil {
+			http.Error(w, "Old password is incorrect", http.StatusUnauthorized)
+			return
+		}
+
+		newHash, err := HashPassword(req.NewPassword)
+		if err != nil {
+			http.Error(w, "Failed to hash new password", http.StatusInternalServerError)
+			return
+		}
+
+		_, err = db.Exec(`UPDATE "user" SET password = $1, must_change_password = FALSE WHERE id = $2`, newHash, userID)
+		if err != nil {
+			http.Error(w, "Failed to update password", http.StatusInternalServerError)
+			return
+		}
+
+		w.WriteHeader(http.StatusOK)
+		json.NewEncoder(w).Encode(map[string]string{"message": "Password changed successfully"})
 	}
 }

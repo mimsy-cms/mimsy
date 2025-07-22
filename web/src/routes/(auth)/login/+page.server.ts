@@ -46,10 +46,14 @@ export const actions: Actions = {
 		cookies.set('session', data.session, {
 			httpOnly: true,
 			path: '/',
-			maxAge: 60 * 60,
+			maxAge: 60 * 60 * 24 * 7, // 7 days
 			sameSite: 'strict',
 			secure: true,
 		});
+
+		if (data.mustChangePassword === 'true') {
+			throw redirect(303, '/password');
+		}
 
 		throw redirect(302, '/');
 	}
