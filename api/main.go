@@ -16,6 +16,26 @@ import (
 	"github.com/mimsy-cms/mimsy/internal/migrations"
 )
 
+func WithCORS(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		origin := r.Header.Get("Origin")
+		if origin == "http://localhost:5173" {
+			w.Header().Set("Access-Control-Allow-Origin", origin)
+			w.Header().Set("Access-Control-Allow-Credentials", "true")
+			w.Header().Set("Access-Control-Allow-Headers", "Content-Type, X-SvelteKit-Action")
+			w.Header().Set("Access-Control-Allow-Methods", "POST, GET, OPTIONS")
+		}
+
+		// Handle preflight
+		if r.Method == "OPTIONS" {
+			w.WriteHeader(http.StatusNoContent)
+			return
+		}
+
+		next.ServeHTTP(w, r)
+	})
+}
+
 func main() {
 	runConfig := migrations.NewRunConfig(
 		migrations.WithMigrationsDir("./migrations"),
@@ -47,7 +67,7 @@ func main() {
 
 	server := &http.Server{
 		Addr:    net.JoinHostPort("localhost", cmp.Or(os.Getenv("APP_PORT"), "3000")),
-		Handler: mux,
+		Handler: WithCORS(mux),
 	}
 
 	if err := server.ListenAndServe(); err != nil && err != http.ErrServerClosed {

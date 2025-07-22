@@ -19,7 +19,7 @@ export const load: PageServerLoad = async () => {
 
 
 export const actions: Actions = {
-	default: async ({ request }) => {
+	default: async ({ request, cookies }) => {
 		const form = await superValidate(request, zod4(loginSchema));
 
 		if (!form.valid) {
@@ -41,6 +41,15 @@ export const actions: Actions = {
 			form.message = msg || 'Invalid credentials';
 			return fail(res.status, { form });
 		}
+
+		const data = await res.json();
+		cookies.set('session', data.session, {
+			httpOnly: true,
+			path: '/',
+			maxAge: 60 * 60,
+			sameSite: 'strict',
+			secure: true,
+		});
 
 		throw redirect(302, '/');
 	}

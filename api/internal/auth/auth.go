@@ -134,29 +134,18 @@ func LoginHandler(db *sql.DB) http.HandlerFunc {
 			return
 		}
 
-		expiresAt := time.Now().Add(1 * time.Hour) // session valid for 1 hour
+		expiresAt := time.Now().Add(7 * 24 * time.Hour) // session valid for 7 days
 
-		_, err = db.Exec(`
-			INSERT INTO session (id, user_id, expires_at)
+		_, err = db.Exec(
+			`INSERT INTO session (id, user_id, expires_at)
 			VALUES ($1, $2, $3)`, sessionToken, user.ID, expiresAt)
 		if err != nil {
 			http.Error(w, "Failed to create session", http.StatusInternalServerError)
 			return
 		}
 
-		http.SetCookie(w, &http.Cookie{
-			Name:     "session",
-			Value:    sessionToken,
-			Path:     "/",
-			Expires:  expiresAt,
-			HttpOnly: true,
-			// Secure:   true, TODO: Set to true in production
-			Secure:   false, // For local development
-			SameSite: http.SameSiteLaxMode,
-		})
-
 		w.WriteHeader(http.StatusOK)
-		json.NewEncoder(w).Encode(map[string]string{"message": "Login successful"})
+		json.NewEncoder(w).Encode(map[string]string{"message": "Login successful", "session": sessionToken})
 	}
 }
 

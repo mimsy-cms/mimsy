@@ -28,15 +28,15 @@
 	];
 
 	async function logout() {
-		const res = await fetch(`/v1/auth/logout`, {
-			method: 'POST',
-			credentials: 'include'
+		const res = await fetch(`/logout`, {
+			method: 'POST'
 		});
 
 		if (res.ok) {
 			goto('/login');
 		} else {
-			alert('Logout failed.');
+			const errorText = await res.text();
+			alert('Logout failed: ' + errorText);
 		}
 	}
 </script>
