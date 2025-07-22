@@ -72,7 +72,7 @@
 <div class={cn('space-y-3', className)} bind:this={containerElement}>
 	<div
 		class={cn(
-			'relative rounded-md border-2 border-dashed border-transparent p-6 text-center outline-none transition-all duration-200',
+			'relative rounded-md border-2 border-dashed border-transparent text-center outline-none transition-all duration-200',
 			isDragging && 'border-blue-500 bg-blue-50',
 			disabled && 'cursor-not-allowed opacity-50'
 		)}
