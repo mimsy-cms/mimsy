@@ -4,7 +4,6 @@
 	import EmailField from '$lib/components/admin/fields/EmailField.svelte';
 	import NumberField from '$lib/components/admin/fields/NumberField.svelte';
 	import PlainTextField from '$lib/components/admin/fields/PlainTextField.svelte';
-	import RelationshipField from '$lib/components/admin/fields/RelationshipField.svelte';
 	import RichTextField from '$lib/components/admin/fields/RichTextField/RichTextField.svelte';
 	import SelectField from '$lib/components/admin/fields/SelectField.svelte';
 
@@ -12,6 +11,8 @@
 	let emailValue = $state('');
 	let numberValue = $state<number>();
 	let dateValue = $state<Date>();
+	let selectValue = $state<string>();
+
 </script>
 
 <div class="flex flex-col gap-6">
@@ -52,8 +53,20 @@
 				<CheckboxField id="checkboxField" name="checkboxField" label={'CheckboxField'} />
 			</div>
 
-			<SelectField />
-			<RelationshipField />
+			<div class="flex flex-col gap-2">
+				<label for="selectField">SelectField</label>
+				<SelectField
+					name="selectField"
+					bind:value={selectValue}
+					label="Select something"
+					items={[
+						{ value: 'option1', label: 'Option 1' },
+						{ value: 'option2', label: 'Option 2' },
+						{ value: 'option3', label: 'Option 3' }
+					]}
+					multiple
+				/>
+			</div>
 		</div>
 
 		<div class="rounded-md border border-gray-300 bg-white p-4">
