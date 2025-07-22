@@ -5,7 +5,6 @@
     "module": "esnext",
     "target": "esnext",
     "moduleResolution": "Bundler",
-    "allowImportingTsExtensions": true,
     "esModuleInterop": true,
     "strict": true,
     "outDir": "dist",
@@ -15,8 +14,8 @@
     "resolveJsonModule": true,
     "declaration": true,
     "paths": {
-      "@/src/*": ["src/*"],
-      "@/tests/*": ["tests/*"]
+      "$src/*": ["src/*"],
+      "$test/*": ["tests/*"]
     },
     "types": ["vitest/globals"]
   },
