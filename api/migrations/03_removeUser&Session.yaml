@@ -1,0 +1,5 @@
+operations:
+  - drop_table:
+      name: session
+  - drop_table:
+      name: user

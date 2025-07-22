@@ -1,0 +1,23 @@
+operations:
+  - create_table:
+      columns:
+        - name: id
+          type: TEXT
+        - name: user_id
+          type: BIGINT
+        - name: expires_at
+          type: TIMESTAMP
+      constraints:
+        - columns:
+            - id
+          name: pk__session
+          type: primary_key
+        - columns:
+            - user_id
+          name: fk__session__user
+          type: foreign_key
+          references:
+            table: user
+            columns:
+              - id
+      name: session

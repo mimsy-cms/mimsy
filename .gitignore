@@ -1,3 +1,4 @@
 .data
 .direnv
 .claude/*.local.json
+hours

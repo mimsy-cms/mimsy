@@ -3,10 +3,14 @@
 	import Input from '$lib/components/Input.svelte';
 	import PasswordInput from '$lib/components/PasswordInput.svelte';
 	import { superForm } from 'sveltekit-superforms';
+	import { fa } from 'zod/v4/locales';
 
 	let { data } = $props();
 
-	let { form, errors, enhance } = superForm(data.form);
+	let { form, errors, enhance, message } = superForm(
+		data.form, {
+			resetForm: false,
+		});
 </script>
 
 <div class="flex min-h-screen flex-col items-center justify-center p-6">
@@ -38,4 +42,8 @@
 
 		<button type="submit" class="btn mt-4">Login</button>
 	</form>
+
+	{#if $message}
+		<p class="text-red-600 mt-2 text-sm">{$message}</p>
+	{/if}
 </div>
