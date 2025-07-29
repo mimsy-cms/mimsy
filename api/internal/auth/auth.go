@@ -163,6 +163,12 @@ func LoginHandler(db *sql.DB) http.HandlerFunc {
 			return
 		}
 
+		// Clean up expired sessions
+		if _, err := db.Exec(`DELETE FROM "session" WHERE expires_at < NOW()`); err != nil {
+			http.Error(w, "Failed to clean up expired sessions", http.StatusInternalServerError)
+			return
+		}
+
 		sessionToken, err := generateSessionToken()
 		if err != nil {
 			http.Error(w, "Failed to generate session", http.StatusInternalServerError)

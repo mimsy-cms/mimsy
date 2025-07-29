@@ -9,7 +9,6 @@ import (
 	"net"
 	"net/http"
 	"os"
-	"time"
 
 	"github.com/google/uuid"
 	_ "github.com/joho/godotenv/autoload"
@@ -29,26 +28,6 @@ const (
 	saltLength = 16
 	keyLength  = 32
 )
-
-func WithCORS(next http.Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		origin := r.Header.Get("Origin")
-		if origin == "http://localhost:5173" {
-			w.Header().Set("Access-Control-Allow-Origin", origin)
-			w.Header().Set("Access-Control-Allow-Credentials", "true")
-			w.Header().Set("Access-Control-Allow-Headers", "Content-Type, X-SvelteKit-Action")
-			w.Header().Set("Access-Control-Allow-Methods", "POST, GET, OPTIONS")
-		}
-
-		// Handle preflight
-		if r.Method == "OPTIONS" {
-			w.WriteHeader(http.StatusNoContent)
-			return
-		}
-
-		next.ServeHTTP(w, r)
-	})
-}
 
 func main() {
 	initLogger()
@@ -73,11 +52,6 @@ func main() {
 		return
 	}
 	defer db.Close()
-
-	// Clean up expired sessions every hour
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
-	go cleanupExpiredSessions(ctx, db)
 
 	if err := auth.CreateAdminUser(context.Background(), db); err != nil {
 		fmt.Println("Failed to create admin user:", err)
@@ -126,8 +100,9 @@ func main() {
 	})
 
 	server := &http.Server{
-		Addr:    net.JoinHostPort("localhost", cmp.Or(os.Getenv("APP_PORT"), "3000")),
-		Handler: WithCORS(mux),
+		Addr: net.JoinHostPort("localhost", cmp.Or(os.Getenv("APP_PORT"), "3000")),
+		// Handler: WithCORS(mux),
+		Handler: mux,
 	}
 
 	slog.Info("Starting server", "address", server.Addr)
@@ -191,20 +166,4 @@ func getPgURL() string {
 		os.Getenv("POSTGRES_HOST"),
 		cmp.Or(os.Getenv("POSTGRES_PORT"), "5432"),
 		os.Getenv("POSTGRES_DATABASE"))
-}
-
-func cleanupExpiredSessions(ctx context.Context, db *sql.DB) {
-	for {
-		select {
-		case <-ctx.Done():
-			return
-		case <-time.After(time.Hour): // run every hour
-			_, err := db.ExecContext(ctx, `DELETE FROM session WHERE expires_at < NOW()`)
-			if err != nil {
-				fmt.Printf("Error cleaning up expired sessions: %v\n", err)
-			} else {
-				fmt.Println("Expired sessions cleaned up successfully")
-			}
-		}
-	}
 }
