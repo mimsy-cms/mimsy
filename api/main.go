@@ -9,9 +9,9 @@ import (
 	"net/http"
 	"os"
 
-	"github.com/google/uuid"
 	_ "github.com/joho/godotenv/autoload"
 	"github.com/mimsy-cms/mimsy/internal/logger"
+	"github.com/mimsy-cms/mimsy/internal/media"
 	"github.com/mimsy-cms/mimsy/internal/migrations"
 	"github.com/mimsy-cms/mimsy/internal/storage"
 )
@@ -33,6 +33,9 @@ func main() {
 		slog.Info("Successfully ran migrations", "count", migrationCount)
 	}
 
+	mediaService := media.NewMediaService(storage)
+	mediaHandler := media.NewMediaHandler(mediaService)
+
 	mux := http.NewServeMux()
 	v1 := http.NewServeMux()
 
@@ -42,35 +45,7 @@ func main() {
 		w.WriteHeader(http.StatusOK)
 	})
 
-	v1.HandleFunc("POST /collections/media", func(w http.ResponseWriter, r *http.Request) {
-		r.ParseMultipartForm(256 * 1024) // 256 MB
-
-		file, header, err := r.FormFile("file")
-		if err != nil {
-			http.Error(w, "Failed to get file from form", http.StatusBadRequest)
-			return
-		}
-		defer file.Close()
-
-		contentType := header.Header.Get("Content-Type")
-		if contentType == "" {
-			http.Error(w, "Content-Type header is missing", http.StatusBadRequest)
-			return
-		}
-
-		id, err := uuid.NewV7()
-		if err != nil {
-			http.Error(w, "Failed to generated uuid", http.StatusInternalServerError)
-			return
-		}
-
-		if err := storage.Upload(r.Context(), id.String(), file, contentType); err != nil {
-			http.Error(w, "Failed to upload file", http.StatusInternalServerError)
-			return
-		}
-
-		w.WriteHeader(http.StatusCreated)
-	})
+	v1.HandleFunc("POST /collections/media", mediaHandler.Upload)
 
 	server := &http.Server{
 		Addr:    net.JoinHostPort("localhost", cmp.Or(os.Getenv("APP_PORT"), "3000")),
