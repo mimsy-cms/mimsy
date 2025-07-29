@@ -7,14 +7,6 @@ import (
 	"strings"
 )
 
-type User struct {
-	ID                 int
-	Email              string
-	Password           string
-	MustChangePassword bool
-	IsAdmin            bool
-}
-
 type contextKey string
 
 const userContextKey contextKey = "user"
