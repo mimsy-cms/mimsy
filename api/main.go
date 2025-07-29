@@ -3,6 +3,7 @@ package main
 import (
 	"cmp"
 	"context"
+	"database/sql"
 	"fmt"
 	"log/slog"
 	"net"
@@ -11,9 +12,21 @@ import (
 
 	"github.com/google/uuid"
 	_ "github.com/joho/godotenv/autoload"
+	_ "github.com/lib/pq"
+
+	"github.com/mimsy-cms/mimsy/internal/auth"
 	"github.com/mimsy-cms/mimsy/internal/logger"
 	"github.com/mimsy-cms/mimsy/internal/migrations"
 	"github.com/mimsy-cms/mimsy/internal/storage"
+)
+
+const (
+	// Argon2id parameters
+	memory     = 64 * 1024
+	argonTime  = 1
+	threads    = 4
+	saltLength = 16
+	keyLength  = 32
 )
 
 func main() {
@@ -33,14 +46,28 @@ func main() {
 		slog.Info("Successfully ran migrations", "count", migrationCount)
 	}
 
+	db, err := sql.Open("postgres", getPgURL())
+	if err != nil {
+		fmt.Println("Failed to connect to database:", err)
+		return
+	}
+	defer db.Close()
+
+	if err := auth.CreateAdminUser(context.Background(), db); err != nil {
+		fmt.Println("Failed to create admin user:", err)
+		return
+	}
+
 	mux := http.NewServeMux()
 	v1 := http.NewServeMux()
 
 	mux.Handle("/v1/", http.StripPrefix("/v1", v1))
 
-	v1.HandleFunc("POST /auth/login", func(w http.ResponseWriter, r *http.Request) {
-		w.WriteHeader(http.StatusOK)
-	})
+	v1.HandleFunc("POST /auth/login", auth.LoginHandler(db))
+	v1.HandleFunc("POST /auth/logout", auth.LogoutHandler(db))
+	v1.HandleFunc("POST /auth/password", auth.ChangePasswordHandler(db))
+	v1.HandleFunc("POST /auth/register", auth.RegisterHandler(db))
+	v1.HandleFunc("GET /auth/me", auth.MeHandler(db))
 
 	v1.HandleFunc("POST /collections/media", func(w http.ResponseWriter, r *http.Request) {
 		r.ParseMultipartForm(256 * 1024) // 256 MB
@@ -73,7 +100,8 @@ func main() {
 	})
 
 	server := &http.Server{
-		Addr:    net.JoinHostPort("localhost", cmp.Or(os.Getenv("APP_PORT"), "3000")),
+		Addr: net.JoinHostPort("localhost", cmp.Or(os.Getenv("APP_PORT"), "3000")),
+		// Handler: WithCORS(mux),
 		Handler: mux,
 	}
 
