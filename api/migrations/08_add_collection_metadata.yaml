@@ -1,0 +1,27 @@
+operations:
+  - add_column:
+      table: collection
+      column:
+        name: created_at
+        type: timestamp with time zone
+        nullable: false
+        default: now()
+  - add_column:
+      table: collection
+      column:
+        name: created_by
+        type: varchar(100)
+        nullable: true
+  - add_column:
+      table: collection
+      column:
+        name: updated_at
+        type: timestamp with time zone
+        nullable: false
+        default: now()
+  - add_column:
+      table: collection
+      column:
+        name: updated_by
+        type: varchar(100)
+        nullable: true
