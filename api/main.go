@@ -33,8 +33,9 @@ func main() {
 		slog.Info("Successfully ran migrations", "count", migrationCount)
 	}
 
-	mediaService := media.NewMediaService(storage)
-	mediaHandler := media.NewMediaHandler(mediaService)
+	mediaRepository := media.NewRepository(nil)
+	mediaService := media.NewService(storage, mediaRepository)
+	mediaHandler := media.NewHandler(mediaService)
 
 	mux := http.NewServeMux()
 	v1 := http.NewServeMux()

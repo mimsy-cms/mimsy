@@ -1,12 +1,14 @@
 package media
 
-import "net/http"
+import (
+	"net/http"
+)
 
 type mediaHandler struct {
 	mediaService MediaService
 }
 
-func NewMediaHandler(mediaService MediaService) *mediaHandler {
+func NewHandler(mediaService MediaService) *mediaHandler {
 	return &mediaHandler{mediaService: mediaService}
 }
 
@@ -26,7 +28,8 @@ func (h *mediaHandler) Upload(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := h.mediaService.Upload(r.Context(), file, contentType); err != nil {
+	_, err = h.mediaService.Upload(r.Context(), header, contentType)
+	if err != nil {
 		http.Error(w, "Failed to upload file", http.StatusInternalServerError)
 		return
 	}
