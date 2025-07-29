@@ -11,7 +11,7 @@ import (
 func DefinitionHandler(db *sql.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		// Handler logic for getting collection definition
-		slug := chi.URLParam(r, "slug")
+		slug := chi.URLParam(r, "collectionSlug")
 		if slug == "" {
 			http.Error(w, "Missing slug", http.StatusBadRequest)
 			return
@@ -43,7 +43,7 @@ func DefinitionHandler(db *sql.DB) http.HandlerFunc {
 func ItemsHandler(db *sql.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		// Handler logic for getting collection items
-		slug := chi.URLParam(r, "slug")
+		slug := chi.URLParam(r, "resourceSlug")
 		if slug == "" {
 			http.Error(w, "Missing slug", http.StatusBadRequest)
 			return
