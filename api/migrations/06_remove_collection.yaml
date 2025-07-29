@@ -1,0 +1,3 @@
+operations:
+  - drop_table:
+      name: collection
