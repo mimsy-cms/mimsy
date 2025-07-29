@@ -3,9 +3,26 @@ import { redirect } from '@sveltejs/kit';
 
 export const load: PageServerLoad = async ({ cookies, fetch }) => {
   const session = cookies.get('session');
-
-  if (!session) {
-    // Not logged in
-    throw redirect(303, '/login');
-  }
+  
+    if (!session) {
+      throw redirect(303, '/login');
+    }
+  
+    const res = await fetch('http://localhost:3000/v1/auth/me', {
+      headers: {
+        Authorization: `Bearer ${session}`,
+      },
+    });
+  
+    if (!res.ok) {
+      throw redirect(303, '/login');
+    }
+  
+    const user = await res.json();
+  
+    if (user.must_change_password) {
+      throw redirect(303, '/password');
+    }
+  
+    return { user };
 };

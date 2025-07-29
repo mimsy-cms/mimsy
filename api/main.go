@@ -59,7 +59,7 @@ func main() {
 	v1.HandleFunc("POST /auth/logout", auth.LogoutHandler(db))
 	v1.HandleFunc("POST /auth/password", auth.ChangePasswordHandler(db))
 	v1.HandleFunc("POST /auth/register", auth.RegisterHandler(db))
-	v1.HandleFunc("GET /auth/me", auth.MeHandler(db))
+	v1.Handle("GET /auth/me", auth.WithUser(db)(auth.MeHandler(db)))
 	v1.HandleFunc("GET /collections/:slug/definition", collection.DefinitionHandler(db))
 	v1.HandleFunc("GET /collections/:slug/items", collection.ItemsHandler(db))
 
