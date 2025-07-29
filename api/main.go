@@ -10,7 +10,6 @@ import (
 	"net/http"
 	"os"
 
-	"github.com/go-chi/chi/v5"
 	"github.com/google/uuid"
 	_ "github.com/joho/godotenv/autoload"
 	_ "github.com/lib/pq"
@@ -51,57 +50,48 @@ func main() {
 		return
 	}
 
-	router := chi.NewRouter()
+	mux := http.NewServeMux()
 
-	router.Group(func(r chi.Router) {
-		r.Use(auth.WithUser(db))
+	mux.HandleFunc("/v1/auth/login", auth.LoginHandler(db))
+	mux.HandleFunc("/v1/auth/logout", auth.LogoutHandler(db))
+	mux.HandleFunc("/v1/auth/password", auth.ChangePasswordHandler(db))
+	mux.HandleFunc("/v1/auth/register", auth.RegisterHandler(db))
+	mux.HandleFunc("/v1/auth/me", auth.MeHandler(db))
+	mux.HandleFunc("/v1/collections/{collectionSlug}/definition", collection.DefinitionHandler(db))
+	mux.HandleFunc("/v1/collections/{collectionSlug}/items", collection.ItemsHandler(db))
+	mux.HandleFunc("POST /collections/media", func(w http.ResponseWriter, r *http.Request) {
+		r.ParseMultipartForm(256 * 1024) // 256 MB
 
-		r.Route("/v1", func(v1 chi.Router) {
-			v1.Post("/auth/login", auth.LoginHandler(db))
-			v1.Post("/auth/logout", auth.LogoutHandler(db))
-			v1.Post("/auth/password", auth.ChangePasswordHandler(db))
-			v1.Post("/auth/register", auth.RegisterHandler(db))
-			v1.Get("/auth/me", auth.MeHandler(db))
-			v1.Route("/collections", func(c chi.Router) {
-				c.Get("/{collectionSlug}/definition", collection.DefinitionHandler(db))
-				c.Get("/{collectionSlug}/items", collection.ItemsHandler(db))
+		file, header, err := r.FormFile("file")
+		if err != nil {
+			http.Error(w, "Failed to get file from form", http.StatusBadRequest)
+			return
+		}
+		defer file.Close()
 
-				c.Post("/media", func(w http.ResponseWriter, r *http.Request) {
-					r.ParseMultipartForm(256 * 1024) // 256 MB
+		contentType := header.Header.Get("Content-Type")
+		if contentType == "" {
+			http.Error(w, "Content-Type header is missing", http.StatusBadRequest)
+			return
+		}
 
-					file, header, err := r.FormFile("file")
-					if err != nil {
-						http.Error(w, "Failed to get file from form", http.StatusBadRequest)
-						return
-					}
-					defer file.Close()
+		id, err := uuid.NewV7()
+		if err != nil {
+			http.Error(w, "Failed to generated uuid", http.StatusInternalServerError)
+			return
+		}
 
-					contentType := header.Header.Get("Content-Type")
-					if contentType == "" {
-						http.Error(w, "Content-Type header is missing", http.StatusBadRequest)
-						return
-					}
+		if err := storage.Upload(r.Context(), id.String(), file, contentType); err != nil {
+			http.Error(w, "Failed to upload file", http.StatusInternalServerError)
+			return
+		}
 
-					id, err := uuid.NewV7()
-					if err != nil {
-						http.Error(w, "Failed to generate uuid", http.StatusInternalServerError)
-						return
-					}
-
-					if err := storage.Upload(r.Context(), id.String(), file, contentType); err != nil {
-						http.Error(w, "Failed to upload file", http.StatusInternalServerError)
-						return
-					}
-
-					w.WriteHeader(http.StatusCreated)
-				})
-			})
-		})
+		w.WriteHeader(http.StatusCreated)
 	})
 
 	server := &http.Server{
 		Addr:    net.JoinHostPort("localhost", cmp.Or(os.Getenv("APP_PORT"), "3000")),
-		Handler: router,
+		Handler: auth.WithUser(db)(mux),
 	}
 
 	slog.Info("Starting server", "address", server.Addr)

@@ -4,14 +4,12 @@ import (
 	"database/sql"
 	"encoding/json"
 	"net/http"
-
-	"github.com/go-chi/chi/v5"
 )
 
 func DefinitionHandler(db *sql.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		// Handler logic for getting collection definition
-		slug := chi.URLParam(r, "collectionSlug")
+		slug := r.PathValue("collectionSlug")
 		if slug == "" {
 			http.Error(w, "Missing slug", http.StatusBadRequest)
 			return
@@ -49,7 +47,7 @@ func DefinitionHandler(db *sql.DB) http.HandlerFunc {
 func ItemsHandler(db *sql.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		// Handler logic for getting collection items
-		slug := chi.URLParam(r, "collectionSlug")
+		slug := r.PathValue("collectionSlug")
 		if slug == "" {
 			http.Error(w, "Missing slug", http.StatusBadRequest)
 			return

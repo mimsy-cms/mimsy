@@ -1,7 +1,0 @@
-operations:
-  - add_column:
-      table: collection_item
-      column:
-        name: slug
-        type: varchar(100)
-        nullable: true
