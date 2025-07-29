@@ -51,19 +51,15 @@ func main() {
 	}
 
 	mux := http.NewServeMux()
-	v1 := http.NewServeMux()
 
-	mux.Handle("/v1/", http.StripPrefix("/v1", v1))
-
-	v1.HandleFunc("POST /auth/login", auth.LoginHandler(db))
-	v1.HandleFunc("POST /auth/logout", auth.LogoutHandler(db))
-	v1.HandleFunc("POST /auth/password", auth.ChangePasswordHandler(db))
-	v1.HandleFunc("POST /auth/register", auth.RegisterHandler(db))
-	v1.HandleFunc("GET /auth/me", auth.MeHandler(db))
-	v1.HandleFunc("GET /collections/:slug/definition", collection.DefinitionHandler(db))
-	v1.HandleFunc("GET /collections/:slug/items", collection.ItemsHandler(db))
-
-	v1.HandleFunc("POST /collections/media", func(w http.ResponseWriter, r *http.Request) {
+	mux.HandleFunc("/v1/auth/login", auth.LoginHandler(db))
+	mux.HandleFunc("/v1/auth/logout", auth.LogoutHandler(db))
+	mux.HandleFunc("/v1/auth/password", auth.ChangePasswordHandler(db))
+	mux.HandleFunc("/v1/auth/register", auth.RegisterHandler(db))
+	mux.HandleFunc("/v1/auth/me", auth.MeHandler(db))
+	mux.HandleFunc("/v1/collections/{collectionSlug}/definition", collection.DefinitionHandler(db))
+	mux.HandleFunc("/v1/collections/{collectionSlug}/items", collection.ItemsHandler(db))
+	mux.HandleFunc("POST /collections/media", func(w http.ResponseWriter, r *http.Request) {
 		r.ParseMultipartForm(256 * 1024) // 256 MB
 
 		file, header, err := r.FormFile("file")
@@ -102,7 +98,6 @@ func main() {
 
 	if err := server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
 		slog.Error("Failed to start server", "error", err)
-		return
 	}
 }
 
