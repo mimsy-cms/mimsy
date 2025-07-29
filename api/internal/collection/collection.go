@@ -19,8 +19,10 @@ func DefinitionHandler(db *sql.DB) http.HandlerFunc {
 
 		var name string
 		var fields json.RawMessage
+		var createdAt, updatedAt string
+		var createdBy, updatedBy string
 
-		err := db.QueryRow(`SELECT name, fields FROM "collection" WHERE slug = $1`, slug).Scan(&name, &fields)
+		err := db.QueryRow(`SELECT name, fields, created_at, created_by, updated_at, updated_by FROM "collection" WHERE slug = $1`, slug).Scan(&name, &fields, &createdAt, &createdBy, &updatedAt, &updatedBy)
 		if err == sql.ErrNoRows {
 			http.Error(w, "Collection not found", http.StatusNotFound)
 			return
@@ -30,9 +32,13 @@ func DefinitionHandler(db *sql.DB) http.HandlerFunc {
 		}
 
 		resp := map[string]interface{}{
-			"slug":   slug,
-			"name":   name,
-			"fields": json.RawMessage(fields),
+			"slug":       slug,
+			"name":       name,
+			"fields":     json.RawMessage(fields),
+			"created_at": createdAt,
+			"created_by": createdBy,
+			"updated_at": updatedAt,
+			"updated_by": updatedBy,
 		}
 
 		w.Header().Set("Content-Type", "application/json")

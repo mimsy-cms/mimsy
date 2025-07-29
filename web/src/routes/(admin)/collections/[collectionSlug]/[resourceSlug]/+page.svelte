@@ -30,6 +30,10 @@
 		select: SelectField,
 		rich_text: RichTextField
 	};
+
+	function formatDate(dateStr: string): string {
+		return new Date(dateStr).toLocaleString();
+	}
 </script>
 
 
@@ -59,10 +63,26 @@
 			{/each}
 		</div>
 
-		<div class="rounded-md border border-gray-300 bg-white p-4">
+		<div class="w-80 shrink-0 rounded-md border border-gray-300 bg-white p-4">
 			<h2 class="text-2xl font-medium">Details</h2>
 			<hr class="my-4 border-t-gray-300" />
-			<pre class="text-sm text-gray-500">{JSON.stringify(values, null, 2)}</pre>
+
+			<div class="text-sm text-gray-700 space-y-1">
+				<p class="text-base"><strong>Slug</strong></p>
+				<p>/{data.slug}</p>
+
+				<p class="text-base"><strong>Created</strong></p>
+				<p>{formatDate(data.definition.created_at)}</p>
+
+				<p class="text-base"><strong>Created by</strong></p>
+				<p>{data.definition.created_by}</p>
+
+				<p class="text-base"><strong>Last modified</strong></p>
+				<p>{formatDate(data.definition.updated_at)}</p>
+
+				<p class="text-base"><strong>Last modified by</strong></p>
+				<p>{data.definition.updated_by}</p>
+			</div>
 		</div>
 	</div>
 </div>
