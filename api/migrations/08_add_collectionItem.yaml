@@ -1,0 +1,23 @@
+operations:
+  - create_table:
+      name: collection_item
+      columns:
+        - name: id
+          type: SERIAL
+        - name: collection_slug
+          type: VARCHAR(100)
+        - name: data
+          type: JSONB
+      constraints:
+        - columns:
+            - id
+          name: pk__collection_item
+          type: primary_key
+        - columns:
+            - collection_slug
+          name: fk__collection_item__collection
+          type: foreign_key
+          references:
+            table: collection
+            columns:
+              - slug
