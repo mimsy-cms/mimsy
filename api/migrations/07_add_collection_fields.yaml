@@ -1,0 +1,19 @@
+operations:
+  - create_table:
+      name: collection
+      columns:
+        - name: slug
+          type: VARCHAR(100)
+        - name: name
+          type: VARCHAR(100)
+        - name: fields
+          type: JSONB
+      constraints:
+        - columns:
+            - slug
+          name: pk__collection
+          type: primary_key
+        - columns:
+            - name
+          name: uc__collection__name
+          type: unique

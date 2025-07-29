@@ -14,19 +14,11 @@ import (
 	_ "github.com/lib/pq"
 
 	"github.com/mimsy-cms/mimsy/internal/auth"
+	"github.com/mimsy-cms/mimsy/internal/collection"
 	"github.com/mimsy-cms/mimsy/internal/logger"
 	"github.com/mimsy-cms/mimsy/internal/media"
 	"github.com/mimsy-cms/mimsy/internal/migrations"
 	"github.com/mimsy-cms/mimsy/internal/storage"
-)
-
-const (
-	// Argon2id parameters
-	memory     = 64 * 1024
-	argonTime  = 1
-	threads    = 4
-	saltLength = 16
-	keyLength  = 32
 )
 
 func main() {
@@ -72,13 +64,14 @@ func main() {
 	v1.HandleFunc("POST /auth/password", auth.ChangePasswordHandler(db))
 	v1.HandleFunc("POST /auth/register", auth.RegisterHandler(db))
 	v1.HandleFunc("GET /auth/me", auth.MeHandler(db))
+	v1.HandleFunc("GET /collections/:slug/definition", collection.DefinitionHandler(db))
+	v1.HandleFunc("GET /collections/:slug/items", collection.ItemsHandler(db))
 
 	v1.HandleFunc("POST /collections/media", mediaHandler.Upload)
 
 	server := &http.Server{
-		Addr: net.JoinHostPort("localhost", cmp.Or(os.Getenv("APP_PORT"), "3000")),
-		// Handler: WithCORS(mux),
-		Handler: mux,
+		Addr:    net.JoinHostPort("localhost", cmp.Or(os.Getenv("APP_PORT"), "3000")),
+		Handler: auth.WithUser(db)(mux),
 	}
 
 	slog.Info("Starting server", "address", server.Addr)

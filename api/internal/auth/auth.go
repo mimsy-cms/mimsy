@@ -334,34 +334,13 @@ func MeHandler(db *sql.DB) http.HandlerFunc {
 		w.Header().Set("Access-Control-Allow-Origin", "http://localhost:5173")
 		w.Header().Set("Access-Control-Allow-Credentials", "true")
 
-		cookie, err := r.Cookie("session")
-		if err != nil || cookie.Value == "" {
-			log.Printf("No session cookie found: %v", err)
+		user := UserFromContext(r.Context())
+		if user == nil {
 			http.Error(w, "Unauthorized", http.StatusUnauthorized)
 			return
 		}
 
-		var userID int64
-		err = db.QueryRow(`SELECT user_id FROM session WHERE id = $1 AND expires_at > NOW()`, cookie.Value).Scan(&userID)
-		if err == sql.ErrNoRows {
-			http.Error(w, "Invalid or expired session", http.StatusUnauthorized)
-			return
-		} else if err != nil {
-			log.Printf("Session DB error: %v", err)
-			http.Error(w, "Database error", http.StatusInternalServerError)
-			return
-		}
-
-		var user User
-		err = db.QueryRow(`SELECT id, email, is_admin, must_change_password FROM "user" WHERE id = $1`, userID).
-			Scan(&user.ID, &user.Email, &user.IsAdmin, &user.MustChangePassword)
-		if err != nil {
-			log.Printf("User not found: %v", err)
-			http.Error(w, "User not found", http.StatusInternalServerError)
-			return
-		}
-
-		if err := json.NewEncoder(w).Encode(map[string]interface{}{
+		if err := json.NewEncoder(w).Encode(map[string]any{
 			"id":                   user.ID,
 			"email":                user.Email,
 			"is_admin":             user.IsAdmin,
