@@ -10,13 +10,13 @@ import (
 	"net/http"
 	"os"
 
-	"github.com/google/uuid"
 	_ "github.com/joho/godotenv/autoload"
 	_ "github.com/lib/pq"
 
 	"github.com/mimsy-cms/mimsy/internal/auth"
 	"github.com/mimsy-cms/mimsy/internal/collection"
 	"github.com/mimsy-cms/mimsy/internal/logger"
+	"github.com/mimsy-cms/mimsy/internal/media"
 	"github.com/mimsy-cms/mimsy/internal/migrations"
 	"github.com/mimsy-cms/mimsy/internal/storage"
 )
@@ -50,44 +50,23 @@ func main() {
 		return
 	}
 
+	mediaRepository := media.NewRepository(db)
+	mediaService := media.NewService(storage, mediaRepository)
+	mediaHandler := media.NewHandler(mediaService)
+
 	mux := http.NewServeMux()
+	v1 := http.NewServeMux()
 
-	mux.HandleFunc("/v1/auth/login", auth.LoginHandler(db))
-	mux.HandleFunc("/v1/auth/logout", auth.LogoutHandler(db))
-	mux.HandleFunc("/v1/auth/password", auth.ChangePasswordHandler(db))
-	mux.HandleFunc("/v1/auth/register", auth.RegisterHandler(db))
-	mux.HandleFunc("/v1/auth/me", auth.MeHandler(db))
-	mux.HandleFunc("/v1/collections/{collectionSlug}/definition", collection.DefinitionHandler(db))
-	mux.HandleFunc("/v1/collections/{collectionSlug}/items", collection.ItemsHandler(db))
-	mux.HandleFunc("POST /collections/media", func(w http.ResponseWriter, r *http.Request) {
-		r.ParseMultipartForm(256 * 1024) // 256 MB
+	mux.Handle("/v1/", http.StripPrefix("/v1", v1))
 
-		file, header, err := r.FormFile("file")
-		if err != nil {
-			http.Error(w, "Failed to get file from form", http.StatusBadRequest)
-			return
-		}
-		defer file.Close()
-
-		contentType := header.Header.Get("Content-Type")
-		if contentType == "" {
-			http.Error(w, "Content-Type header is missing", http.StatusBadRequest)
-			return
-		}
-
-		id, err := uuid.NewV7()
-		if err != nil {
-			http.Error(w, "Failed to generated uuid", http.StatusInternalServerError)
-			return
-		}
-
-		if err := storage.Upload(r.Context(), id.String(), file, contentType); err != nil {
-			http.Error(w, "Failed to upload file", http.StatusInternalServerError)
-			return
-		}
-
-		w.WriteHeader(http.StatusCreated)
-	})
+	v1.HandleFunc("POST /auth/login", auth.LoginHandler(db))
+	v1.HandleFunc("POST /auth/logout", auth.LogoutHandler(db))
+	v1.HandleFunc("POST /auth/password", auth.ChangePasswordHandler(db))
+	v1.HandleFunc("POST /auth/register", auth.RegisterHandler(db))
+	v1.HandleFunc("GET /auth/me", auth.MeHandler(db))
+	v1.HandleFunc("GET /collections/{collectionSlug}/definition", collection.DefinitionHandler(db))
+	v1.HandleFunc("GET /collections/{collectionSlug}/items", collection.ItemsHandler(db))
+	v1.HandleFunc("POST /collections/media", mediaHandler.Upload)
 
 	server := &http.Server{
 		Addr:    net.JoinHostPort("localhost", cmp.Or(os.Getenv("APP_PORT"), "3000")),

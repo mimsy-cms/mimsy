@@ -2,12 +2,15 @@
 	import { cn } from '$lib/cn';
 	import Dropzone from '$lib/components/admin/Dropzone.svelte';
 	import MediaCard from '$lib/components/admin/media/MediaCard.svelte';
+	import UploadProgressPopup from '$lib/components/admin/media/UploadProgressPopup.svelte';
+	import { uploadFile, createUploadProgress, type UploadProgress } from '$lib/utils/upload';
 	import CloudUploadIcon from '@lucide/svelte/icons/cloud-upload';
 	import GridIcon from '@lucide/svelte/icons/grid-3x3';
 	import ListIcon from '@lucide/svelte/icons/list';
 
 	let fileInputElement = $state<HTMLInputElement>();
 	let layoutMode = $state<'grid' | 'list'>('grid');
+	let uploads = $state<UploadProgress[]>([]); // TODO: We might want to use a reactive Set/Map here
 
 	const mediaItems = Array(10)
 		.fill(null)
@@ -20,9 +23,45 @@
 			updatedAt: 'May 25th 2024, 08:12 PM'
 		}));
 
-	function handleFileDrop(files: FileList) {
-		// TODO: Upload files to the API
-		console.log(files);
+	async function handleFileDrop(files: FileList) {
+		const newUploads = createUploadProgress(files);
+		uploads.push(...newUploads);
+
+		const uploadPromises = newUploads.map(async (uploadItem) => {
+			try {
+				const formData = new FormData();
+				formData.append('file', uploadItem.file);
+
+				await uploadFile(formData, uploadItem.id, {
+					url: '/api/v1/collections/media',
+					onProgress: (uploadId, progress) => {
+						uploads = uploads.map((u) => (u.id === uploadId ? { ...u, progress } : u));
+					},
+					onStatusChange: (uploadId, status, error) => {
+						uploads = uploads.map((u) => {
+							if (u.id === uploadId) {
+								const updated = { ...u, status, error };
+								// We make sure the progress is set to 100% when
+								// the file upload updates to completed.
+								if (status === 'completed') {
+									updated.progress = 100;
+								}
+								return updated;
+							}
+							return u;
+						});
+					}
+				});
+			} catch (error) {
+				console.error(`Failed to upload ${uploadItem.file.name}:`, error);
+			}
+		});
+
+		await Promise.all(uploadPromises);
+	}
+
+	function clearUploads() {
+		uploads = [];
 	}
 </script>
 
@@ -158,3 +197,5 @@
 		}
 	}}
 />
+
+<UploadProgressPopup {uploads} onClose={clearUploads} />
