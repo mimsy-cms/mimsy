@@ -1,19 +1,19 @@
 <script lang="ts">
+	import type { PageData } from './$types';
+
 	import Searchbar from '$lib/components/admin/Searchbar.svelte';
 	import MoreVerticalIcon from '@lucide/svelte/icons/more-vertical';
 
-	const items = [
-		{
-			id: '1',
-			title: 'Our team',
-			slug: 'our-team',
-			updatedAt: 'May 25th 2024, 08:12 PM'
-		}
-	];
+	export let data: PageData;
+
+	const items = data.items;
 </script>
 
 <div class="flex flex-col gap-6">
-	<h1 class="text-4xl font-medium">Pages</h1>
+	<h1 class="text-4xl font-medium">
+		{data.collectionSlug.charAt(0).toUpperCase() + data.collectionSlug.slice(1)}
+	</h1>
+
 
 	<Searchbar id="search" name="search" class="max-w-md" />
 
@@ -37,6 +37,12 @@
 						scope="col"
 						class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500"
 					>
+						Author
+					</th>
+					<th
+						scope="col"
+						class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500"
+					>
 						Updated
 					</th>
 					<th scope="col" class="relative px-6 py-3">
@@ -50,7 +56,7 @@
 						<td class="px-6 py-3">
 							<a
 								class="flex items-center text-sm text-gray-500"
-								href={`/collections/pages/${item.slug}`}
+								href={`/collections/${data.collectionSlug}/${item.resourceSlug}`}
 							>
 								{item.title}
 							</a>
@@ -58,13 +64,25 @@
 
 						<td class="whitespace-nowrap px-6 py-3">
 							<div class="flex items-center text-sm text-gray-500">
-								{item.slug}
+								{item.resourceSlug}
 							</div>
 						</td>
 
 						<td class="whitespace-nowrap px-6 py-3">
 							<div class="flex items-center text-sm text-gray-500">
-								{item.updatedAt}
+								{item.created_by}
+							</div>
+						</td>
+
+						<td class="whitespace-nowrap px-6 py-3">
+							<div class="flex items-center text-sm text-gray-500">
+								{new Date(item.updated_at).toLocaleString(undefined, {
+									year: 'numeric',
+									month: 'long',
+									day: 'numeric',
+									hour: '2-digit',
+									minute: '2-digit'
+								})}
 							</div>
 						</td>
 

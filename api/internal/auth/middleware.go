@@ -14,13 +14,22 @@ const userContextKey contextKey = "user"
 func WithUser(db *sql.DB) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			var token string
+
 			authHeader := r.Header.Get("Authorization")
-			if authHeader == "" || !strings.HasPrefix(authHeader, "Bearer ") {
+			if authHeader != "" && strings.HasPrefix(authHeader, "Bearer ") {
+				token = strings.TrimPrefix(authHeader, "Bearer ")
+			} else {
+				cookie, err := r.Cookie("session")
+				if err == nil {
+					token = cookie.Value
+				}
+			}
+
+			if token == "" {
 				next.ServeHTTP(w, r)
 				return
 			}
-
-			token := strings.TrimPrefix(authHeader, "Bearer ")
 
 			var userID int
 			err := db.QueryRow(`SELECT user_id FROM "session" WHERE id = $1`, token).Scan(&userID)
