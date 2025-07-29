@@ -1,7 +1,10 @@
 package media
 
 import (
+	"log/slog"
 	"net/http"
+
+	"github.com/mimsy-cms/mimsy/internal/auth"
 )
 
 type mediaHandler struct {
@@ -14,6 +17,12 @@ func NewHandler(mediaService MediaService) *mediaHandler {
 
 func (h *mediaHandler) Upload(w http.ResponseWriter, r *http.Request) {
 	r.ParseMultipartForm(256 * 1024) // 256 MB
+
+	user := auth.UserFromContext(r.Context())
+	if user == nil {
+		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		return
+	}
 
 	file, header, err := r.FormFile("file")
 	if err != nil {
@@ -28,8 +37,9 @@ func (h *mediaHandler) Upload(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	_, err = h.mediaService.Upload(r.Context(), header, contentType)
+	_, err = h.mediaService.Upload(r.Context(), header, contentType, user)
 	if err != nil {
+		slog.Error("Failed to upload media", "error", err)
 		http.Error(w, "Failed to upload file", http.StatusInternalServerError)
 		return
 	}

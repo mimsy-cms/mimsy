@@ -20,9 +20,31 @@
 			updatedAt: 'May 25th 2024, 08:12 PM'
 		}));
 
-	function handleFileDrop(files: FileList) {
-		// TODO: Upload files to the API
-		console.log(files);
+	async function handleFileDrop(files: FileList) {
+		const uploads: Promise<void>[] = [];
+
+		for (const file of files) {
+			const formData = new FormData();
+			formData.append('file', file);
+
+			uploads.push(
+				fetch('/api/v1/collections/media', {
+					method: 'POST',
+					body: formData
+				}).then((response) => {
+					if (!response.ok) {
+						throw new Error(`Failed to upload ${file.name}`);
+					}
+				})
+			);
+		}
+
+		try {
+			await Promise.all(uploads);
+			alert('Files uploaded successfully.');
+		} catch (error) {
+			alert('Failed to upload some files.');
+		}
 	}
 </script>
 

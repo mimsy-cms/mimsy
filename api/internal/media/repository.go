@@ -43,10 +43,10 @@ type CreateMediaParams struct {
 
 func (r *mediaRepository) Create(ctx context.Context, params *CreateMediaParams) (*Media, error) {
 	query := `
-		INSERT INTO media (uuid, name, content_type, created_at, size, uploaded_by_id)
+		INSERT INTO media (uuid, name, content_type, created_at, size, uploaded_by)
 		VALUES ($1, $2, $3, $4, $5, $6)
 		RETURNING id`
-	media := &Media{}
+	var id int64
 
 	if err := r.db.QueryRowContext(ctx, query,
 		params.Uuid,
@@ -55,23 +55,15 @@ func (r *mediaRepository) Create(ctx context.Context, params *CreateMediaParams)
 		time.Now(),
 		params.Size,
 		params.UploadedById,
-	).Scan(
-		&media.Id,
-		&media.Uuid,
-		&media.Name,
-		&media.ContentType,
-		&media.CreatedAt,
-		&media.Size,
-		&media.UploadedById,
-	); err != nil {
+	).Scan(&id); err != nil {
 		return nil, err
 	}
 
-	return media, nil
+	return r.GetById(ctx, id)
 }
 
 func (r *mediaRepository) GetById(ctx context.Context, id int64) (*Media, error) {
-	query := `SELECT id, uuid, name, content_type, created_at, size, uploaded_by_id FROM media WHERE id = $1`
+	query := `SELECT id, uuid, name, content_type, created_at, size, uploaded_by FROM media WHERE id = $1`
 	media := &Media{}
 
 	err := r.db.QueryRowContext(ctx, query, id).Scan(
@@ -91,7 +83,7 @@ func (r *mediaRepository) GetById(ctx context.Context, id int64) (*Media, error)
 }
 
 func (r *mediaRepository) GetByUuid(ctx context.Context, uuid *uuid.UUID) (*Media, error) {
-	query := `SELECT id, uuid, name, content_type, created_at, size, uploaded_by_id FROM media WHERE uuid = $1`
+	query := `SELECT id, uuid, name, content_type, created_at, size, uploaded_by FROM media WHERE uuid = $1`
 	media := &Media{}
 
 	err := r.db.QueryRowContext(ctx, query, uuid).Scan(
