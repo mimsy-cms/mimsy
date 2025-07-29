@@ -64,7 +64,7 @@ func main() {
 			v1.Get("/auth/me", auth.MeHandler(db))
 			v1.Route("/collections", func(c chi.Router) {
 				c.Get("/{collectionSlug}/definition", collection.DefinitionHandler(db))
-				c.Get("/{resourceSlug}/items", collection.ItemsHandler(db))
+				c.Get("/{collectionSlug}/items", collection.ItemsHandler(db))
 
 				c.Post("/media", func(w http.ResponseWriter, r *http.Request) {
 					r.ParseMultipartForm(256 * 1024) // 256 MB

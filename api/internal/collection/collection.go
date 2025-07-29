@@ -49,7 +49,7 @@ func DefinitionHandler(db *sql.DB) http.HandlerFunc {
 func ItemsHandler(db *sql.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		// Handler logic for getting collection items
-		slug := chi.URLParam(r, "resourceSlug")
+		slug := chi.URLParam(r, "collectionSlug")
 		if slug == "" {
 			http.Error(w, "Missing slug", http.StatusBadRequest)
 			return
@@ -66,7 +66,7 @@ func ItemsHandler(db *sql.DB) http.HandlerFunc {
 			return
 		}
 
-		rows, err := db.Query(`SELECT id, data FROM "collection_item" WHERE collection_slug = $1`, slug)
+		rows, err := db.Query(`SELECT id, data, slug FROM "collection_item" WHERE collection_slug = $1`, slug)
 		if err != nil {
 			http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 			return
@@ -74,14 +74,15 @@ func ItemsHandler(db *sql.DB) http.HandlerFunc {
 		defer rows.Close()
 
 		type Item struct {
-			ID   int             `json:"id"`
-			Data json.RawMessage `json:"data"`
+			ID           int             `json:"id"`
+			ResourceSlug string          `json:"slug"`
+			Data         json.RawMessage `json:"data"`
 		}
 
 		var items []Item
 		for rows.Next() {
 			var item Item
-			if err := rows.Scan(&item.ID, &item.Data); err != nil {
+			if err := rows.Scan(&item.ID, &item.Data, &item.ResourceSlug); err != nil {
 				http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 				return
 			}
