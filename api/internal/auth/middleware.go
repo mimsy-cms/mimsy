@@ -36,7 +36,7 @@ func WithUser(db *sql.DB) func(http.Handler) http.Handler {
 
 			user := User{}
 
-			err = db.QueryRow(`SELECT id, email, password, must_change_password, is_admin FROM "user" WHERE id = $1`, userID).Scan(&user.ID, &user.Email, &user.Password, &user.MustChangePassword, &user.IsAdmin)
+			err = db.QueryRow(`SELECT id, email, password, must_change_password, is_admin FROM "user" WHERE id = $1`, userID).Scan(&user.ID, &user.Email, &user.PasswordHash, &user.MustChangePassword, &user.IsAdmin)
 			if err != nil {
 				http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 				return
@@ -46,4 +46,11 @@ func WithUser(db *sql.DB) func(http.Handler) http.Handler {
 			next.ServeHTTP(w, r.WithContext(ctx))
 		})
 	}
+}
+
+func UserFromContext(ctx context.Context) *User {
+	if user, ok := ctx.Value(userContextKey).(*User); ok {
+		return user
+	}
+	return nil
 }

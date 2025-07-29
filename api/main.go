@@ -20,15 +20,6 @@ import (
 	"github.com/mimsy-cms/mimsy/internal/storage"
 )
 
-const (
-	// Argon2id parameters
-	memory     = 64 * 1024
-	argonTime  = 1
-	threads    = 4
-	saltLength = 16
-	keyLength  = 32
-)
-
 func main() {
 	initLogger()
 	storage := initStorage()
@@ -100,9 +91,8 @@ func main() {
 	})
 
 	server := &http.Server{
-		Addr: net.JoinHostPort("localhost", cmp.Or(os.Getenv("APP_PORT"), "3000")),
-		// Handler: WithCORS(mux),
-		Handler: mux,
+		Addr:    net.JoinHostPort("localhost", cmp.Or(os.Getenv("APP_PORT"), "3000")),
+		Handler: auth.WithUser(db)(mux),
 	}
 
 	slog.Info("Starting server", "address", server.Addr)
