@@ -44,21 +44,72 @@
 		<div class="flex flex-1 flex-col gap-4 rounded-md border border-gray-300 bg-white p-4">
 			{#each data.definition.fields as field (field.name)}
 				<div class="flex flex-col gap-2">
-					{#if fieldComponents[field.type]}
-						<label for={field.name}>{field.label}</label>
-						<svelte:component
-							this={fieldComponents[field.type]}
+					{#if field.type === 'email'}
+						<label for={field.name}>
+							{field.label}
+						</label>
+						<EmailField
 							id={field.name}
 							name={field.name}
 							bind:value={values[field.name]}
-							placeholder={field.placeholder}
-							label={field.label}
-							items={field.items}
-							multiple={field.multiple}
+							placeholder="example@example.com"
+						/>
+					{:else if field.type === 'date'}
+						<label for={field.name}>
+							{field.label}
+						</label>
+						<DateField
+							id={field.name}
+							name={field.name}
+							bind:value={values[field.name]}
+						/>
+					{:else if field.type === 'number'}
+						<label for={field.name}>
+							{field.label}
+						</label>
+						<NumberField
+							id={field.name}
+							name={field.name}
+							bind:value={values[field.name]}
+						/>
+					{:else if field.type === 'checkbox'}
+						<CheckboxField
+							id={field.name}
+							name={field.name}
+							bind:checked={values[field.name]}
+						/>
+					{:else if field.type === 'select'}
+						<label for={field.name}>
+							{field.label}
+						</label>
+						<SelectField
+							id={field.name}
+							name={field.name}
+							bind:value={values[field.name]}
+							options={field.options}
+						/>
+					{:else if field.type === 'rich_text'}
+						<label for={field.name}>
+							{field.label}
+						</label>
+						<RichTextField
+							id={field.name}
+							name={field.name}
+							bind:value={values[field.name]}
+						/>
+					{:else if field.type === 'plain_text'}
+						<label for={field.name}>
+							{field.label}
+						</label>
+						<PlainTextField
+							id={field.name}
+							name={field.name}
+							bind:value={values[field.name]}
 						/>
 					{:else}
 						<p class="text-red-500">Unsupported field type: {field.type}</p>
 					{/if}
+							
 				</div>
 			{/each}
 		</div>
