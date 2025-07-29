@@ -29,8 +29,6 @@ export const load: PageServerLoad = async ({ cookies, fetch }) => {
 
   const user = await res.json();
 
-  console.log('User:', user);
-
   if (!user.is_admin) {
     throw redirect(303, '/');
   }

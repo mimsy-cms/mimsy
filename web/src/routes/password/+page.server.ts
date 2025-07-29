@@ -15,11 +15,14 @@ const passwordSchema = z
     message: 'Passwords do not match'
   });
 
-export const load: PageServerLoad = async () => {
+export const load: PageServerLoad = async ({ locals }) => {
     const form = await superValidate(zod4(passwordSchema));
 
+    const must_change_password = locals.user?.must_change_password ?? false;
+
     return {
-        form
+        form,
+        must_change_password
     };
 };
 
