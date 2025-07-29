@@ -55,6 +55,9 @@ func main() {
 	mediaHandler := media.NewHandler(mediaService)
 
 	mux := http.NewServeMux()
+	v1 := http.NewServeMux()
+
+	mux.Handle("/v1/", http.StripPrefix("/v1", v1))
 
 	v1.HandleFunc("POST /auth/login", auth.LoginHandler(db))
 	v1.HandleFunc("POST /auth/logout", auth.LogoutHandler(db))
