@@ -1,7 +1,8 @@
 import { redirect, json } from '@sveltejs/kit';
+import { env } from '$env/dynamic/public';
 
 export async function POST({ fetch, cookies }) {
-	const res = await fetch('http://localhost:3000/v1/auth/logout', {
+	const res = await fetch(`${env.PUBLIC_API_URL}/v1/auth/logout`, {
 		method: 'POST',
 		credentials: 'include',
 		headers: {

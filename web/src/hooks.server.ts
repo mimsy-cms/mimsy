@@ -1,10 +1,11 @@
 import type { Handle } from '@sveltejs/kit';
+import { env } from '$env/dynamic/public';
 
 export const handle: Handle = async ({ event, resolve }) => {
   const token = event.cookies.get('session');
 
   if (token) {
-    const res = await fetch('http://localhost:3000/v1/auth/me', {
+    const res = await fetch(`${env.PUBLIC_API_URL}/v1/auth/me`, {
       headers: {
         'Authorization': `Bearer ${token}`
       }
