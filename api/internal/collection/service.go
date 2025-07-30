@@ -41,3 +41,25 @@ func (s *Service) GetItems(ctx context.Context, slug string) ([]Item, error) {
 
 	return s.Repo.FindItemsBySlug(ctx, slug)
 }
+
+func (s *Service) ListCollections(ctx context.Context) ([]map[string]interface{}, error) {
+	collections, err := s.Repo.List(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	var result []map[string]interface{}
+	for _, coll := range collections {
+		result = append(result, map[string]interface{}{
+			"slug":       coll.Slug,
+			"name":       coll.Name,
+			"fields":     json.RawMessage(coll.Fields),
+			"created_at": coll.CreatedAt,
+			"created_by": coll.CreatedBy,
+			"updated_at": coll.UpdatedAt,
+			"updated_by": coll.UpdatedBy,
+		})
+	}
+
+	return result, nil
+}

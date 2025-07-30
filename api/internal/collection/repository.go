@@ -11,6 +11,7 @@ type Repository interface {
 	FindBySlug(ctx context.Context, slug string) (*Collection, error)
 	CollectionExists(ctx context.Context, slug string) (bool, error)
 	FindItemsBySlug(ctx context.Context, slug string) ([]Item, error)
+	List(ctx context.Context) ([]Collection, error)
 }
 
 type PostgresRepository struct {
@@ -22,6 +23,7 @@ func NewRepository(db *sql.DB) *PostgresRepository {
 }
 
 type Collection struct {
+	Slug      string
 	Name      string
 	Fields    []byte
 	CreatedAt string
@@ -75,4 +77,22 @@ func (r *PostgresRepository) FindItemsBySlug(ctx context.Context, slug string) (
 		items = append(items, item)
 	}
 	return items, nil
+}
+
+func (r *PostgresRepository) List(ctx context.Context) ([]Collection, error) {
+	rows, err := r.DB.QueryContext(ctx, `SELECT slug, name, fields, created_at, created_by, updated_at, updated_by FROM "collection"`)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var collections []Collection
+	for rows.Next() {
+		var coll Collection
+		if err := rows.Scan(&coll.Slug, &coll.Name, &coll.Fields, &coll.CreatedAt, &coll.CreatedBy, &coll.UpdatedAt, &coll.UpdatedBy); err != nil {
+			return nil, err
+		}
+		collections = append(collections, coll)
+	}
+	return collections, nil
 }

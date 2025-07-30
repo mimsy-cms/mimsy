@@ -70,6 +70,7 @@ func main() {
 	v1.HandleFunc("GET /auth/me", auth.MeHandler(db))
 	v1.HandleFunc("GET /collections/{collectionSlug}/definition", collectionHandler.Definition)
 	v1.HandleFunc("GET /collections/{collectionSlug}/items", collectionHandler.Items)
+	v1.HandleFunc(("GET /collections"), collectionHandler.List)
 	v1.HandleFunc("POST /collections/media", mediaHandler.Upload)
 
 	server := &http.Server{
