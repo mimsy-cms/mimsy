@@ -21,6 +21,9 @@ spec:
       containers:
         - name: web
           image: ghcr.io/mimsy-cms/web:20250729-191810-3642d2b # {"$imagepolicy": "mimsy:web"}
+          env:
+            - name: PUBLIC_API_URL
+              value: "https://cms.mimsy.kodai.ch/api"
           ports:
             - name: http
               containerPort: 3000
