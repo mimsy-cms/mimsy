@@ -14,6 +14,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/mimsy-cms/mimsy/internal/util"
 	"golang.org/x/crypto/argon2"
 )
 
@@ -138,18 +139,22 @@ func generateSessionToken() (string, error) {
 	return base64.RawURLEncoding.EncodeToString(b), nil
 }
 
+type LoginResponse struct {
+	Session            string `json:"session"`
+	MustChangePassword bool   `json:"mustChangePassword"`
+}
+
 func LoginHandler(db *sql.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		var req LoginRequest
-		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		req, err := util.DecodeJSON[LoginRequest](r)
+		if err != nil {
 			http.Error(w, "Invalid request body", http.StatusBadRequest)
 			return
 		}
 
 		var user User
-		err := db.QueryRow(`SELECT id, email, password, must_change_password FROM "user" WHERE email = $1`, req.Email).
-			Scan(&user.ID, &user.Email, &user.PasswordHash, &user.MustChangePassword)
-		if err != nil {
+		if err = db.QueryRow(`SELECT id, email, password, must_change_password FROM "user" WHERE email = $1`, req.Email).
+			Scan(&user.ID, &user.Email, &user.PasswordHash, &user.MustChangePassword); err != nil {
 			if err == sql.ErrNoRows {
 				http.Error(w, "User not found", http.StatusUnauthorized)
 			} else {
@@ -185,16 +190,10 @@ func LoginHandler(db *sql.DB) http.HandlerFunc {
 			return
 		}
 
-		if user.MustChangePassword {
-			json.NewEncoder(w).Encode(map[string]string{
-				"mustChangePassword": "true",
-				"session":            sessionToken,
-			})
-			return
-		}
-
-		w.WriteHeader(http.StatusOK)
-		json.NewEncoder(w).Encode(map[string]string{"message": "Login successful", "session": sessionToken})
+		util.JSON(w, http.StatusOK, LoginResponse{
+			Session:            sessionToken,
+			MustChangePassword: user.MustChangePassword,
+		})
 	}
 }
 
@@ -224,21 +223,14 @@ type ChangePasswordRequest struct {
 
 func ChangePasswordHandler(db *sql.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		cookie, err := r.Cookie("session")
-		if err != nil || cookie.Value == "" {
+		user := UserFromContext(r.Context())
+		if user == nil {
 			http.Error(w, "Unauthorized", http.StatusUnauthorized)
 			return
 		}
 
-		var userID int64
-		err = db.QueryRow(`SELECT user_id FROM session WHERE id = $1 AND expires_at > NOW()`, cookie.Value).Scan(&userID)
+		req, err := util.DecodeJSON[ChangePasswordRequest](r)
 		if err != nil {
-			http.Error(w, "Invalid or expired session", http.StatusUnauthorized)
-			return
-		}
-
-		var req ChangePasswordRequest
-		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 			http.Error(w, "Invalid request body", http.StatusBadRequest)
 			return
 		}
@@ -249,7 +241,7 @@ func ChangePasswordHandler(db *sql.DB) http.HandlerFunc {
 		}
 
 		var currentHash string
-		err = db.QueryRow(`SELECT password FROM "user" WHERE id = $1`, userID).Scan(&currentHash)
+		err = db.QueryRow(`SELECT password FROM "user" WHERE id = $1`, user.ID).Scan(&currentHash)
 		if err != nil {
 			http.Error(w, "User not found", http.StatusInternalServerError)
 			return
@@ -266,14 +258,13 @@ func ChangePasswordHandler(db *sql.DB) http.HandlerFunc {
 			return
 		}
 
-		_, err = db.Exec(`UPDATE "user" SET password = $1, must_change_password = FALSE WHERE id = $2`, newHash, userID)
+		_, err = db.Exec(`UPDATE "user" SET password = $1, must_change_password = FALSE WHERE id = $2`, newHash, user.ID)
 		if err != nil {
 			http.Error(w, "Failed to update password", http.StatusInternalServerError)
 			return
 		}
 
-		w.WriteHeader(http.StatusOK)
-		json.NewEncoder(w).Encode(map[string]string{"message": "Password changed successfully"})
+		util.JSON(w, http.StatusOK, struct{}{})
 	}
 }
 
@@ -285,9 +276,9 @@ type CreateUserRequest struct {
 
 func RegisterHandler(db *sql.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		var req CreateUserRequest
-		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-			http.Error(w, "Invalid request", http.StatusBadRequest)
+		req, err := util.DecodeJSON[CreateUserRequest](r)
+		if err != nil {
+			http.Error(w, "Invalid request body", http.StatusBadRequest)
 			return
 		}
 
@@ -298,8 +289,7 @@ func RegisterHandler(db *sql.DB) http.HandlerFunc {
 		}
 
 		var exists bool
-		err := db.QueryRow(`SELECT EXISTS(SELECT 1 FROM "user" WHERE email=$1)`, email).Scan(&exists)
-		if err != nil {
+		if err := db.QueryRow(`SELECT EXISTS(SELECT 1 FROM "user" WHERE email=$1)`, email).Scan(&exists); err != nil {
 			http.Error(w, "Database error", http.StatusInternalServerError)
 			return
 		}
@@ -323,16 +313,19 @@ func RegisterHandler(db *sql.DB) http.HandlerFunc {
 			return
 		}
 
-		w.WriteHeader(http.StatusCreated)
-		json.NewEncoder(w).Encode(map[string]string{"message": "User created successfully"})
+		util.JSON(w, http.StatusCreated, struct{}{})
 	}
+}
+
+type MeResponse struct {
+	ID                 int64  `json:"id"`
+	Email              string `json:"email"`
+	IsAdmin            bool   `json:"is_admin"`
+	MustChangePassword bool   `json:"must_change_password"`
 }
 
 func MeHandler(db *sql.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Content-Type", "application/json")
-		w.Header().Set("Access-Control-Allow-Origin", "http://localhost:5173")
-		w.Header().Set("Access-Control-Allow-Credentials", "true")
 
 		user := UserFromContext(r.Context())
 		if user == nil {
@@ -340,14 +333,11 @@ func MeHandler(db *sql.DB) http.HandlerFunc {
 			return
 		}
 
-		if err := json.NewEncoder(w).Encode(map[string]any{
-			"id":                   user.ID,
-			"email":                user.Email,
-			"is_admin":             user.IsAdmin,
-			"must_change_password": user.MustChangePassword,
-		}); err != nil {
-			log.Printf("Failed to encode user data: %v", err)
-			http.Error(w, "Failed to encode user data", http.StatusInternalServerError)
-		}
+		util.JSON(w, http.StatusOK, MeResponse{
+			ID:                 user.ID,
+			Email:              user.Email,
+			IsAdmin:            user.IsAdmin,
+			MustChangePassword: user.MustChangePassword,
+		})
 	}
 }
