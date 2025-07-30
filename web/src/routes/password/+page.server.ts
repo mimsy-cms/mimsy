@@ -3,6 +3,7 @@ import type { Actions, PageServerLoad } from './$types';
 import { fail, superValidate } from 'sveltekit-superforms';
 import { zod4 } from 'sveltekit-superforms/adapters';
 import { error, redirect } from '@sveltejs/kit';
+import { env } from '$env/dynamic/public';
 
 const passwordSchema = z
   .object({
@@ -33,7 +34,7 @@ export const actions: Actions = {
 
     const { old_password, new_password } = form.data;
 
-    const res = await fetch('http://localhost:3000/v1/auth/password', {
+    const res = await fetch(`${env.PUBLIC_API_URL}/v1/auth/password`, {
       method: 'POST',
       credentials: 'include',
       headers: {

@@ -3,6 +3,7 @@ import { z } from 'zod/v4';
 import { zod4 } from 'sveltekit-superforms/adapters';
 import { error, redirect } from '@sveltejs/kit';
 import { fail, superValidate } from 'sveltekit-superforms';
+import { env } from '$env/dynamic/public';
 
 const newUserSchema = z.object({
   email: z.string().email(),
@@ -17,7 +18,7 @@ export const load: PageServerLoad = async ({ cookies, fetch }) => {
     throw redirect(303, '/login');
   }
 
-  const res = await fetch('http://localhost:3000/v1/auth/me', {
+  const res = await fetch(`${env.PUBLIC_API_URL}/v1/auth/me`, {
     headers: {
       Authorization: `Bearer ${session}`,
     },
@@ -49,7 +50,7 @@ export const actions: Actions = {
       return fail(400, { form });
     }
 
-    const res = await fetch('http://localhost:3000/v1/auth/me', {
+    const res = await fetch(`${env.PUBLIC_API_URL}/v1/auth/me`, {
       headers: {
         Authorization: `Bearer ${session}`,
       },
@@ -67,7 +68,7 @@ export const actions: Actions = {
 
     const { email, password, isAdmin } = form.data;
 
-    const registerRes = await fetch('http://localhost:3000/v1/auth/register', {
+    const registerRes = await fetch(`${env.PUBLIC_API_URL}/v1/auth/register`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
