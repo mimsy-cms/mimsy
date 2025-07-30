@@ -5,6 +5,7 @@ import (
 	"net/http"
 
 	"github.com/mimsy-cms/mimsy/internal/auth"
+	"github.com/mimsy-cms/mimsy/internal/util"
 )
 
 type mediaHandler struct {
@@ -44,5 +45,5 @@ func (h *mediaHandler) Upload(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	w.WriteHeader(http.StatusCreated)
+	util.JSON(w, http.StatusCreated, struct{}{})
 }

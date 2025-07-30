@@ -59,13 +59,12 @@ func main() {
 
 	mux.Handle("/v1/", http.StripPrefix("/v1", v1))
 
-  v1.HandleFunc("POST /auth/login", auth.LoginHandler(db))
+	v1.HandleFunc("POST /auth/login", auth.LoginHandler(db))
 	v1.HandleFunc("POST /auth/logout", auth.LogoutHandler(db))
 	v1.HandleFunc("POST /auth/password", auth.ChangePasswordHandler(db))
 	v1.HandleFunc("POST /auth/register", auth.RegisterHandler(db))
 	v1.HandleFunc("GET /auth/me", auth.MeHandler(db))
 	v1.HandleFunc("GET /collections/{collectionSlug}/definition", collection.DefinitionHandler(db))
-	v1.HandleFunc("GET /collections/{collectionSlug}/items", collection.ItemsHandler(db))
 	v1.HandleFunc("POST /collections/media", mediaHandler.Upload)
 
 	server := &http.Server{
