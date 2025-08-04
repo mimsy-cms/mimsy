@@ -20,7 +20,24 @@ spec:
         - name: regcred
       containers:
         - name: api
-          image: ghcr.io/mimsy-cms/api:20250729-191805-3642d2b # {"$imagepolicy": "mimsy:api"}
+          image: ghcr.io/mimsy-cms/api:20250730-160824-359300c # {"$imagepolicy": "mimsy:api"}
+          env:
+            - name: POSTGRES_HOST
+              value: postgres-cluster-rw.postgres.svc
+            - name: POSTGRES_PORT
+              value: "5432"
+            - name: POSTGRES_DATABASE
+              value: mimsy
+            - name: POSTGRES_USER
+              valueFrom:
+                secretKeyRef:
+                  name: mimsy
+                  key: username
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: mimsy
+                  key: password
           ports:
             - name: http
               containerPort: 3000

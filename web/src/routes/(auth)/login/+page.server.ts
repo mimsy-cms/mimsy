@@ -18,7 +18,6 @@ export const load: PageServerLoad = async () => {
 	};
 };
 
-
 export const actions: Actions = {
 	default: async ({ request, cookies }) => {
 		const form = await superValidate(request, zod4(loginSchema));
@@ -49,10 +48,10 @@ export const actions: Actions = {
 			path: '/',
 			maxAge: 60 * 60 * 24 * 7, // 7 days
 			sameSite: 'strict',
-			secure: true,
+			secure: true
 		});
 
-		if (data.mustChangePassword === 'true') {
+		if (data.mustChangePassword) {
 			throw redirect(303, '/password');
 		}
 
