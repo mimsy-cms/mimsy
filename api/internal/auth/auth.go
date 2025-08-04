@@ -156,7 +156,7 @@ func LoginHandler(db *sql.DB) http.HandlerFunc {
 		if err = db.QueryRow(`SELECT id, email, password, must_change_password FROM "user" WHERE email = $1`, req.Email).
 			Scan(&user.ID, &user.Email, &user.PasswordHash, &user.MustChangePassword); err != nil {
 			if err == sql.ErrNoRows {
-				http.Error(w, "User not found", http.StatusUnauthorized)
+				http.Error(w, "Invalid credentials", http.StatusUnauthorized)
 			} else {
 				http.Error(w, "Database error", http.StatusInternalServerError)
 			}
@@ -243,7 +243,7 @@ func ChangePasswordHandler(db *sql.DB) http.HandlerFunc {
 		var currentHash string
 		err = db.QueryRow(`SELECT password FROM "user" WHERE id = $1`, user.ID).Scan(&currentHash)
 		if err != nil {
-			http.Error(w, "User not found", http.StatusInternalServerError)
+			http.Error(w, "Invalid credentials", http.StatusInternalServerError)
 			return
 		}
 
