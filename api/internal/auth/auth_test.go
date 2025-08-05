@@ -643,6 +643,32 @@ func TestChangePasswordHandler_Failure_MissingUser(t *testing.T) {
 // =================================================================================================
 
 // TestCreateAdminUser_Success tests the CreateAdminUser function for a successful admin user creation
+func TestCreateAdminUser_Success(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mockDB := mockauth.NewMockDB(ctrl)
+
+	mockDB.EXPECT().QueryRowContext(gomock.Any(), `SELECT COUNT(*) FROM "user"`).Return(mockauth.NewMockRow(ctrl)).DoAndReturn(
+		func(ctx context.Context, query string, args ...interface{}) *mockauth.MockRow {
+			row := mockauth.NewMockRow(ctrl)
+			row.EXPECT().Scan(gomock.Any()).DoAndReturn(func(dest ...interface{}) error {
+				*dest[0].(*int) = 0
+				return nil
+			})
+			return row
+		},
+	)
+
+	mockDB.EXPECT().ExecContext(gomock.Any(), `INSERT INTO "user" (email, password, must_change_password, is_admin) VALUES ($1, $2, $3, $4)`,
+		gomock.Any(), gomock.Any(), true, true,
+	).Return(nil, nil)
+
+	err := CreateAdminUser(context.Background(), mockDB)
+	if err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
+}
 
 // TestCreateAdminUser_Failure_UserCountError tests the CreateAdminUser function for a failed admin user creation due to user count error
 

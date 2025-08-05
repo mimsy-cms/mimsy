@@ -34,7 +34,7 @@ const (
 	HashLength = 32
 )
 
-func CreateAdminUser(ctx context.Context, db *sql.DB) error {
+func CreateAdminUser(ctx context.Context, db auth_interface.DB) error {
 	var userCount int
 	err := db.QueryRowContext(ctx, `SELECT COUNT(*) FROM "user"`).Scan(&userCount)
 	if err != nil {

@@ -96,14 +96,14 @@ func (mr *MockDBMockRecorder) QueryRow(arg0 interface{}, arg1 ...interface{}) *g
 }
 
 // QueryRowContext mocks base method.
-func (m *MockDB) QueryRowContext(arg0 context.Context, arg1 string, arg2 ...interface{}) *sql.Row {
+func (m *MockDB) QueryRowContext(arg0 context.Context, arg1 string, arg2 ...interface{}) auth_interface.Row {
 	m.ctrl.T.Helper()
 	varargs := []interface{}{arg0, arg1}
 	for _, a := range arg2 {
 		varargs = append(varargs, a)
 	}
 	ret := m.ctrl.Call(m, "QueryRowContext", varargs...)
-	ret0, _ := ret[0].(*sql.Row)
+	ret0, _ := ret[0].(auth_interface.Row)
 	return ret0
 }
 

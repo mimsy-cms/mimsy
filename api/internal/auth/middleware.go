@@ -74,7 +74,7 @@ func (w *DBWrapper) QueryRow(query string, args ...any) auth_interface.Row {
 	return w.DB.QueryRow(query, args...)
 }
 
-func (w *DBWrapper) QueryRowContext(ctx context.Context, query string, args ...any) *sql.Row {
+func (w *DBWrapper) QueryRowContext(ctx context.Context, query string, args ...any) auth_interface.Row {
 	return w.DB.QueryRowContext(ctx, query, args...)
 }
 
