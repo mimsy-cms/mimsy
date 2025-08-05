@@ -59,7 +59,9 @@ func main() {
 
 	mux.Handle("/v1/", http.StripPrefix("/v1", v1))
 
-	v1.HandleFunc("POST /auth/login", auth.LoginHandler(db))
+	authDB := &auth.DBWrapper{DB: db}
+
+	v1.HandleFunc("POST /auth/login", auth.LoginHandler(authDB))
 	v1.HandleFunc("POST /auth/logout", auth.LogoutHandler(db))
 	v1.HandleFunc("POST /auth/password", auth.ChangePasswordHandler(db))
 	v1.HandleFunc("POST /auth/register", auth.RegisterHandler(db))
