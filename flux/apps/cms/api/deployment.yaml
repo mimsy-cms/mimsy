@@ -20,7 +20,7 @@ spec:
         - name: regcred
       containers:
         - name: api
-          image: ghcr.io/mimsy-cms/api:20250730-160824-359300c # {"$imagepolicy": "mimsy:api"}
+          image: ghcr.io/mimsy-cms/api:20250805-151557-3ce01b2 # {"$imagepolicy": "mimsy:api"}
           env:
             - name: POSTGRES_HOST
               value: postgres-cluster-rw.postgres.svc
