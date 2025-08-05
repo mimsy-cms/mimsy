@@ -14,6 +14,7 @@ import (
 	"strings"
 	"time"
 
+	auth_interface "github.com/mimsy-cms/mimsy/internal/interfaces/auth"
 	"github.com/mimsy-cms/mimsy/internal/util"
 	"golang.org/x/crypto/argon2"
 )
@@ -144,7 +145,7 @@ type LoginResponse struct {
 	MustChangePassword bool   `json:"mustChangePassword"`
 }
 
-func LoginHandler(db *sql.DB) http.HandlerFunc {
+func LoginHandler(db auth_interface.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		req, err := util.DecodeJSON[LoginRequest](r)
 		if err != nil {
@@ -163,10 +164,18 @@ func LoginHandler(db *sql.DB) http.HandlerFunc {
 			return
 		}
 
+		log.Printf("User: %+v", user)
+		log.Printf("Checking password: %s", req.Password)
 		if err := CheckPasswordHash(req.Password, user.PasswordHash); err != nil {
+			log.Printf("Password check failed: %v", err)
 			http.Error(w, "Invalid credentials", http.StatusUnauthorized)
 			return
 		}
+
+		// if err := CheckPasswordHash(req.Password, user.PasswordHash); err != nil {
+		// 	http.Error(w, "Invalid credentials", http.StatusUnauthorized)
+		// 	return
+		// }
 
 		// Clean up expired sessions
 		if _, err := db.Exec(`DELETE FROM "session" WHERE expires_at < NOW()`); err != nil {
