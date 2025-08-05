@@ -406,6 +406,29 @@ func TestLogoutHandler_Failure(t *testing.T) {
 }
 
 // TestLogoutHandler_Failure_DatabaseError tests the logout handler for a failed logout due to database error
+func TestLogoutHandler_Failure_DatabaseError(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mockDB := mockauth.NewMockDB(ctrl)
+
+	sessionID := "test-session-id"
+
+	mockDB.EXPECT().Exec(`DELETE FROM session WHERE id = $1`, sessionID).Return(nil, errors.New("database error"))
+
+	handler := LogoutHandler(mockDB)
+
+	req := httptest.NewRequest("POST", "/logout", nil)
+	req.AddCookie(&http.Cookie{Name: "session", Value: sessionID})
+	req.Header.Set("Content-Type", "application/json")
+
+	w := httptest.NewRecorder()
+	handler.ServeHTTP(w, req)
+
+	if w.Code != http.StatusInternalServerError {
+		t.Fatalf("expected status Internal Server Error, got %v", w.Code)
+	}
+}
 
 // =================================================================================================
 // ChangePasswordHandler
@@ -516,10 +539,104 @@ func TestChangePasswordHandler_Failure_WrongOldPassword(t *testing.T) {
 }
 
 // TestChangePasswordHandler_Failure_InvalidRequest tests the change password handler for a failed password change due to invalid request body
+func TestChangePasswordHandler_Failure_InvalidRequest(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mockDB := mockauth.NewMockDB(ctrl)
+
+	handler := ChangePasswordHandler(mockDB)
+
+	body := strings.NewReader(`{"old_password":"admin123","new_password"`)
+	req := httptest.NewRequest("POST", "/password", body)
+	req.Header.Set("Content-Type", "application/json")
+	req.AddCookie(&http.Cookie{Name: "session", Value: "1"})
+
+	user := &User{
+		ID:                 1,
+		Email:              "admin@example.com",
+		IsAdmin:            true,
+		MustChangePassword: false,
+	}
+	req = addUserToContext(req, user)
+
+	w := httptest.NewRecorder()
+	handler.ServeHTTP(w, req)
+
+	if w.Code != http.StatusBadRequest {
+		t.Fatalf("expected status Bad Request, got %v", w.Code)
+	}
+}
 
 // TestChangePasswordHandler_Failure_DatabaseError tests the change password handler for a failed password change due to database error
+func TestChangePasswordHandler_Failure_DatabaseError(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mockDB := mockauth.NewMockDB(ctrl)
+	mockRow := mockauth.NewMockRow(ctrl)
+
+	user := &User{
+		ID:                 1,
+		Email:              "admin@example.com",
+		IsAdmin:            true,
+		MustChangePassword: false,
+	}
+
+	hashedPassword, _ := HashPassword("admin123")
+	user.PasswordHash = hashedPassword
+
+	mockDB.EXPECT().QueryRow(`SELECT password FROM "user" WHERE id = $1`, user.ID).Return(mockRow)
+
+	mockRow.EXPECT().Scan(gomock.Any()).DoAndReturn(
+		func(dest ...interface{}) error {
+			*dest[0].(*string) = user.PasswordHash
+			return nil
+		},
+	)
+
+	mockDB.EXPECT().Exec(
+		`UPDATE "user" SET password = $1, must_change_password = FALSE WHERE id = $2`,
+		gomock.Any(), user.ID,
+	).Return(nil, errors.New("database error"))
+
+	handler := ChangePasswordHandler(mockDB)
+
+	body := strings.NewReader(`{"old_password":"admin123","new_password":"newpassword"}`)
+	req := httptest.NewRequest("POST", "/password", body)
+	req.Header.Set("Content-Type", "application/json")
+	req.AddCookie(&http.Cookie{Name: "session", Value: "1"})
+
+	req = addUserToContext(req, user)
+
+	w := httptest.NewRecorder()
+	handler.ServeHTTP(w, req)
+
+	if w.Code != http.StatusInternalServerError {
+		t.Fatalf("expected status Internal Server Error, got %v", w.Code)
+	}
+}
 
 // TestChangePasswordHandler_Failure_MissingUser tests the change password handler for a failed password change due to missing user in context
+func TestChangePasswordHandler_Failure_MissingUser(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mockDB := mockauth.NewMockDB(ctrl)
+
+	handler := ChangePasswordHandler(mockDB)
+
+	body := strings.NewReader(`{"old_password":"admin123","new_password":"newpassword"}`)
+	req := httptest.NewRequest("POST", "/password", body)
+	req.Header.Set("Content-Type", "application/json")
+
+	w := httptest.NewRecorder()
+	handler.ServeHTTP(w, req)
+
+	if w.Code != http.StatusUnauthorized {
+		t.Fatalf("expected status Unauthorized, got %v", w.Code)
+	}
+}
 
 // =================================================================================================
 // CreateAdminUser
