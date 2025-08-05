@@ -2,6 +2,7 @@ package migrations
 
 import (
 	"context"
+	"errors"
 	"testing"
 
 	gomock "github.com/golang/mock/gomock"
@@ -127,15 +128,206 @@ func TestRun_Failure_ActiveMigrationInProgress(t *testing.T) {
 }
 
 // TestRun_Failure_StateCreationError tests the Run function with a mock database that returns an error when checking the state.
+func TestRun_Failure_StateCreationError(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	ctx := context.Background()
+	expectedErr := context.DeadlineExceeded
+
+	// Override NewState to return an error
+	config := &runConfig{
+		MigrationsDir: "testdata/migrations",
+		PgURL:         "postgres://user:pass@localhost/db",
+		Schema:        "public",
+		StateSchema:   "pgroll",
+		NewState: func(ctx context.Context, pgURL, schema string) (migrations_interface.State, error) {
+			return nil, expectedErr
+		},
+		NewMigrator: func(ctx context.Context, pgURL, schema string, s migrations_interface.State) (migrations_interface.Migrator, error) {
+			t.Fatal("NewMigrator should not be called if NewState fails")
+			return nil, nil
+		},
+	}
+
+	n, err := Run(ctx, config)
+	if err == nil {
+		t.Fatal("expected an error due to state creation failure, got nil")
+	}
+	if err != expectedErr {
+		t.Fatalf("expected error %v, got %v", expectedErr, err)
+	}
+	if n != 0 {
+		t.Fatalf("expected 0 migrations applied, got %d", n)
+	}
+}
 
 // TestRun_Failure_RollCreationError tests the Run function with a mock database that returns an error when creating the roll.
+func TestRun_Failure_RollCreationError(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	ctx := context.Background()
+	mockState := mocks.NewMockState(ctrl)
+	expectedErr := context.Canceled
+
+	config := &runConfig{
+		MigrationsDir: "testdata/migrations",
+		PgURL:         "postgres://user:pass@localhost/db",
+		Schema:        "public",
+		StateSchema:   "pgroll",
+		NewState: func(ctx context.Context, pgURL, schema string) (migrations_interface.State, error) {
+			return mockState, nil
+		},
+		NewMigrator: func(ctx context.Context, pgURL, schema string, s migrations_interface.State) (migrations_interface.Migrator, error) {
+			return nil, expectedErr
+		},
+	}
+
+	n, err := Run(ctx, config)
+	if err == nil {
+		t.Fatal("expected an error due to migrator creation failure, got nil")
+	}
+	if err != expectedErr {
+		t.Fatalf("expected error %v, got %v", expectedErr, err)
+	}
+	if n != 0 {
+		t.Fatalf("expected 0 migrations applied, got %d", n)
+	}
+}
 
 // TestRun_Failure_LatestMigrationError tests the Run function with a mock database that returns an error when getting the latest migration.
+func TestRun_Failure_LatestMigrationError(t *testing.T) {
+	deps := setupTest(t)
+
+	setupCommonMigratorExpectations(deps.mockMigrator, deps.mockState)
+
+	deps.mockState.EXPECT().IsInitialized(deps.ctx).Return(true, nil)
+
+	expectedErr := context.DeadlineExceeded
+	deps.mockState.EXPECT().LatestMigration(deps.ctx, "public").Return(nil, expectedErr)
+
+	n, err := Run(deps.ctx, deps.config)
+	if err == nil {
+		t.Fatal("expected an error due to latest migration retrieval failure, got nil")
+	}
+	if err != expectedErr {
+		t.Fatalf("expected error %v, got %v", expectedErr, err)
+	}
+	if n != 0 {
+		t.Fatalf("expected 0 migrations applied, got %d", n)
+	}
+}
 
 // TestRun_Failure_UnappliedMigrationsError tests the Run function with a mock database that returns an error when getting unapplied migrations.
+func TestRun_Failure_UnappliedMigrationsError(t *testing.T) {
+	deps := setupTest(t)
+
+	setupCommonMigratorExpectations(deps.mockMigrator, deps.mockState)
+
+	deps.mockState.EXPECT().IsInitialized(deps.ctx).Return(true, nil)
+	deps.mockState.EXPECT().LatestMigration(deps.ctx, "public").Return(nil, nil)
+	deps.mockState.EXPECT().IsActiveMigrationPeriod(deps.ctx, "public").Return(false, nil)
+
+	expectedErr := context.Canceled
+	deps.mockMigrator.EXPECT().UnappliedMigrations(deps.ctx, gomock.Any()).Return(nil, expectedErr)
+
+	n, err := Run(deps.ctx, deps.config)
+	if err == nil {
+		t.Fatal("expected an error due to unapplied migrations retrieval failure, got nil")
+	}
+	if err != expectedErr {
+		t.Fatalf("expected error %v, got %v", expectedErr, err)
+	}
+	if n != 0 {
+		t.Fatalf("expected 0 migrations applied, got %d", n)
+	}
+}
 
 // TestRun_Failure_ParseMigrationError tests the Run function with a mock database that returns an error when parsing a migration.
+func TestRun_Failure_ParseMigrationError(t *testing.T) {
+	deps := setupTest(t)
+
+	setupCommonMigratorExpectations(deps.mockMigrator, deps.mockState)
+
+	deps.mockState.EXPECT().IsInitialized(deps.ctx).Return(true, nil)
+	deps.mockState.EXPECT().LatestMigration(deps.ctx, "public").Return(nil, nil)
+	deps.mockState.EXPECT().IsActiveMigrationPeriod(deps.ctx, "public").Return(false, nil)
+
+	deps.mockMigrator.EXPECT().UnappliedMigrations(deps.ctx, gomock.Any()).Return([]*pgmigs.RawMigration{
+		{
+			Name:       "001_invalid.up.sql",
+			Operations: []byte(`invalid-json`),
+		},
+	}, nil)
+
+	n, err := Run(deps.ctx, deps.config)
+	if err == nil {
+		t.Fatal("expected an error due to migration parse failure, got nil")
+	}
+	if n != 0 {
+		t.Fatalf("expected 0 migrations applied, got %d", n)
+	}
+}
 
 // TestRun_Failure_StartMigrationError tests the Run function with a mock database that returns an error when starting a migration.
+func TestRun_Failure_StartMigrationError(t *testing.T) {
+	deps := setupTest(t)
+
+	setupCommonMigratorExpectations(deps.mockMigrator, deps.mockState)
+
+	deps.mockState.EXPECT().IsInitialized(deps.ctx).Return(true, nil)
+	deps.mockState.EXPECT().LatestMigration(deps.ctx, "public").Return(nil, nil)
+	deps.mockState.EXPECT().IsActiveMigrationPeriod(deps.ctx, "public").Return(false, nil)
+
+	deps.mockMigrator.EXPECT().UnappliedMigrations(deps.ctx, gomock.Any()).Return([]*pgmigs.RawMigration{
+		{
+			Name:       "001_init.up.sql",
+			Operations: []byte(`[]`),
+		},
+	}, nil)
+
+	deps.mockMigrator.EXPECT().Start(gomock.Any(), gomock.Any(), gomock.Any()).Return(
+		errors.New("failed to start migration"),
+	)
+
+	n, err := Run(deps.ctx, deps.config)
+	if err == nil {
+		t.Fatal("expected an error due to Start migration failure, got nil")
+	}
+	if n != 0 {
+		t.Fatalf("expected 0 migrations applied, got %d", n)
+	}
+}
 
 // TestRun_Failure_CompleteMigrationError tests the Run function with a mock database that returns an error when completing a migration.
+func TestRun_Failure_CompleteMigrationError(t *testing.T) {
+	deps := setupTest(t)
+
+	setupCommonMigratorExpectations(deps.mockMigrator, deps.mockState)
+
+	deps.mockState.EXPECT().IsInitialized(deps.ctx).Return(true, nil)
+	deps.mockState.EXPECT().LatestMigration(deps.ctx, "public").Return(nil, nil)
+	deps.mockState.EXPECT().IsActiveMigrationPeriod(deps.ctx, "public").Return(false, nil)
+
+	deps.mockMigrator.EXPECT().UnappliedMigrations(deps.ctx, gomock.Any()).Return([]*pgmigs.RawMigration{
+		{
+			Name:       "001_init.up.sql",
+			Operations: []byte(`[]`),
+		},
+	}, nil)
+
+	deps.mockMigrator.EXPECT().Start(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil)
+
+	deps.mockMigrator.EXPECT().Complete(gomock.Any()).Return(
+		errors.New("failed to complete migration"),
+	)
+
+	n, err := Run(deps.ctx, deps.config)
+	if err == nil {
+		t.Fatal("expected an error due to Complete migration failure, got nil")
+	}
+	if n != 0 {
+		t.Fatalf("expected 0 migrations applied, got %d", n)
+	}
+}
