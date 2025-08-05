@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"os"
 
+	migrations_interface "github.com/mimsy-cms/mimsy/internal/interfaces/migrations"
 	"github.com/xataio/pgroll/pkg/backfill"
 	"github.com/xataio/pgroll/pkg/migrations"
 	"github.com/xataio/pgroll/pkg/roll"
@@ -51,6 +52,9 @@ type runConfig struct {
 	Schema string
 	// StateSchema is the name of the schema where migration state will be stored.
 	StateSchema string
+
+	NewState    func(ctx context.Context, pgURL, schema string) (migrations_interface.State, error)
+	NewMigrator func(ctx context.Context, pgURL, schema string, s migrations_interface.State) (migrations_interface.Migrator, error)
 }
 
 // Run executes the migrations defined in the migrations directory.
@@ -58,18 +62,42 @@ type runConfig struct {
 // and applies all unapplied migrations in the specified directory.
 // It returns the number of migrations applied or an error if something goes wrong.
 func Run(ctx context.Context, config *runConfig) (int, error) {
-	state, err := state.New(ctx, config.PgURL, config.StateSchema)
+	var (
+		st  migrations_interface.State
+		err error
+	)
+
+	if config.NewState != nil {
+		st, err = config.NewState(ctx, config.PgURL, config.StateSchema)
+
+	} else {
+		st, err = state.New(ctx, config.PgURL, config.StateSchema)
+		if err != nil {
+			return 0, err
+		}
+	}
 	if err != nil {
 		return 0, err
 	}
 
-	m, err := roll.New(ctx, config.PgURL, config.Schema, state)
+	var m migrations_interface.Migrator
+	if config.NewMigrator != nil {
+		m, err = config.NewMigrator(ctx, config.PgURL, config.Schema, st)
+	} else {
+		rollMigrator, rollErr := roll.New(ctx, config.PgURL, config.Schema, st.(*state.State))
+		if rollErr != nil {
+			err = rollErr
+		} else {
+			m = &migratorAdapter{rollMigrator}
+		}
+	}
+
 	if err != nil {
 		return 0, err
 	}
 	defer m.Close()
 
-	ok, err := state.IsInitialized(ctx)
+	ok, err := st.IsInitialized(ctx)
 	if err != nil {
 		return 0, err
 	}
@@ -115,6 +143,15 @@ func Run(ctx context.Context, config *runConfig) (int, error) {
 			return 0, err
 		}
 	}
-
 	return len(migs), nil
+}
+
+// migratorAdapter adapts *roll.Roll to migrations_interface.Migrator
+type migratorAdapter struct {
+	*roll.Roll
+}
+
+// State adapts *state.State to migrations_interface.State
+func (m *migratorAdapter) State() migrations_interface.State {
+	return m.Roll.State()
 }
