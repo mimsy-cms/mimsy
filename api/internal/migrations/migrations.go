@@ -115,7 +115,11 @@ func Run(ctx context.Context, config *runConfig) (int, error) {
 		return 0, err
 	}
 	if active {
-		return 0, fmt.Errorf("migration %q is active", *latestMigration)
+		name := "unknown"
+		if latestMigration != nil {
+			name = *latestMigration
+		}
+		return 0, fmt.Errorf("migration %q is active", name)
 	}
 
 	rawMigs, err := m.UnappliedMigrations(ctx, os.DirFS(config.MigrationsDir))
