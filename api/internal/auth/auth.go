@@ -184,8 +184,7 @@ func LoginHandler(db auth_interface.DB) http.HandlerFunc {
 		expiresAt := time.Now().Add(7 * 24 * time.Hour) // session valid for 7 days
 
 		_, err = db.Exec(
-			`INSERT INTO session (id, user_id, expires_at)
-			VALUES ($1, $2, $3)`, sessionToken, user.ID, expiresAt)
+			`INSERT INTO session (id, user_id, expires_at) VALUES ($1, $2, $3)`, sessionToken, user.ID, expiresAt)
 		if err != nil {
 			http.Error(w, "Failed to create session", http.StatusInternalServerError)
 			return

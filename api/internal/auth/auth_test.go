@@ -3,6 +3,7 @@ package auth
 import (
 	"context"
 	"database/sql"
+	"errors"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -11,6 +12,10 @@ import (
 	"github.com/golang/mock/gomock"
 	mockauth "github.com/mimsy-cms/mimsy/internal/mocks/auth"
 )
+
+// =================================================================================================
+// HashPassword and CheckPasswordHash
+// =================================================================================================
 
 // TestHashPasswordAndCheck tests the HashPassword and CheckPasswordHash functions
 func TestHashPasswordAndCheck(t *testing.T) {
@@ -35,6 +40,10 @@ func TestHashPasswordAndCheck(t *testing.T) {
 	}
 }
 
+// =================================================================================================
+// generateSalt
+// =================================================================================================
+
 // TestGenerateSalt tests the generateSalt function
 func TestGenerateSalt(t *testing.T) {
 	saltLen := 16
@@ -54,6 +63,10 @@ func TestGenerateSalt(t *testing.T) {
 		t.Fatal("generated salts should not be the same")
 	}
 }
+
+// =================================================================================================
+// compareHashes
+// =================================================================================================
 
 // TestCompareHashes tests the compareHashes function
 func TestCompareHashes(t *testing.T) {
@@ -77,6 +90,10 @@ func TestCompareHashes(t *testing.T) {
 	}
 }
 
+// =================================================================================================
+// generateSessionToken
+// =================================================================================================
+
 // TestGenerateSessionToken tests the generateSessionToken function
 func TestGenerateSessionToken(t *testing.T) {
 	token1, err1 := generateSessionToken()
@@ -95,6 +112,10 @@ func TestGenerateSessionToken(t *testing.T) {
 		t.Fatal("generated session tokens should not be the same")
 	}
 }
+
+// =================================================================================================
+// LoginHandler
+// =================================================================================================
 
 // TestLoginHandler_Success tests the login handler for a successful login
 func TestLoginHandler_Success(t *testing.T) {
@@ -201,6 +222,138 @@ func TestLoginHandler_Failure_UserNotFound(t *testing.T) {
 	}
 }
 
+// TestLoginHandler_Failure_InvalidRequest tests the login handler for a failed login due to invalid request body
+func TestLoginHandler_Failure_InvalidRequest(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mockDB := mockauth.NewMockDB(ctrl)
+
+	handler := LoginHandler(mockDB)
+
+	body := strings.NewReader(`{"email":"admin@example.com","password":"admin123"`)
+	req := httptest.NewRequest("POST", "/login", body)
+	req.Header.Set("Content-Type", "application/json")
+
+	w := httptest.NewRecorder()
+	handler.ServeHTTP(w, req)
+
+	if w.Code != http.StatusBadRequest {
+		t.Fatalf("expected status Bad Request, got %v", w.Code)
+	}
+}
+
+// TestLoginHandler_Failure_DatabaseError tests the login handler for a failed login due to database error
+func TestLoginHandler_Failure_DatabaseError(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mockDB := mockauth.NewMockDB(ctrl)
+	mockRow := mockauth.NewMockRow(ctrl)
+
+	mockDB.EXPECT().QueryRow(`SELECT id, email, password, must_change_password FROM "user" WHERE email = $1`, "admin@example.com").Return(mockRow)
+
+	mockRow.EXPECT().Scan(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(errors.New("database error"))
+
+	handler := LoginHandler(mockDB)
+
+	body := strings.NewReader(`{"email":"admin@example.com","password":"admin123"}`)
+	req := httptest.NewRequest("POST", "/login", body)
+	req.Header.Set("Content-Type", "application/json")
+
+	w := httptest.NewRecorder()
+	handler.ServeHTTP(w, req)
+
+	if w.Code != http.StatusInternalServerError {
+		t.Fatalf("expected status Internal Server Error, got %v", w.Code)
+	}
+}
+
+// TestLoginHandler_Failure_SessionCleanupError tests the login handler for a failed login due to session cleanup error
+func TestLoginHandler_Failure_SessionCleanupError(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mockDB := mockauth.NewMockDB(ctrl)
+	mockRow := mockauth.NewMockRow(ctrl)
+
+	mockDB.EXPECT().QueryRow(`SELECT id, email, password, must_change_password FROM "user" WHERE email = $1`, "admin@example.com").Return(mockRow)
+
+	mockRow.EXPECT().
+		Scan(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
+		DoAndReturn(func(args ...any) error {
+			*(args[0].(*int64)) = 1
+			*(args[1].(*string)) = "admin@example.com"
+			hash, _ := HashPassword("admin123")
+			*(args[2].(*string)) = hash
+			*(args[3].(*bool)) = false
+			return nil
+		})
+
+	mockDB.EXPECT().Exec(`DELETE FROM "session" WHERE expires_at < NOW()`).Return(nil, errors.New("session cleanup error"))
+
+	handler := LoginHandler(mockDB)
+
+	body := strings.NewReader(`{"email":"admin@example.com","password":"admin123"}`)
+	req := httptest.NewRequest("POST", "/login", body)
+	req.Header.Set("Content-Type", "application/json")
+
+	w := httptest.NewRecorder()
+	handler.ServeHTTP(w, req)
+
+	if w.Code != http.StatusInternalServerError {
+		t.Fatalf("expected status Internal Server Error, got %v", w.Code)
+	}
+}
+
+// TestLoginHandler_Failure_SessionInsertError tests the login handler for a failed login due to session insert error
+func TestLoginHandler_Failure_SessionInsertError(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mockDB := mockauth.NewMockDB(ctrl)
+	mockRow := mockauth.NewMockRow(ctrl)
+
+	mockDB.EXPECT().QueryRow(`SELECT id, email, password, must_change_password FROM "user" WHERE email = $1`, "admin@example.com").Return(mockRow)
+
+	mockRow.EXPECT().
+		Scan(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
+		DoAndReturn(func(args ...any) error {
+			*(args[0].(*int64)) = 1
+			*(args[1].(*string)) = "admin@example.com"
+			hash, _ := HashPassword("admin123")
+			*(args[2].(*string)) = hash
+			*(args[3].(*bool)) = false
+			return nil
+		})
+
+	mockDB.EXPECT().Exec(`DELETE FROM "session" WHERE expires_at < NOW()`).Return(nil, nil)
+
+	mockDB.EXPECT().Exec(
+		`INSERT INTO session (id, user_id, expires_at) VALUES ($1, $2, $3)`,
+		gomock.Any(),
+		int64(1),
+		gomock.Any(),
+	).Return(nil, errors.New("session insert error"))
+
+	handler := LoginHandler(mockDB)
+
+	body := strings.NewReader(`{"email":"admin@example.com","password":"admin123"}`)
+	req := httptest.NewRequest("POST", "/login", body)
+	req.Header.Set("Content-Type", "application/json")
+
+	w := httptest.NewRecorder()
+	handler.ServeHTTP(w, req)
+
+	if w.Code != http.StatusInternalServerError {
+		t.Fatalf("expected status Internal Server Error, got %v", w.Code)
+	}
+}
+
+// =================================================================================================
+// LogoutHandler
+// =================================================================================================
+
 // TestLogoutHandler_Success tests the logout handler
 func TestLogoutHandler_Success(t *testing.T) {
 	ctrl := gomock.NewController(t)
@@ -251,6 +404,12 @@ func TestLogoutHandler_Failure(t *testing.T) {
 		t.Errorf("expected response body to contain 'No session found', got: %s", w.Body.String())
 	}
 }
+
+// TestLogoutHandler_Failure_DatabaseError tests the logout handler for a failed logout due to database error
+
+// =================================================================================================
+// ChangePasswordHandler
+// =================================================================================================
 
 // TestChangePasswordHandler_Success tests the change password handler for a successful password change
 func TestChangePasswordHandler_Success(t *testing.T) {
@@ -355,3 +514,21 @@ func TestChangePasswordHandler_Failure_WrongOldPassword(t *testing.T) {
 		t.Errorf("expected response body to contain 'Old password is incorrect', got: %s", w.Body.String())
 	}
 }
+
+// TestChangePasswordHandler_Failure_InvalidRequest tests the change password handler for a failed password change due to invalid request body
+
+// TestChangePasswordHandler_Failure_DatabaseError tests the change password handler for a failed password change due to database error
+
+// TestChangePasswordHandler_Failure_MissingUser tests the change password handler for a failed password change due to missing user in context
+
+// =================================================================================================
+// CreateAdminUser
+// =================================================================================================
+
+// TestCreateAdminUser_Success tests the CreateAdminUser function for a successful admin user creation
+
+// TestCreateAdminUser_Failure_UserCountError tests the CreateAdminUser function for a failed admin user creation due to user count error
+
+// TestCreateAdminUser_Failure_UserInsertError tests the CreateAdminUser function for a failed admin user creation due to user insert error
+
+// TestCreateAdminUser_Failure_UserAlreadyExists tests the CreateAdminUser function for a failed admin user creation due to user already exists
