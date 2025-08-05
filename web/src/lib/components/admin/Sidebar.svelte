@@ -8,18 +8,23 @@
 	import MenuItem from './MenuItem.svelte';
 	import { goto } from '$app/navigation';
 
+	type Collection = {
+		name: string;
+		slug: string;
+	};
+
 	type Props = {
 		class?: string;
 		onNavigate: () => void;
+		collections: Collection[];
 	};
 
-	let { class: className, onNavigate }: Props = $props();
+	let { class: className, onNavigate, collections }: Props = $props();
 
-	const collections = [
-		{ name: 'Posts', href: '/collections/posts' },
-		{ name: 'Pages', href: '/collections/pages' },
-		{ name: 'Events', href: '/collections/events' }
-	];
+	const collectionLinks = collections.map((collection) => ({
+		name: collection.name,
+		href: `/collections/${collection.slug}`
+	}));
 
 	const globals = [
 		{ name: 'Info', href: '/globals/info' },
@@ -49,7 +54,7 @@
 				<span class="flex-1">Dashboard</span>
 			</MenuItem>
 
-			<Accordion text="Collections" icon={DatabaseIcon} items={collections} {onNavigate} />
+			<Accordion text="Collections" icon={DatabaseIcon} items={collectionLinks} {onNavigate} />
 
 			<Accordion text="Globals" icon={GlobeIcon} items={globals} {onNavigate} />
 		</nav>
