@@ -1,11 +1,7 @@
 <script lang="ts">
 	import Searchbar from '$lib/components/admin/Searchbar.svelte';
 
-	const collections = [
-		{ name: 'Posts', href: '/collections/posts' },
-		{ name: 'Pages', href: '/collections/pages' },
-		{ name: 'Events', href: '/collections/events' }
-	];
+	let { data } = $props();
 
 	const globals = [
 		{ name: 'Info', href: '/globals/info' },
@@ -20,11 +16,11 @@
 	<Searchbar id="collection-search" name="collection-search" class="max-w-md" />
 
 	<ol class="flex min-h-32 gap-6">
-		{#each collections as collection}
+		{#each data.collections as collection}
 			<li class="contents">
 				<a
 					class="min-w-64 rounded-md border border-gray-200 bg-white px-3 py-2 hover:bg-gray-50"
-					href={collection.href}
+					href={`/collections/${collection.slug}`}
 				>
 					<span class="text-xl font-medium">{collection.name}</span>
 				</a>
