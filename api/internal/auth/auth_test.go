@@ -15,6 +15,47 @@ import (
 )
 
 // =================================================================================================
+// Helper Functions
+// =================================================================================================
+func setupMocks(t *testing.T) (*gomock.Controller, *mockauth.MockDB, *mockauth.MockRow) {
+	ctrl := gomock.NewController(t)
+	mockDB := mockauth.NewMockDB(ctrl)
+	mockRow := mockauth.NewMockRow(ctrl)
+	t.Cleanup(func() {
+		ctrl.Finish()
+	})
+	return ctrl, mockDB, mockRow
+}
+
+func newJSONRequest(t *testing.T, method, url, jsonBody string) *http.Request {
+	req := httptest.NewRequest(method, url, strings.NewReader(jsonBody))
+	req.Header.Set("Content-Type", "application/json")
+	return req
+}
+
+func addUserToContext(req *http.Request, user *User) *http.Request {
+	ctx := context.WithValue(req.Context(), userContextKey, user)
+	return req.WithContext(ctx)
+}
+
+func expectUserQuery(mockDB *mockauth.MockDB, mockRow *mockauth.MockRow, email, password string) {
+	mockDB.EXPECT().QueryRow(`SELECT id, email, password, must_change_password FROM "user" WHERE email = $1`, email).Return(mockRow)
+	mockRow.EXPECT().Scan(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).DoAndReturn(func(dest ...interface{}) error {
+		*dest[0].(*int64) = int64(1)
+		*dest[1].(*string) = email
+		*dest[2].(*string) = password
+		*dest[3].(*bool) = false
+		return nil
+	})
+}
+
+func executeRequest(handler http.Handler, req *http.Request, t *testing.T) *httptest.ResponseRecorder {
+	w := httptest.NewRecorder()
+	handler.ServeHTTP(w, req)
+	return w
+}
+
+// =================================================================================================
 // HashPassword and CheckPasswordHash
 // =================================================================================================
 
@@ -120,27 +161,15 @@ func TestGenerateSessionToken(t *testing.T) {
 
 // TestLoginHandler_Success tests the login handler for a successful login
 func TestLoginHandler_Success(t *testing.T) {
-	ctrl := gomock.NewController(t)
-	defer ctrl.Finish()
+	_, mockDB, mockRow := setupMocks(t)
 
-	mockDB := mockauth.NewMockDB(ctrl)
-	mockRow := mockauth.NewMockRow(ctrl)
-
-	mockRow.EXPECT().Scan(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).DoAndReturn(
-		func(dest ...interface{}) error {
-			*dest[0].(*int64) = int64(1)
-			*dest[1].(*string) = "admin@example.com"
-			hash, _ := HashPassword("admin123")
-			*dest[2].(*string) = hash
-			*dest[3].(*bool) = false
-			return nil
-		},
-	)
-
-	mockDB.EXPECT().QueryRow(`SELECT id, email, password, must_change_password FROM "user" WHERE email = $1`, "admin@example.com").Return(mockRow)
+	hash, err := HashPassword("admin123")
+	if err != nil {
+		t.Fatalf("failed to hash password: %v", err)
+	}
+	expectUserQuery(mockDB, mockRow, "admin@example.com", hash)
 
 	mockDB.EXPECT().Exec(gomock.Any(), gomock.Any()).Return(nil, nil)
-
 	mockDB.EXPECT().Exec(
 		gomock.Any(),
 		gomock.Any(),
@@ -150,12 +179,8 @@ func TestLoginHandler_Success(t *testing.T) {
 
 	handler := LoginHandler(mockDB)
 
-	body := strings.NewReader(`{"email":"admin@example.com","password":"admin123"}`)
-	req := httptest.NewRequest("POST", "/login", body)
-	req.Header.Set("Content-Type", "application/json")
-
-	w := httptest.NewRecorder()
-	handler.ServeHTTP(w, req)
+	req := newJSONRequest(t, "POST", "/login", `{"email":"admin@example.com","password":"admin123"}`)
+	w := executeRequest(handler, req, t)
 
 	if w.Code != http.StatusOK {
 		t.Fatalf("expected status OK, got %v", w.Code)
@@ -482,11 +507,6 @@ func TestChangePasswordHandler_Success(t *testing.T) {
 	if w.Code != http.StatusOK {
 		t.Fatalf("expected status OK, got %v", w.Code)
 	}
-}
-
-func addUserToContext(req *http.Request, user *User) *http.Request {
-	ctx := context.WithValue(req.Context(), userContextKey, user)
-	return req.WithContext(ctx)
 }
 
 // TestChangePasswordHandler_Failure_WrongOldPassword tests the change password handler for a failed password change because of incorrect old password
