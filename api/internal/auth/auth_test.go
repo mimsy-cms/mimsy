@@ -10,6 +10,7 @@ import (
 	"testing"
 
 	"github.com/golang/mock/gomock"
+	auth_interface "github.com/mimsy-cms/mimsy/internal/interfaces/auth"
 	mockauth "github.com/mimsy-cms/mimsy/internal/mocks/auth"
 )
 
@@ -671,7 +672,74 @@ func TestCreateAdminUser_Success(t *testing.T) {
 }
 
 // TestCreateAdminUser_Failure_UserCountError tests the CreateAdminUser function for a failed admin user creation due to user count error
+func TestCreateAdminUser_Failure_UserCountError(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mockDB := mockauth.NewMockDB(ctrl)
+
+	mockDB.EXPECT().QueryRowContext(gomock.Any(), `SELECT COUNT(*) FROM "user"`).DoAndReturn(
+		func(ctx context.Context, query string, args ...interface{}) auth_interface.Row {
+			row := mockauth.NewMockRow(ctrl)
+			row.EXPECT().Scan(gomock.Any()).Return(errors.New("database error"))
+			return row
+		},
+	)
+
+	err := CreateAdminUser(context.Background(), mockDB)
+	if err == nil || !strings.Contains(err.Error(), "failed to count users") {
+		t.Fatalf("expected error about counting users, got %v", err)
+	}
+}
 
 // TestCreateAdminUser_Failure_UserInsertError tests the CreateAdminUser function for a failed admin user creation due to user insert error
+func TestCreateAdminUser_Failure_UserInsertError(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mockDB := mockauth.NewMockDB(ctrl)
+
+	mockDB.EXPECT().QueryRowContext(gomock.Any(), `SELECT COUNT(*) FROM "user"`).DoAndReturn(
+		func(ctx context.Context, query string, args ...interface{}) auth_interface.Row {
+			row := mockauth.NewMockRow(ctrl)
+			row.EXPECT().Scan(gomock.Any()).DoAndReturn(func(dest ...interface{}) error {
+				*dest[0].(*int) = 0
+				return nil
+			})
+			return row
+		},
+	)
+
+	mockDB.EXPECT().ExecContext(gomock.Any(), `INSERT INTO "user" (email, password, must_change_password, is_admin) VALUES ($1, $2, $3, $4)`,
+		gomock.Any(), gomock.Any(), true, true,
+	).Return(nil, errors.New("insert error"))
+
+	err := CreateAdminUser(context.Background(), mockDB)
+	if err == nil || !strings.Contains(err.Error(), "failed to create admin user") {
+		t.Fatalf("expected error about creating admin user, got %v", err)
+	}
+}
 
 // TestCreateAdminUser_Failure_UserAlreadyExists tests the CreateAdminUser function for a failed admin user creation due to user already exists
+func TestCreateAdminUser_Failure_UserAlreadyExists(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mockDB := mockauth.NewMockDB(ctrl)
+
+	mockDB.EXPECT().QueryRowContext(gomock.Any(), `SELECT COUNT(*) FROM "user"`).DoAndReturn(
+		func(ctx context.Context, query string, args ...interface{}) auth_interface.Row {
+			row := mockauth.NewMockRow(ctrl)
+			row.EXPECT().Scan(gomock.Any()).DoAndReturn(func(dest ...interface{}) error {
+				*dest[0].(*int) = 1 // Simulate that a user already exists
+				return nil
+			})
+			return row
+		},
+	)
+
+	err := CreateAdminUser(context.Background(), mockDB)
+	if err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
+}
