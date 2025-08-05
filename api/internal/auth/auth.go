@@ -198,7 +198,7 @@ func LoginHandler(db auth_interface.DB) http.HandlerFunc {
 	}
 }
 
-func LogoutHandler(db *sql.DB) http.HandlerFunc {
+func LogoutHandler(db auth_interface.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		cookie, err := r.Cookie("session")
 		if err != nil {

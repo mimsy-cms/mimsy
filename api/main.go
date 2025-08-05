@@ -62,7 +62,7 @@ func main() {
 	authDB := &auth.DBWrapper{DB: db}
 
 	v1.HandleFunc("POST /auth/login", auth.LoginHandler(authDB))
-	v1.HandleFunc("POST /auth/logout", auth.LogoutHandler(db))
+	v1.HandleFunc("POST /auth/logout", auth.LogoutHandler(authDB))
 	v1.HandleFunc("POST /auth/password", auth.ChangePasswordHandler(db))
 	v1.HandleFunc("POST /auth/register", auth.RegisterHandler(db))
 	v1.HandleFunc("GET /auth/me", auth.MeHandler(db))

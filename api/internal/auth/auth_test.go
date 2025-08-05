@@ -199,3 +199,54 @@ func TestLoginHandler_Failure_UserNotFound(t *testing.T) {
 		t.Fatalf("expected status Unauthorized, got %v", w.Code)
 	}
 }
+
+// TestLogoutHandler_Success tests the logout handler
+func TestLogoutHandler_Success(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mockDB := mockauth.NewMockDB(ctrl)
+
+	sessionID := "test-session-id"
+
+	mockDB.EXPECT().Exec(`DELETE FROM session WHERE id = $1`, sessionID).Return(nil, nil)
+
+	handler := LogoutHandler(mockDB)
+
+	req := httptest.NewRequest("POST", "/logout", nil)
+	req.AddCookie(&http.Cookie{Name: "session", Value: sessionID})
+	req.Header.Set("Content-Type", "application/json")
+
+	w := httptest.NewRecorder()
+	handler.ServeHTTP(w, req)
+
+	if w.Code != http.StatusOK {
+		t.Fatalf("expected status OK, got %v", w.Code)
+	}
+
+	if !strings.Contains(w.Body.String(), "Logged out successfully") {
+		t.Errorf("expected response body to contain 'Logged out successfully', got: %s", w.Body.String())
+	}
+}
+
+// TestLogoutHandler_Failure tests the logout handler when no session cookie is present
+func TestLogoutHandler_Failure(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mockDB := mockauth.NewMockDB(ctrl)
+
+	handler := LogoutHandler(mockDB)
+
+	req := httptest.NewRequest("POST", "/logout", nil)
+	w := httptest.NewRecorder()
+	handler.ServeHTTP(w, req)
+
+	if w.Code != http.StatusUnauthorized {
+		t.Fatalf("expected status Unauthorized, got %v", w.Code)
+	}
+
+	if !strings.Contains(w.Body.String(), "No session found") {
+		t.Errorf("expected response body to contain 'No session found', got: %s", w.Body.String())
+	}
+}
