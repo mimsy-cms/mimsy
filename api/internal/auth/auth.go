@@ -164,18 +164,10 @@ func LoginHandler(db auth_interface.DB) http.HandlerFunc {
 			return
 		}
 
-		log.Printf("User: %+v", user)
-		log.Printf("Checking password: %s", req.Password)
 		if err := CheckPasswordHash(req.Password, user.PasswordHash); err != nil {
-			log.Printf("Password check failed: %v", err)
 			http.Error(w, "Invalid credentials", http.StatusUnauthorized)
 			return
 		}
-
-		// if err := CheckPasswordHash(req.Password, user.PasswordHash); err != nil {
-		// 	http.Error(w, "Invalid credentials", http.StatusUnauthorized)
-		// 	return
-		// }
 
 		// Clean up expired sessions
 		if _, err := db.Exec(`DELETE FROM "session" WHERE expires_at < NOW()`); err != nil {
