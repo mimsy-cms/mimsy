@@ -1,6 +1,7 @@
 package auth
 
 import (
+	"database/sql"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -138,8 +139,8 @@ func TestLoginHandler_Success(t *testing.T) {
 	}
 }
 
-// TestLoginHandler_Failure tests the login handler for a failed login
-func TestLoginHandler_Failure(t *testing.T) {
+// TestLoginHandler_Failure_WrongPassword tests the login handler for a failed login because of incorrect password
+func TestLoginHandler_Failure_WrongPassword(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
@@ -150,7 +151,7 @@ func TestLoginHandler_Failure(t *testing.T) {
 		func(dest ...interface{}) error {
 			*dest[0].(*int64) = int64(1)
 			*dest[1].(*string) = "admin@example.com"
-			hash, _ := HashPassword("wrongpassword")
+			hash, _ := HashPassword("admin123")
 			*dest[2].(*string) = hash
 			*dest[3].(*bool) = false
 			return nil
@@ -161,7 +162,33 @@ func TestLoginHandler_Failure(t *testing.T) {
 
 	handler := LoginHandler(mockDB)
 
-	body := strings.NewReader(`{"email":"admin@example.com","password":"admin123"}`)
+	body := strings.NewReader(`{"email":"admin@example.com","password":"wrongpassword"}`)
+	req := httptest.NewRequest("POST", "/login", body)
+	req.Header.Set("Content-Type", "application/json")
+
+	w := httptest.NewRecorder()
+	handler.ServeHTTP(w, req)
+
+	if w.Code != http.StatusUnauthorized {
+		t.Fatalf("expected status Unauthorized, got %v", w.Code)
+	}
+}
+
+// TestLoginHandler_Failure_UserNotFound tests the login handler for a failed login because of user not found
+func TestLoginHandler_Failure_UserNotFound(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mockDB := mockauth.NewMockDB(ctrl)
+	mockRow := mockauth.NewMockRow(ctrl)
+
+	mockRow.EXPECT().Scan(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(sql.ErrNoRows)
+
+	mockDB.EXPECT().QueryRow(`SELECT id, email, password, must_change_password FROM "user" WHERE email = $1`, "admin@wrongdomain.com").Return(mockRow)
+
+	handler := LoginHandler(mockDB)
+
+	body := strings.NewReader(`{"email":"admin@wrongdomain.com","password":"admin123"}`)
 	req := httptest.NewRequest("POST", "/login", body)
 	req.Header.Set("Content-Type", "application/json")
 
