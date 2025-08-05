@@ -1,6 +1,7 @@
 package auth
 
 import (
+	"context"
 	"database/sql"
 	"net/http"
 	"net/http/httptest"
@@ -248,5 +249,109 @@ func TestLogoutHandler_Failure(t *testing.T) {
 
 	if !strings.Contains(w.Body.String(), "No session found") {
 		t.Errorf("expected response body to contain 'No session found', got: %s", w.Body.String())
+	}
+}
+
+// TestChangePasswordHandler_Success tests the change password handler for a successful password change
+func TestChangePasswordHandler_Success(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mockDB := mockauth.NewMockDB(ctrl)
+	mockRow := mockauth.NewMockRow(ctrl)
+
+	user := &User{
+		ID:                 1,
+		Email:              "admin@example.com",
+		IsAdmin:            true,
+		MustChangePassword: false,
+	}
+
+	hashedPassword, _ := HashPassword("admin123")
+	user.PasswordHash = hashedPassword
+
+	mockRow.EXPECT().Scan(gomock.Any()).DoAndReturn(
+		func(dest ...interface{}) error {
+			*dest[0].(*string) = user.PasswordHash
+			return nil
+		},
+	)
+
+	mockDB.EXPECT().QueryRow(`SELECT password FROM "user" WHERE id = $1`, user.ID).Return(mockRow)
+
+	mockDB.EXPECT().Exec(
+		`UPDATE "user" SET password = $1, must_change_password = FALSE WHERE id = $2`,
+		gomock.Any(), user.ID,
+	).Return(nil, nil)
+
+	handler := ChangePasswordHandler(mockDB)
+
+	body := strings.NewReader(`{"old_password":"admin123","new_password":"newpassword"}`)
+	req := httptest.NewRequest("POST", "/password", body)
+	req.AddCookie(&http.Cookie{Name: "session", Value: "1"})
+	req.Header.Set("Content-Type", "application/json")
+
+	req = addUserToContext(req, user)
+
+	w := httptest.NewRecorder()
+	handler.ServeHTTP(w, req)
+
+	if w.Code != http.StatusOK {
+		t.Fatalf("expected status OK, got %v", w.Code)
+	}
+}
+
+func addUserToContext(req *http.Request, user *User) *http.Request {
+	ctx := context.WithValue(req.Context(), userContextKey, user)
+	return req.WithContext(ctx)
+}
+
+// TestChangePasswordHandler_Failure_WrongOldPassword tests the change password handler for a failed password change because of incorrect old password
+func TestChangePasswordHandler_Failure_WrongOldPassword(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mockDB := mockauth.NewMockDB(ctrl)
+	mockRow := mockauth.NewMockRow(ctrl)
+
+	user := &User{
+		ID:                 1,
+		Email:              "admin@example.com",
+		IsAdmin:            true,
+		MustChangePassword: false,
+	}
+
+	hashedPassword, err := HashPassword("admin123")
+	if err != nil {
+		t.Fatalf("failed to hash password: %v", err)
+	}
+	user.PasswordHash = hashedPassword
+
+	mockRow.EXPECT().Scan(gomock.Any()).DoAndReturn(
+		func(dest ...interface{}) error {
+			*dest[0].(*string) = user.PasswordHash
+			return nil
+		},
+	)
+
+	mockDB.EXPECT().QueryRow(`SELECT password FROM "user" WHERE id = $1`, user.ID).Return(mockRow)
+
+	handler := ChangePasswordHandler(mockDB)
+
+	body := strings.NewReader(`{"old_password":"wrongpassword","new_password":"newpassword"}`)
+	req := httptest.NewRequest("POST", "/password", body)
+	req.Header.Set("Content-Type", "application/json")
+
+	req = addUserToContext(req, user)
+
+	w := httptest.NewRecorder()
+	handler.ServeHTTP(w, req)
+
+	if w.Code != http.StatusUnauthorized {
+		t.Fatalf("expected status Unauthorized, got %v", w.Code)
+	}
+
+	if !strings.Contains(w.Body.String(), "Old password is incorrect") {
+		t.Errorf("expected response body to contain 'Old password is incorrect', got: %s", w.Body.String())
 	}
 }

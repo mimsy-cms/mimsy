@@ -222,7 +222,7 @@ type ChangePasswordRequest struct {
 	NewPassword string `json:"new_password"`
 }
 
-func ChangePasswordHandler(db *sql.DB) http.HandlerFunc {
+func ChangePasswordHandler(db auth_interface.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		user := UserFromContext(r.Context())
 		if user == nil {
