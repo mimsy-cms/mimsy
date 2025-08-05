@@ -189,11 +189,7 @@ func TestLoginHandler_Success(t *testing.T) {
 
 // TestLoginHandler_Failure_WrongPassword tests the login handler for a failed login because of incorrect password
 func TestLoginHandler_Failure_WrongPassword(t *testing.T) {
-	ctrl := gomock.NewController(t)
-	defer ctrl.Finish()
-
-	mockDB := mockauth.NewMockDB(ctrl)
-	mockRow := mockauth.NewMockRow(ctrl)
+	_, mockDB, mockRow := setupMocks(t)
 
 	mockRow.EXPECT().Scan(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).DoAndReturn(
 		func(dest ...interface{}) error {
@@ -210,12 +206,9 @@ func TestLoginHandler_Failure_WrongPassword(t *testing.T) {
 
 	handler := LoginHandler(mockDB)
 
-	body := strings.NewReader(`{"email":"admin@example.com","password":"wrongpassword"}`)
-	req := httptest.NewRequest("POST", "/login", body)
-	req.Header.Set("Content-Type", "application/json")
+	req := newJSONRequest(t, "POST", "/login", `{"email":"admin@example.com","password":"wrongpassword"}`)
 
-	w := httptest.NewRecorder()
-	handler.ServeHTTP(w, req)
+	w := executeRequest(handler, req, t)
 
 	if w.Code != http.StatusUnauthorized {
 		t.Fatalf("expected status Unauthorized, got %v", w.Code)
@@ -224,11 +217,7 @@ func TestLoginHandler_Failure_WrongPassword(t *testing.T) {
 
 // TestLoginHandler_Failure_UserNotFound tests the login handler for a failed login because of user not found
 func TestLoginHandler_Failure_UserNotFound(t *testing.T) {
-	ctrl := gomock.NewController(t)
-	defer ctrl.Finish()
-
-	mockDB := mockauth.NewMockDB(ctrl)
-	mockRow := mockauth.NewMockRow(ctrl)
+	_, mockDB, mockRow := setupMocks(t)
 
 	mockRow.EXPECT().Scan(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(sql.ErrNoRows)
 
@@ -236,12 +225,9 @@ func TestLoginHandler_Failure_UserNotFound(t *testing.T) {
 
 	handler := LoginHandler(mockDB)
 
-	body := strings.NewReader(`{"email":"admin@wrongdomain.com","password":"admin123"}`)
-	req := httptest.NewRequest("POST", "/login", body)
-	req.Header.Set("Content-Type", "application/json")
+	req := newJSONRequest(t, "POST", "/login", `{"email":"admin@wrongdomain.com","password":"admin123"}`)
 
-	w := httptest.NewRecorder()
-	handler.ServeHTTP(w, req)
+	w := executeRequest(handler, req, t)
 
 	if w.Code != http.StatusUnauthorized {
 		t.Fatalf("expected status Unauthorized, got %v", w.Code)
@@ -250,19 +236,13 @@ func TestLoginHandler_Failure_UserNotFound(t *testing.T) {
 
 // TestLoginHandler_Failure_InvalidRequest tests the login handler for a failed login due to invalid request body
 func TestLoginHandler_Failure_InvalidRequest(t *testing.T) {
-	ctrl := gomock.NewController(t)
-	defer ctrl.Finish()
-
-	mockDB := mockauth.NewMockDB(ctrl)
+	_, mockDB, _ := setupMocks(t)
 
 	handler := LoginHandler(mockDB)
 
-	body := strings.NewReader(`{"email":"admin@example.com","password":"admin123"`)
-	req := httptest.NewRequest("POST", "/login", body)
-	req.Header.Set("Content-Type", "application/json")
+	req := newJSONRequest(t, "POST", "/login", `{"email":"admin@example.com","password":"admin123"`)
 
-	w := httptest.NewRecorder()
-	handler.ServeHTTP(w, req)
+	w := executeRequest(handler, req, t)
 
 	if w.Code != http.StatusBadRequest {
 		t.Fatalf("expected status Bad Request, got %v", w.Code)
@@ -271,11 +251,7 @@ func TestLoginHandler_Failure_InvalidRequest(t *testing.T) {
 
 // TestLoginHandler_Failure_DatabaseError tests the login handler for a failed login due to database error
 func TestLoginHandler_Failure_DatabaseError(t *testing.T) {
-	ctrl := gomock.NewController(t)
-	defer ctrl.Finish()
-
-	mockDB := mockauth.NewMockDB(ctrl)
-	mockRow := mockauth.NewMockRow(ctrl)
+	_, mockDB, mockRow := setupMocks(t)
 
 	mockDB.EXPECT().QueryRow(`SELECT id, email, password, must_change_password FROM "user" WHERE email = $1`, "admin@example.com").Return(mockRow)
 
@@ -283,12 +259,9 @@ func TestLoginHandler_Failure_DatabaseError(t *testing.T) {
 
 	handler := LoginHandler(mockDB)
 
-	body := strings.NewReader(`{"email":"admin@example.com","password":"admin123"}`)
-	req := httptest.NewRequest("POST", "/login", body)
-	req.Header.Set("Content-Type", "application/json")
+	req := newJSONRequest(t, "POST", "/login", `{"email":"admin@example.com","password":"admin123"}`)
 
-	w := httptest.NewRecorder()
-	handler.ServeHTTP(w, req)
+	w := executeRequest(handler, req, t)
 
 	if w.Code != http.StatusInternalServerError {
 		t.Fatalf("expected status Internal Server Error, got %v", w.Code)
@@ -297,35 +270,18 @@ func TestLoginHandler_Failure_DatabaseError(t *testing.T) {
 
 // TestLoginHandler_Failure_SessionCleanupError tests the login handler for a failed login due to session cleanup error
 func TestLoginHandler_Failure_SessionCleanupError(t *testing.T) {
-	ctrl := gomock.NewController(t)
-	defer ctrl.Finish()
+	_, mockDB, mockRow := setupMocks(t)
 
-	mockDB := mockauth.NewMockDB(ctrl)
-	mockRow := mockauth.NewMockRow(ctrl)
-
-	mockDB.EXPECT().QueryRow(`SELECT id, email, password, must_change_password FROM "user" WHERE email = $1`, "admin@example.com").Return(mockRow)
-
-	mockRow.EXPECT().
-		Scan(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
-		DoAndReturn(func(args ...any) error {
-			*(args[0].(*int64)) = 1
-			*(args[1].(*string)) = "admin@example.com"
-			hash, _ := HashPassword("admin123")
-			*(args[2].(*string)) = hash
-			*(args[3].(*bool)) = false
-			return nil
-		})
+	hashedPassword, _ := HashPassword("admin123")
+	expectUserQuery(mockDB, mockRow, "admin@example.com", hashedPassword)
 
 	mockDB.EXPECT().Exec(`DELETE FROM "session" WHERE expires_at < NOW()`).Return(nil, errors.New("session cleanup error"))
 
 	handler := LoginHandler(mockDB)
 
-	body := strings.NewReader(`{"email":"admin@example.com","password":"admin123"}`)
-	req := httptest.NewRequest("POST", "/login", body)
-	req.Header.Set("Content-Type", "application/json")
+	req := newJSONRequest(t, "POST", "/login", `{"email":"admin@example.com","password":"admin123"}`)
 
-	w := httptest.NewRecorder()
-	handler.ServeHTTP(w, req)
+	w := executeRequest(handler, req, t)
 
 	if w.Code != http.StatusInternalServerError {
 		t.Fatalf("expected status Internal Server Error, got %v", w.Code)
@@ -334,24 +290,10 @@ func TestLoginHandler_Failure_SessionCleanupError(t *testing.T) {
 
 // TestLoginHandler_Failure_SessionInsertError tests the login handler for a failed login due to session insert error
 func TestLoginHandler_Failure_SessionInsertError(t *testing.T) {
-	ctrl := gomock.NewController(t)
-	defer ctrl.Finish()
+	_, mockDB, mockRow := setupMocks(t)
 
-	mockDB := mockauth.NewMockDB(ctrl)
-	mockRow := mockauth.NewMockRow(ctrl)
-
-	mockDB.EXPECT().QueryRow(`SELECT id, email, password, must_change_password FROM "user" WHERE email = $1`, "admin@example.com").Return(mockRow)
-
-	mockRow.EXPECT().
-		Scan(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
-		DoAndReturn(func(args ...any) error {
-			*(args[0].(*int64)) = 1
-			*(args[1].(*string)) = "admin@example.com"
-			hash, _ := HashPassword("admin123")
-			*(args[2].(*string)) = hash
-			*(args[3].(*bool)) = false
-			return nil
-		})
+	hashedPassword, _ := HashPassword("admin123")
+	expectUserQuery(mockDB, mockRow, "admin@example.com", hashedPassword)
 
 	mockDB.EXPECT().Exec(`DELETE FROM "session" WHERE expires_at < NOW()`).Return(nil, nil)
 
@@ -364,12 +306,9 @@ func TestLoginHandler_Failure_SessionInsertError(t *testing.T) {
 
 	handler := LoginHandler(mockDB)
 
-	body := strings.NewReader(`{"email":"admin@example.com","password":"admin123"}`)
-	req := httptest.NewRequest("POST", "/login", body)
-	req.Header.Set("Content-Type", "application/json")
+	req := newJSONRequest(t, "POST", "/login", `{"email":"admin@example.com","password":"admin123"}`)
 
-	w := httptest.NewRecorder()
-	handler.ServeHTTP(w, req)
+	w := executeRequest(handler, req, t)
 
 	if w.Code != http.StatusInternalServerError {
 		t.Fatalf("expected status Internal Server Error, got %v", w.Code)
@@ -382,10 +321,7 @@ func TestLoginHandler_Failure_SessionInsertError(t *testing.T) {
 
 // TestLogoutHandler_Success tests the logout handler
 func TestLogoutHandler_Success(t *testing.T) {
-	ctrl := gomock.NewController(t)
-	defer ctrl.Finish()
-
-	mockDB := mockauth.NewMockDB(ctrl)
+	_, mockDB, _ := setupMocks(t)
 
 	sessionID := "test-session-id"
 
@@ -393,12 +329,10 @@ func TestLogoutHandler_Success(t *testing.T) {
 
 	handler := LogoutHandler(mockDB)
 
-	req := httptest.NewRequest("POST", "/logout", nil)
+	req := newJSONRequest(t, "POST", "/logout", "")
 	req.AddCookie(&http.Cookie{Name: "session", Value: sessionID})
-	req.Header.Set("Content-Type", "application/json")
 
-	w := httptest.NewRecorder()
-	handler.ServeHTTP(w, req)
+	w := executeRequest(handler, req, t)
 
 	if w.Code != http.StatusOK {
 		t.Fatalf("expected status OK, got %v", w.Code)
@@ -411,16 +345,12 @@ func TestLogoutHandler_Success(t *testing.T) {
 
 // TestLogoutHandler_Failure tests the logout handler when no session cookie is present
 func TestLogoutHandler_Failure(t *testing.T) {
-	ctrl := gomock.NewController(t)
-	defer ctrl.Finish()
-
-	mockDB := mockauth.NewMockDB(ctrl)
+	_, mockDB, _ := setupMocks(t)
 
 	handler := LogoutHandler(mockDB)
 
 	req := httptest.NewRequest("POST", "/logout", nil)
-	w := httptest.NewRecorder()
-	handler.ServeHTTP(w, req)
+	w := executeRequest(handler, req, t)
 
 	if w.Code != http.StatusUnauthorized {
 		t.Fatalf("expected status Unauthorized, got %v", w.Code)
@@ -433,10 +363,7 @@ func TestLogoutHandler_Failure(t *testing.T) {
 
 // TestLogoutHandler_Failure_DatabaseError tests the logout handler for a failed logout due to database error
 func TestLogoutHandler_Failure_DatabaseError(t *testing.T) {
-	ctrl := gomock.NewController(t)
-	defer ctrl.Finish()
-
-	mockDB := mockauth.NewMockDB(ctrl)
+	_, mockDB, _ := setupMocks(t)
 
 	sessionID := "test-session-id"
 
@@ -444,12 +371,10 @@ func TestLogoutHandler_Failure_DatabaseError(t *testing.T) {
 
 	handler := LogoutHandler(mockDB)
 
-	req := httptest.NewRequest("POST", "/logout", nil)
+	req := newJSONRequest(t, "POST", "/logout", "")
 	req.AddCookie(&http.Cookie{Name: "session", Value: sessionID})
-	req.Header.Set("Content-Type", "application/json")
 
-	w := httptest.NewRecorder()
-	handler.ServeHTTP(w, req)
+	w := executeRequest(handler, req, t)
 
 	if w.Code != http.StatusInternalServerError {
 		t.Fatalf("expected status Internal Server Error, got %v", w.Code)
@@ -462,11 +387,7 @@ func TestLogoutHandler_Failure_DatabaseError(t *testing.T) {
 
 // TestChangePasswordHandler_Success tests the change password handler for a successful password change
 func TestChangePasswordHandler_Success(t *testing.T) {
-	ctrl := gomock.NewController(t)
-	defer ctrl.Finish()
-
-	mockDB := mockauth.NewMockDB(ctrl)
-	mockRow := mockauth.NewMockRow(ctrl)
+	_, mockDB, mockRow := setupMocks(t)
 
 	user := &User{
 		ID:                 1,
@@ -494,15 +415,11 @@ func TestChangePasswordHandler_Success(t *testing.T) {
 
 	handler := ChangePasswordHandler(mockDB)
 
-	body := strings.NewReader(`{"old_password":"admin123","new_password":"newpassword"}`)
-	req := httptest.NewRequest("POST", "/password", body)
+	req := newJSONRequest(t, "POST", "/password", `{"old_password":"admin123","new_password":"newpassword"}`)
 	req.AddCookie(&http.Cookie{Name: "session", Value: "1"})
-	req.Header.Set("Content-Type", "application/json")
-
 	req = addUserToContext(req, user)
 
-	w := httptest.NewRecorder()
-	handler.ServeHTTP(w, req)
+	w := executeRequest(handler, req, t)
 
 	if w.Code != http.StatusOK {
 		t.Fatalf("expected status OK, got %v", w.Code)
@@ -511,11 +428,7 @@ func TestChangePasswordHandler_Success(t *testing.T) {
 
 // TestChangePasswordHandler_Failure_WrongOldPassword tests the change password handler for a failed password change because of incorrect old password
 func TestChangePasswordHandler_Failure_WrongOldPassword(t *testing.T) {
-	ctrl := gomock.NewController(t)
-	defer ctrl.Finish()
-
-	mockDB := mockauth.NewMockDB(ctrl)
-	mockRow := mockauth.NewMockRow(ctrl)
+	_, mockDB, mockRow := setupMocks(t)
 
 	user := &User{
 		ID:                 1,
@@ -541,14 +454,11 @@ func TestChangePasswordHandler_Failure_WrongOldPassword(t *testing.T) {
 
 	handler := ChangePasswordHandler(mockDB)
 
-	body := strings.NewReader(`{"old_password":"wrongpassword","new_password":"newpassword"}`)
-	req := httptest.NewRequest("POST", "/password", body)
-	req.Header.Set("Content-Type", "application/json")
+	req := newJSONRequest(t, "POST", "/password", `{"old_password":"wrongpassword","new_password":"newpassword"}`)
 
 	req = addUserToContext(req, user)
 
-	w := httptest.NewRecorder()
-	handler.ServeHTTP(w, req)
+	w := executeRequest(handler, req, t)
 
 	if w.Code != http.StatusUnauthorized {
 		t.Fatalf("expected status Unauthorized, got %v", w.Code)
@@ -561,16 +471,11 @@ func TestChangePasswordHandler_Failure_WrongOldPassword(t *testing.T) {
 
 // TestChangePasswordHandler_Failure_InvalidRequest tests the change password handler for a failed password change due to invalid request body
 func TestChangePasswordHandler_Failure_InvalidRequest(t *testing.T) {
-	ctrl := gomock.NewController(t)
-	defer ctrl.Finish()
-
-	mockDB := mockauth.NewMockDB(ctrl)
+	_, mockDB, _ := setupMocks(t)
 
 	handler := ChangePasswordHandler(mockDB)
 
-	body := strings.NewReader(`{"old_password":"admin123","new_password"`)
-	req := httptest.NewRequest("POST", "/password", body)
-	req.Header.Set("Content-Type", "application/json")
+	req := newJSONRequest(t, "POST", "/password", `{"old_password":"admin123","new_password"`)
 	req.AddCookie(&http.Cookie{Name: "session", Value: "1"})
 
 	user := &User{
@@ -591,11 +496,7 @@ func TestChangePasswordHandler_Failure_InvalidRequest(t *testing.T) {
 
 // TestChangePasswordHandler_Failure_DatabaseError tests the change password handler for a failed password change due to database error
 func TestChangePasswordHandler_Failure_DatabaseError(t *testing.T) {
-	ctrl := gomock.NewController(t)
-	defer ctrl.Finish()
-
-	mockDB := mockauth.NewMockDB(ctrl)
-	mockRow := mockauth.NewMockRow(ctrl)
+	_, mockDB, mockRow := setupMocks(t)
 
 	user := &User{
 		ID:                 1,
@@ -623,15 +524,10 @@ func TestChangePasswordHandler_Failure_DatabaseError(t *testing.T) {
 
 	handler := ChangePasswordHandler(mockDB)
 
-	body := strings.NewReader(`{"old_password":"admin123","new_password":"newpassword"}`)
-	req := httptest.NewRequest("POST", "/password", body)
-	req.Header.Set("Content-Type", "application/json")
-	req.AddCookie(&http.Cookie{Name: "session", Value: "1"})
-
+	req := newJSONRequest(t, "POST", "/password", `{"old_password":"admin123","new_password":"newpassword"}`)
 	req = addUserToContext(req, user)
 
-	w := httptest.NewRecorder()
-	handler.ServeHTTP(w, req)
+	w := executeRequest(handler, req, t)
 
 	if w.Code != http.StatusInternalServerError {
 		t.Fatalf("expected status Internal Server Error, got %v", w.Code)
@@ -640,19 +536,13 @@ func TestChangePasswordHandler_Failure_DatabaseError(t *testing.T) {
 
 // TestChangePasswordHandler_Failure_MissingUser tests the change password handler for a failed password change due to missing user in context
 func TestChangePasswordHandler_Failure_MissingUser(t *testing.T) {
-	ctrl := gomock.NewController(t)
-	defer ctrl.Finish()
-
-	mockDB := mockauth.NewMockDB(ctrl)
+	_, mockDB, _ := setupMocks(t)
 
 	handler := ChangePasswordHandler(mockDB)
 
-	body := strings.NewReader(`{"old_password":"admin123","new_password":"newpassword"}`)
-	req := httptest.NewRequest("POST", "/password", body)
-	req.Header.Set("Content-Type", "application/json")
+	req := newJSONRequest(t, "POST", "/password", `{"old_password":"admin123","new_password":"newpassword"}`)
 
-	w := httptest.NewRecorder()
-	handler.ServeHTTP(w, req)
+	w := executeRequest(handler, req, t)
 
 	if w.Code != http.StatusUnauthorized {
 		t.Fatalf("expected status Unauthorized, got %v", w.Code)
@@ -665,10 +555,7 @@ func TestChangePasswordHandler_Failure_MissingUser(t *testing.T) {
 
 // TestCreateAdminUser_Success tests the CreateAdminUser function for a successful admin user creation
 func TestCreateAdminUser_Success(t *testing.T) {
-	ctrl := gomock.NewController(t)
-	defer ctrl.Finish()
-
-	mockDB := mockauth.NewMockDB(ctrl)
+	ctrl, mockDB, _ := setupMocks(t)
 
 	mockDB.EXPECT().QueryRowContext(gomock.Any(), `SELECT COUNT(*) FROM "user"`).Return(mockauth.NewMockRow(ctrl)).DoAndReturn(
 		func(ctx context.Context, query string, args ...interface{}) *mockauth.MockRow {
@@ -693,10 +580,7 @@ func TestCreateAdminUser_Success(t *testing.T) {
 
 // TestCreateAdminUser_Failure_UserCountError tests the CreateAdminUser function for a failed admin user creation due to user count error
 func TestCreateAdminUser_Failure_UserCountError(t *testing.T) {
-	ctrl := gomock.NewController(t)
-	defer ctrl.Finish()
-
-	mockDB := mockauth.NewMockDB(ctrl)
+	ctrl, mockDB, _ := setupMocks(t)
 
 	mockDB.EXPECT().QueryRowContext(gomock.Any(), `SELECT COUNT(*) FROM "user"`).DoAndReturn(
 		func(ctx context.Context, query string, args ...interface{}) auth_interface.Row {
@@ -714,10 +598,7 @@ func TestCreateAdminUser_Failure_UserCountError(t *testing.T) {
 
 // TestCreateAdminUser_Failure_UserInsertError tests the CreateAdminUser function for a failed admin user creation due to user insert error
 func TestCreateAdminUser_Failure_UserInsertError(t *testing.T) {
-	ctrl := gomock.NewController(t)
-	defer ctrl.Finish()
-
-	mockDB := mockauth.NewMockDB(ctrl)
+	ctrl, mockDB, _ := setupMocks(t)
 
 	mockDB.EXPECT().QueryRowContext(gomock.Any(), `SELECT COUNT(*) FROM "user"`).DoAndReturn(
 		func(ctx context.Context, query string, args ...interface{}) auth_interface.Row {
@@ -742,10 +623,7 @@ func TestCreateAdminUser_Failure_UserInsertError(t *testing.T) {
 
 // TestCreateAdminUser_Failure_UserAlreadyExists tests the CreateAdminUser function for a failed admin user creation due to user already exists
 func TestCreateAdminUser_Failure_UserAlreadyExists(t *testing.T) {
-	ctrl := gomock.NewController(t)
-	defer ctrl.Finish()
-
-	mockDB := mockauth.NewMockDB(ctrl)
+	ctrl, mockDB, _ := setupMocks(t)
 
 	mockDB.EXPECT().QueryRowContext(gomock.Any(), `SELECT COUNT(*) FROM "user"`).DoAndReturn(
 		func(ctx context.Context, query string, args ...interface{}) auth_interface.Row {
