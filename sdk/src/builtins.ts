@@ -1,5 +1,5 @@
 // To make declaration of fields out of this file more difficult.
-const builtInType: unique symbol = Symbol();
+const builtInType = Symbol("mimsy-builtin");
 
 export type BuiltInValue = {
   _marker: typeof builtInType;

@@ -1,14 +1,25 @@
 #!/usr/bin/env node
 import { Command } from 'commander'
 import { testCommand } from './commands/test'
+import { exportSchemaCommand } from './commands/export-schema'
 
-export const program = new Command()
+export function createProgram(): Command {
+  const program = new Command()
+  
+  program
+    .name('msy')
+    .description('A CLI tool for mimsy, the simple SvelteKit CMS')
+    .version('1.0.0')
+  
+  testCommand(program)
+  exportSchemaCommand(program)
+  
+  return program
+}
 
-program
-  .name('msy')
-  .description('A CLI tool for mimsy, the simple SvelteKit CMS')
-  .version('1.0.0')
+export const program = createProgram()
 
-testCommand(program)
-
-program.parse(process.argv)
+// Only parse if this is the main module
+if (require.main === module) {
+  program.parse(process.argv)
+}

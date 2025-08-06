@@ -1,5 +1,5 @@
 {
-  "name": "sdk",
+  "name": "@mimsy/cli",
   "version": "1.0.0",
   "description": "",
   "main": "dist/index.js",
@@ -37,6 +37,8 @@
     "vitest": "^2.1.4"
   },
   "dependencies": {
-    "commander": "^14.0.0"
+    "commander": "^14.0.0",
+    "@mimsy/sdk": "workspace:*",
+    "esbuild-register": "^3.6.0"
   }
 }
