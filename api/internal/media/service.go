@@ -2,17 +2,20 @@ package media
 
 import (
 	"context"
+	"fmt"
 	"mime/multipart"
+	"path/filepath"
+	"strings"
 	"time"
 
 	"github.com/google/uuid"
-	auth_interface "github.com/mimsy-cms/mimsy/internal/interfaces/auth"
+	"github.com/mimsy-cms/mimsy/internal/auth"
 	"github.com/mimsy-cms/mimsy/internal/config"
 	"github.com/mimsy-cms/mimsy/internal/storage"
 )
 
 type MediaService interface {
-	Upload(ctx context.Context, fileHeader *multipart.FileHeader, contentType string, user *auth_interface.User) (*Media, error)
+	Upload(ctx context.Context, fileHeader *multipart.FileHeader, contentType string, user *auth.User) (*Media, error)
 	GetById(ctx context.Context, id int64) (*Media, error)
 	FindAll(ctx context.Context) ([]Media, error)
 	GetTemporaryURL(ctx context.Context, media *Media) (string, error)
@@ -28,7 +31,33 @@ func NewService(storage storage.Storage, mediaRepository Repository) MediaServic
 	return &mediaService{storage: storage, mediaRepository: mediaRepository}
 }
 
-func (s *mediaService) Upload(ctx context.Context, fileHeader *multipart.FileHeader, contentType string, user *auth_interface.User) (*Media, error) {
+func getBaseAndExt(name string) (string, string) {
+	ext := filepath.Ext(name)
+	base := strings.TrimSuffix(name, ext)
+	return base, ext
+}
+
+func (s *mediaService) resolveFilenameConflict(ctx context.Context, original string) (string, error) {
+	name := original
+	base, ext := getBaseAndExt(name)
+	counter := 1
+
+	for {
+		existing, err := s.mediaRepository.FindByName(ctx, name)
+		if err != nil {
+			return "", err
+		}
+		if existing == nil {
+			break
+		}
+		name = fmt.Sprintf("%s(%d)%s", base, counter, ext)
+		counter++
+	}
+
+	return name, nil
+}
+
+func (s *mediaService) Upload(ctx context.Context, fileHeader *multipart.FileHeader, contentType string, user *auth.User) (*Media, error) {
 	id, err := uuid.NewV7()
 	if err != nil {
 		return nil, err
@@ -46,9 +75,15 @@ func (s *mediaService) Upload(ctx context.Context, fileHeader *multipart.FileHea
 			return err
 		}
 
+		originalName := fileHeader.Filename
+		finalName, err := s.resolveFilenameConflict(ctx, originalName)
+		if err != nil {
+			return err
+		}
+
 		params := &CreateMediaParams{
 			Uuid:         id,
-			Name:         id.String(),
+			Name:         finalName,
 			ContentType:  contentType,
 			Size:         fileHeader.Size,
 			UploadedById: user.ID,

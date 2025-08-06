@@ -85,6 +85,11 @@ func getTx(ctx context.Context) *sql.Tx {
 	return nil
 }
 
+// ContextWithDB creates a new context with the provided database connection.
+func ContextWithDB(ctx context.Context, db DB) context.Context {
+	return context.WithValue(ctx, contextKey{}, db)
+}
+
 // WithDB is a middleware that injects the database connection into the request context.
 func WithDB(db *sql.DB) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
