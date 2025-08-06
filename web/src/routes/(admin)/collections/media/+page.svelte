@@ -145,8 +145,10 @@
 						{#each data.media as media}
 							<tr class="text-left hover:bg-gray-50">
 								<td class="px-6 py-3">
-									<div class="h-12 w-12 overflow-hidden rounded-md bg-gray-200">
-										<img src={media.url} alt={media.alt} class="h-full w-full object-cover" />
+									<div
+										class="flex h-12 w-12 items-center justify-center overflow-hidden rounded-md bg-gray-200"
+									>
+										<img src={media.url} alt={media.alt} />
 									</div>
 								</td>
 								<td class="px-6 py-3">

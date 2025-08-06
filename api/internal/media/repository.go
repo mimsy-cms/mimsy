@@ -3,9 +3,11 @@ package media
 import (
 	"context"
 	"database/sql"
+	"errors"
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/mimsy-cms/mimsy/internal/postgres"
 )
 
 type Media struct {
@@ -33,6 +35,11 @@ type mediaRepository struct {
 func NewRepository(db *sql.DB) Repository {
 	return &mediaRepository{db: db}
 }
+
+var (
+	// ErrMediaReferenced is returned when trying to delete media that is being referenced by other content.
+	ErrMediaReferenced = errors.New("media is being referenced by other content")
+)
 
 type CreateMediaParams struct {
 	Uuid         uuid.UUID
@@ -139,6 +146,9 @@ func (r *mediaRepository) Delete(ctx context.Context, media *Media) error {
 
 	_, err := r.db.ExecContext(ctx, query, media.Id)
 	if err != nil {
+		if postgres.IsErrCode(err, postgres.ErrForeignKeyViolation) {
+			return ErrMediaReferenced
+		}
 		return err
 	}
 
