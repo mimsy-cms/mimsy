@@ -1,7 +1,7 @@
 import type { PageServerLoad } from './$types';
 
 export const load: PageServerLoad = async ({ fetch }) => {
-	const response = await fetch('/api/v1/collections/media', {
+	const response = await fetch('/api/v1/media', {
 		headers: {
 			'Content-Type': 'application/json'
 		}

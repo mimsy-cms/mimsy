@@ -76,9 +76,10 @@ func main() {
 	v1.HandleFunc("GET /auth/me", auth.MeHandler(db))
 	v1.HandleFunc("GET /collections", collectionHandler.List)
 	v1.HandleFunc("GET /collections/{collectionSlug}/definition", collectionHandler.Definition)
-	v1.HandleFunc("POST /collections/media", mediaHandler.Upload)
-	v1.HandleFunc("GET /collections/media", mediaHandler.FindAll)
-	v1.HandleFunc("DELETE /collections/media/{id}", mediaHandler.Delete)
+	v1.HandleFunc("POST /media", mediaHandler.Upload)
+	v1.HandleFunc("GET /media", mediaHandler.FindAll)
+	v1.HandleFunc("GET /media/{id}", mediaHandler.GetById)
+	v1.HandleFunc("DELETE /media/{id}", mediaHandler.Delete)
 
 	server := &http.Server{
 		Addr:    net.JoinHostPort("localhost", cmp.Or(os.Getenv("APP_PORT"), "3000")),

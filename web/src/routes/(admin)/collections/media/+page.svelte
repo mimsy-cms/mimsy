@@ -24,7 +24,7 @@
 				formData.append('file', uploadItem.file);
 
 				await uploadFile(formData, uploadItem.id, {
-					url: '/api/v1/collections/media',
+					url: '/api/v1/media',
 					onProgress: (uploadId, progress) => {
 						uploads = uploads.map((u) => (u.id === uploadId ? { ...u, progress } : u));
 					},
