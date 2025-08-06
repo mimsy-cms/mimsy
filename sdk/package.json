@@ -1,8 +1,8 @@
 {
-  "name": "sdk",
+  "name": "@mimsy/sdk",
   "version": "1.0.0",
   "description": "",
-  "main": "dist/index.cjs",
+  "main": "dist/index.js",
   "module": "lib/index.js",
   "types": "dist/index.d.ts",
   "scripts": {
@@ -22,29 +22,31 @@
     ".": {
       "import": {
         "types": "./dist/index.d.ts",
-        "default": "./dist/index.js"
+        "default": "./dist/index.mjs"
       },
       "require": {
-        "types": "./dist/index.d.cts",
-        "default": "./dist/index.cjs"
+        "types": "./dist/index.d.ts",
+        "default": "./dist/index.js"
       }
     }
   },
+  "type": "module",
   "keywords": [],
   "author": "Mimsy Contributors",
   "license": "ISC",
   "packageManager": "pnpm@10.12.4",
   "devDependencies": {
-    "@types/node": "^24.0.15",
+    "@types/node": "^24.1.0",
     "@vitest/coverage-istanbul": "2.1.9",
+    "@vitest/coverage-v8": "2.1.9",
     "nodemon": "^3.1.10",
     "rimraf": "^6.0.1",
     "tsconfig-paths": "^4.2.0",
-    "tsup": "^8.4.0",
-    "tsx": "^4.19.3",
-    "typescript": "^5.8.2",
+    "tsup": "^8.5.0",
+    "tsx": "^4.20.3",
+    "typescript": "^5.8.3",
     "unplugin-swc": "^1.5.5",
-    "vite": "^5.4.12",
-    "vitest": "^2.1.4"
+    "vite": "^5.4.19",
+    "vitest": "^2.1.9"
   }
 }
