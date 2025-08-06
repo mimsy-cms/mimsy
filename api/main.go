@@ -27,7 +27,9 @@ func main() {
 	initLogger()
 	storage := initStorage()
 
-	if err := storage.Authenticate(context.Background()); err != nil {
+	ctx := context.Background()
+
+	if err := storage.Authenticate(ctx); err != nil {
 		slog.Error("Failed to authenticate storage", "error", err)
 	}
 
@@ -37,7 +39,7 @@ func main() {
 	)
 
 	// NOTE: Migrations should not be run like this in production.
-	migrationCount, err := migrations.Run(context.Background(), runConfig)
+	migrationCount, err := migrations.Run(ctx, runConfig)
 	if err != nil {
 		slog.Error("Failed to run migrations", "error", err)
 	} else {
@@ -51,13 +53,11 @@ func main() {
 	}
 	defer db.Close()
 
-	wrappedDB := &auth.DBWrapper{DB: db}
-
-	authRepository := auth.NewAuthRepository(wrappedDB)
+	authRepository := auth.NewRepository()
 	authService := auth.NewAuthService(authRepository)
 	authHandler := auth.NewHandler(authService)
 
-	if err := authService.CreateAdminUser(context.Background()); err != nil {
+	if err := authService.CreateAdminUser(config.ContextWithDB(ctx, db)); err != nil {
 		fmt.Println("Failed to create admin user:", err)
 		return
 	}
