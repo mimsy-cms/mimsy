@@ -26,6 +26,7 @@ type Repository interface {
 	GetByUuid(ctx context.Context, uuid *uuid.UUID) (*Media, error)
 	FindAll(ctx context.Context) ([]Media, error)
 	Delete(ctx context.Context, media *Media) error
+	ExistsByName(ctx context.Context, name string) (bool, error)
 }
 
 type mediaRepository struct{}
@@ -151,4 +152,15 @@ func (r *mediaRepository) Delete(ctx context.Context, media *Media) error {
 	}
 
 	return nil
+}
+
+func (r *mediaRepository) ExistsByName(ctx context.Context, name string) (bool, error) {
+	query := `SELECT EXISTS(SELECT 1 FROM media WHERE name = $1)`
+	var exists bool
+
+	err := config.GetDB(ctx).QueryRowContext(ctx, query, name).Scan(&exists)
+	if err != nil {
+		return false, err
+	}
+	return exists, nil
 }
