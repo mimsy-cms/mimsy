@@ -3,6 +3,7 @@ package media
 import (
 	"context"
 	"mime/multipart"
+	"time"
 
 	"github.com/google/uuid"
 	"github.com/mimsy-cms/mimsy/internal/auth"
@@ -11,6 +12,10 @@ import (
 
 type MediaService interface {
 	Upload(ctx context.Context, fileHeader *multipart.FileHeader, contentType string, user *auth.User) (*Media, error)
+	GetById(ctx context.Context, id int64) (*Media, error)
+	FindAll(ctx context.Context) ([]Media, error)
+	GetTemporaryURL(ctx context.Context, media *Media) (string, error)
+	Delete(ctx context.Context, media *Media) error
 }
 
 type mediaService struct {
@@ -53,4 +58,30 @@ func (s *mediaService) Upload(ctx context.Context, fileHeader *multipart.FileHea
 	}
 
 	return media, nil
+}
+
+func (s *mediaService) GetById(ctx context.Context, id int64) (*Media, error) {
+	return s.mediaRepository.GetById(ctx, id)
+}
+
+func (s *mediaService) FindAll(ctx context.Context) ([]Media, error) {
+	return s.mediaRepository.FindAll(ctx)
+}
+
+func (s *mediaService) GetTemporaryURL(ctx context.Context, media *Media) (string, error) {
+	expires := time.Now().Add(3 * time.Hour)
+
+	return s.storage.GetTemporaryURL(media.Uuid.String(), expires)
+}
+
+func (s *mediaService) Delete(ctx context.Context, media *Media) error {
+	if err := s.mediaRepository.Delete(ctx, media); err != nil {
+		return err
+	}
+
+	if err := s.storage.Upload(ctx, media.Uuid.String(), nil, ""); err != nil {
+		return err
+	}
+
+	return nil
 }

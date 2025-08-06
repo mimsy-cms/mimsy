@@ -25,6 +25,10 @@ func main() {
 	initLogger()
 	storage := initStorage()
 
+	if err := storage.Authenticate(context.Background()); err != nil {
+		slog.Error("Failed to authenticate storage", "error", err)
+	}
+
 	runConfig := migrations.NewRunConfig(
 		migrations.WithMigrationsDir("./migrations"),
 		migrations.WithPgURL(getPgURL()),
@@ -72,7 +76,10 @@ func main() {
 	v1.HandleFunc("GET /auth/me", auth.MeHandler(db))
 	v1.HandleFunc("GET /collections", collectionHandler.List)
 	v1.HandleFunc("GET /collections/{collectionSlug}/definition", collectionHandler.Definition)
-	v1.HandleFunc("POST /collections/media", mediaHandler.Upload)
+	v1.HandleFunc("POST /media", mediaHandler.Upload)
+	v1.HandleFunc("GET /media", mediaHandler.FindAll)
+	v1.HandleFunc("GET /media/{id}", mediaHandler.GetById)
+	v1.HandleFunc("DELETE /media/{id}", mediaHandler.Delete)
 
 	server := &http.Server{
 		Addr:    net.JoinHostPort("localhost", cmp.Or(os.Getenv("APP_PORT"), "3000")),
@@ -121,6 +128,7 @@ func initStorage() storage.Storage {
 			storage.WithSwiftTenant(os.Getenv("SWIFT_TENANT")),
 			storage.WithSwiftContainer(os.Getenv("SWIFT_CONTAINER")),
 			storage.WithSwiftRegion(os.Getenv("SWIFT_REGION")),
+			storage.WithSwiftSecretKey(os.Getenv("SWIFT_SECRET_KEY")),
 		)
 
 		slog.Info("Using Swift storage backend", "container", os.Getenv("SWIFT_CONTAINER"))
