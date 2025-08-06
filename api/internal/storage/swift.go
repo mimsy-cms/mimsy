@@ -116,3 +116,12 @@ func (s *swiftStorage) GetTemporaryURL(id string, expires time.Time) (string, er
 
 	return tempURL, nil
 }
+
+func (s *swiftStorage) Delete(ctx context.Context, id string) error {
+	if err := s.connection.ObjectDelete(ctx, s.container, id); err != nil {
+		slog.Error("Failed to delete file from swift", "error", err)
+		return err
+	}
+
+	return nil
+}

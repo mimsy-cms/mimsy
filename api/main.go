@@ -78,6 +78,7 @@ func main() {
 	v1.HandleFunc("GET /collections/{collectionSlug}/definition", collectionHandler.Definition)
 	v1.HandleFunc("POST /collections/media", mediaHandler.Upload)
 	v1.HandleFunc("GET /collections/media", mediaHandler.FindAll)
+	v1.HandleFunc("DELETE /collections/media/{id}", mediaHandler.Delete)
 
 	server := &http.Server{
 		Addr:    net.JoinHostPort("localhost", cmp.Or(os.Getenv("APP_PORT"), "3000")),

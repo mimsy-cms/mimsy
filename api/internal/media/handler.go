@@ -65,3 +65,28 @@ func (h *mediaHandler) FindAll(w http.ResponseWriter, r *http.Request) {
 
 	util.JSON(w, http.StatusOK, response)
 }
+
+func (h *mediaHandler) Delete(w http.ResponseWriter, r *http.Request) {
+	id, err := util.PathInt(r, "id")
+	if err != nil {
+		slog.Error("Failed to parse media ID from path", "error", err)
+		http.Error(w, "Invalid media ID", http.StatusBadRequest)
+		return
+	}
+
+	// TODO: Put this inside a transaction
+	media, err := h.mediaService.GetById(r.Context(), id)
+	if err != nil {
+		slog.Error("Failed to retrieve media by ID", "error", err)
+		http.Error(w, "Media not found", http.StatusNotFound)
+		return
+	}
+
+	if err := h.mediaService.Delete(r.Context(), media); err != nil {
+		slog.Error("Failed to delete media", "error", err)
+		http.Error(w, "Failed to delete media", http.StatusInternalServerError)
+		return
+	}
+
+	util.JSON(w, http.StatusNoContent, struct{}{})
+}
