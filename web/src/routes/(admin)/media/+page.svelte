@@ -4,6 +4,7 @@
 	import MediaCard from '$lib/components/admin/media/MediaCard.svelte';
 	import UploadProgressPopup from '$lib/components/admin/media/UploadProgressPopup.svelte';
 	import { uploadFile, createUploadProgress, type UploadProgress } from '$lib/utils/upload';
+	import { invalidateAll } from '$app/navigation';
 	import CloudUploadIcon from '@lucide/svelte/icons/cloud-upload';
 	import GridIcon from '@lucide/svelte/icons/grid-3x3';
 	import ListIcon from '@lucide/svelte/icons/list';
@@ -49,6 +50,7 @@
 		});
 
 		await Promise.all(uploadPromises);
+		await invalidateAll();
 	}
 
 	function clearUploads() {
