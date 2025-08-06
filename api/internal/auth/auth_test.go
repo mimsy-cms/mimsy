@@ -299,9 +299,9 @@ func TestLogin_Failure_SessionInsertError(t *testing.T) {
 	}
 }
 
-// // =================================================================================================
-// // LogoutHandler
-// // =================================================================================================
+// =================================================================================================
+// LogoutHandler
+// =================================================================================================
 
 // TestLogout_Success tests the logout handler
 func TestLogout_Success(t *testing.T) {
@@ -378,9 +378,9 @@ func TestLogout_Failure_DatabaseError(t *testing.T) {
 	}
 }
 
-// // =================================================================================================
-// // ChangePasswordHandler
-// // =================================================================================================
+// =================================================================================================
+// ChangePasswordHandler
+// =================================================================================================
 
 // TestChangePassword_Success tests the change password handler for a successful password change
 func TestChangePassword_Success(t *testing.T) {
@@ -541,95 +541,86 @@ func TestChangePassword_Failure_MissingUser(t *testing.T) {
 	}
 }
 
-// // =================================================================================================
-// // CreateAdminUser
-// // =================================================================================================
+// =================================================================================================
+// CreateAdminUser
+// =================================================================================================
 
-// // TestCreateAdminUser_Success tests the CreateAdminUser function for a successful admin user creation
-// func TestCreateAdminUser_Success(t *testing.T) {
-// 	ctrl, mockDB, _ := setupMocks(t)
+// TestCreateAdminUser_Success tests the CreateAdminUser function for a successful admin user creation
+func TestCreateAdminUser_Success(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
 
-// 	mockDB.EXPECT().QueryRowContext(gomock.Any(), `SELECT COUNT(*) FROM "user"`).Return(mockauth.NewMockRow(ctrl)).DoAndReturn(
-// 		func(ctx context.Context, query string, args ...interface{}) *mockauth.MockRow {
-// 			row := mockauth.NewMockRow(ctrl)
-// 			row.EXPECT().Scan(gomock.Any()).DoAndReturn(func(dest ...interface{}) error {
-// 				*dest[0].(*int) = 0
-// 				return nil
-// 			})
-// 			return row
-// 		},
-// 	)
+	mockRepo := mocks.NewMockAuthRepository(ctrl)
+	authService := auth.NewAuthService(mockRepo)
 
-// 	mockDB.EXPECT().ExecContext(gomock.Any(), `INSERT INTO "user" (email, password, must_change_password, is_admin) VALUES ($1, $2, $3, $4)`,
-// 		gomock.Any(), gomock.Any(), true, true,
-// 	).Return(nil, nil)
+	mockRepo.EXPECT().
+		CountUsers(gomock.Any()).
+		Return(0, nil)
 
-// 	err := CreateAdminUser(context.Background(), mockDB)
-// 	if err != nil {
-// 		t.Fatalf("expected no error, got %v", err)
-// 	}
-// }
+	mockRepo.EXPECT().
+		InsertUser(gomock.Any(), gomock.Any(), gomock.Any(), true, true).
+		Return(nil)
 
-// // TestCreateAdminUser_Failure_UserCountError tests the CreateAdminUser function for a failed admin user creation due to user count error
-// func TestCreateAdminUser_Failure_UserCountError(t *testing.T) {
-// 	ctrl, mockDB, _ := setupMocks(t)
+	err := authService.CreateAdminUser(context.Background())
+	if err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
+}
 
-// 	mockDB.EXPECT().QueryRowContext(gomock.Any(), `SELECT COUNT(*) FROM "user"`).DoAndReturn(
-// 		func(ctx context.Context, query string, args ...interface{}) auth_interface.Row {
-// 			row := mockauth.NewMockRow(ctrl)
-// 			row.EXPECT().Scan(gomock.Any()).Return(errors.New("database error"))
-// 			return row
-// 		},
-// 	)
+// TestCreateAdminUser_Failure_UserCountError tests the CreateAdminUser function for a failed admin user creation due to user count error
+func TestCreateAdminUser_Failure_UserCountError(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
 
-// 	err := CreateAdminUser(context.Background(), mockDB)
-// 	if err == nil || !strings.Contains(err.Error(), "failed to count users") {
-// 		t.Fatalf("expected error about counting users, got %v", err)
-// 	}
-// }
+	mockRepo := mocks.NewMockAuthRepository(ctrl)
+	authService := auth.NewAuthService(mockRepo)
 
-// // TestCreateAdminUser_Failure_UserInsertError tests the CreateAdminUser function for a failed admin user creation due to user insert error
-// func TestCreateAdminUser_Failure_UserInsertError(t *testing.T) {
-// 	ctrl, mockDB, _ := setupMocks(t)
+	mockRepo.EXPECT().
+		CountUsers(gomock.Any()).
+		Return(0, errors.New("database error"))
 
-// 	mockDB.EXPECT().QueryRowContext(gomock.Any(), `SELECT COUNT(*) FROM "user"`).DoAndReturn(
-// 		func(ctx context.Context, query string, args ...interface{}) auth_interface.Row {
-// 			row := mockauth.NewMockRow(ctrl)
-// 			row.EXPECT().Scan(gomock.Any()).DoAndReturn(func(dest ...interface{}) error {
-// 				*dest[0].(*int) = 0
-// 				return nil
-// 			})
-// 			return row
-// 		},
-// 	)
+	err := authService.CreateAdminUser(context.Background())
+	if err == nil || !strings.Contains(err.Error(), "failed to count users") {
+		t.Fatalf("expected error about counting users, got %v", err)
+	}
+}
 
-// 	mockDB.EXPECT().ExecContext(gomock.Any(), `INSERT INTO "user" (email, password, must_change_password, is_admin) VALUES ($1, $2, $3, $4)`,
-// 		gomock.Any(), gomock.Any(), true, true,
-// 	).Return(nil, errors.New("insert error"))
+// TestCreateAdminUser_Failure_UserInsertError tests the CreateAdminUser function for a failed admin user creation due to user insert error
+func TestCreateAdminUser_Failure_UserInsertError(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
 
-// 	err := CreateAdminUser(context.Background(), mockDB)
-// 	if err == nil || !strings.Contains(err.Error(), "failed to create admin user") {
-// 		t.Fatalf("expected error about creating admin user, got %v", err)
-// 	}
-// }
+	mockRepo := mocks.NewMockAuthRepository(ctrl)
+	authService := auth.NewAuthService(mockRepo)
 
-// // TestCreateAdminUser_Failure_UserAlreadyExists tests the CreateAdminUser function for a failed admin user creation due to user already exists
-// func TestCreateAdminUser_Failure_UserAlreadyExists(t *testing.T) {
-// 	ctrl, mockDB, _ := setupMocks(t)
+	mockRepo.EXPECT().
+		CountUsers(gomock.Any()).
+		Return(0, nil)
 
-// 	mockDB.EXPECT().QueryRowContext(gomock.Any(), `SELECT COUNT(*) FROM "user"`).DoAndReturn(
-// 		func(ctx context.Context, query string, args ...interface{}) auth_interface.Row {
-// 			row := mockauth.NewMockRow(ctrl)
-// 			row.EXPECT().Scan(gomock.Any()).DoAndReturn(func(dest ...interface{}) error {
-// 				*dest[0].(*int) = 1 // Simulate that a user already exists
-// 				return nil
-// 			})
-// 			return row
-// 		},
-// 	)
+	mockRepo.EXPECT().
+		InsertUser(gomock.Any(), gomock.Any(), gomock.Any(), true, true).
+		Return(errors.New("insert error"))
 
-// 	err := CreateAdminUser(context.Background(), mockDB)
-// 	if err != nil {
-// 		t.Fatalf("expected no error, got %v", err)
-// 	}
-// }
+	err := authService.CreateAdminUser(context.Background())
+	if err == nil || !strings.Contains(err.Error(), "failed to insert admin user") {
+		t.Fatalf("expected error about creating admin user, got %v", err)
+	}
+}
+
+// TestCreateAdminUser_Failure_UserAlreadyExists tests the CreateAdminUser function for a failed admin user creation due to user already exists
+func TestCreateAdminUser_Failure_UserAlreadyExists(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mockRepo := mocks.NewMockAuthRepository(ctrl)
+	authService := auth.NewAuthService(mockRepo)
+
+	mockRepo.EXPECT().
+		CountUsers(gomock.Any()).
+		Return(1, nil)
+
+	err := authService.CreateAdminUser(context.Background())
+	if err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
+}

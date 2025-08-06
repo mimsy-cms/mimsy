@@ -47,14 +47,24 @@ func NewAuthService(repo AuthRepository) AuthService {
 
 func (s *authService) CreateAdminUser(ctx context.Context) error {
 	count, err := s.repo.CountUsers(ctx)
-	if err != nil || count > 0 {
-		return err
+	if err != nil {
+		return fmt.Errorf("failed to count users: %w", err)
 	}
+	if count > 0 {
+		return nil // Admin user already exists
+	}
+
 	hash, err := HashPassword(adminPassword)
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to hash admin password: %w", err)
 	}
-	return s.repo.InsertUser(ctx, adminEmail, hash, true, true)
+
+	err = s.repo.InsertUser(ctx, adminEmail, hash, true, true)
+	if err != nil {
+		return fmt.Errorf("failed to insert admin user: %w", err)
+	}
+
+	return nil
 }
 
 func (s *authService) Login(ctx context.Context, email, password string) (*LoginResponse, error) {
