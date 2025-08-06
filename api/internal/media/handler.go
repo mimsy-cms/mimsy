@@ -95,7 +95,6 @@ func (h *mediaHandler) Delete(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// TODO: Put this inside a transaction
 	media, err := h.mediaService.GetById(r.Context(), id)
 	if err != nil {
 		slog.Error("Failed to retrieve media by ID", "error", err)

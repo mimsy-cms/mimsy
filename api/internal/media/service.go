@@ -7,6 +7,7 @@ import (
 
 	"github.com/google/uuid"
 	auth_interface "github.com/mimsy-cms/mimsy/internal/interfaces/auth"
+	"github.com/mimsy-cms/mimsy/internal/config"
 	"github.com/mimsy-cms/mimsy/internal/storage"
 )
 
@@ -39,21 +40,27 @@ func (s *mediaService) Upload(ctx context.Context, fileHeader *multipart.FileHea
 	}
 	defer file.Close()
 
-	if err := s.storage.Upload(ctx, id.String(), file, contentType); err != nil {
-		return nil, err
-	}
+	var media *Media
+	if err := config.WithinTx(ctx, func(ctx context.Context) error {
+		if err := s.storage.Upload(ctx, id.String(), file, contentType); err != nil {
+			return err
+		}
 
-	params := &CreateMediaParams{
-		Uuid:         id,
-		Name:         id.String(),
-		ContentType:  contentType,
-		Size:         fileHeader.Size,
-		UploadedById: user.ID,
-	}
+		params := &CreateMediaParams{
+			Uuid:         id,
+			Name:         id.String(),
+			ContentType:  contentType,
+			Size:         fileHeader.Size,
+			UploadedById: user.ID,
+		}
 
-	// TODO: Put this in a transaction with the storage upload
-	media, err := s.mediaRepository.Create(ctx, params)
-	if err != nil {
+		media, err = s.mediaRepository.Create(ctx, params)
+		if err != nil {
+			return err
+		}
+
+		return nil
+	}); err != nil {
 		return nil, err
 	}
 
@@ -75,11 +82,17 @@ func (s *mediaService) GetTemporaryURL(ctx context.Context, media *Media) (strin
 }
 
 func (s *mediaService) Delete(ctx context.Context, media *Media) error {
-	if err := s.mediaRepository.Delete(ctx, media); err != nil {
-		return err
-	}
+	if err := config.WithinTx(ctx, func(ctx context.Context) error {
+		if err := s.mediaRepository.Delete(ctx, media); err != nil {
+			return err
+		}
 
-	if err := s.storage.Upload(ctx, media.Uuid.String(), nil, ""); err != nil {
+		if err := s.storage.Delete(ctx, media.Uuid.String()); err != nil {
+			return err
+		}
+
+		return nil
+	}); err != nil {
 		return err
 	}
 

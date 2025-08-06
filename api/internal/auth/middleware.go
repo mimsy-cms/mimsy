@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"strings"
 
+	"github.com/mimsy-cms/mimsy/internal/config"
 	auth_interface "github.com/mimsy-cms/mimsy/internal/interfaces/auth"
 )
 
@@ -26,11 +27,6 @@ func WithUser(authService auth_interface.AuthService) func(http.Handler) http.Ha
 				if err == nil {
 					token = cookie.Value
 				}
-			}
-
-			if token == "" {
-				next.ServeHTTP(w, r)
-				return
 			}
 
 			user, err := authService.GetUserBySessionToken(r.Context(), token)
