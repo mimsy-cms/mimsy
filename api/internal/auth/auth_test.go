@@ -10,43 +10,22 @@ import (
 
 	"github.com/golang/mock/gomock"
 	"github.com/mimsy-cms/mimsy/internal/auth"
-	auth_interface "github.com/mimsy-cms/mimsy/internal/interfaces/auth"
 	mocks "github.com/mimsy-cms/mimsy/internal/mocks/auth"
 )
 
 // =================================================================================================
 // Helper Functions
 // =================================================================================================
-func setupMocks(t *testing.T) (*gomock.Controller, *mocks.MockDB, *mocks.MockRow) {
-	ctrl := gomock.NewController(t)
-	mockDB := mocks.NewMockDB(ctrl)
-	mockRow := mocks.NewMockRow(ctrl)
-	t.Cleanup(func() {
-		ctrl.Finish()
-	})
-	return ctrl, mockDB, mockRow
-}
-
 func newJSONRequest(t *testing.T, method, url, jsonBody string) *http.Request {
+	t.Helper()
 	req := httptest.NewRequest(method, url, strings.NewReader(jsonBody))
 	req.Header.Set("Content-Type", "application/json")
 	return req
 }
 
-func addUserToContext(req *http.Request, user *auth_interface.User) *http.Request {
+func addUserToContext(req *http.Request, user *auth.User) *http.Request {
 	ctx := context.WithValue(req.Context(), auth.UserContextKey, user)
 	return req.WithContext(ctx)
-}
-
-func expectUserQuery(mockDB *mocks.MockDB, mockRow *mocks.MockRow, email, password string) {
-	mockDB.EXPECT().QueryRow(`SELECT id, email, password, must_change_password FROM "user" WHERE email = $1`, email).Return(mockRow)
-	mockRow.EXPECT().Scan(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).DoAndReturn(func(dest ...interface{}) error {
-		*dest[0].(*int64) = int64(1)
-		*dest[1].(*string) = email
-		*dest[2].(*string) = password
-		*dest[3].(*bool) = false
-		return nil
-	})
 }
 
 func executeRequest(handler http.Handler, req *http.Request, t *testing.T) *httptest.ResponseRecorder {
@@ -121,7 +100,7 @@ func TestLogin_Success(t *testing.T) {
 
 	hashedPassword, _ := auth.HashPassword("admin123")
 
-	mockRepo.EXPECT().GetUserByEmail(gomock.Any(), "admin@example.com").Return(&auth_interface.User{
+	mockRepo.EXPECT().GetUserByEmail(gomock.Any(), "admin@example.com").Return(&auth.User{
 		ID:                 1,
 		Email:              "admin@example.com",
 		PasswordHash:       hashedPassword,
@@ -152,7 +131,7 @@ func TestLogin_Failure_WrongPassword(t *testing.T) {
 
 	hashedPassword, _ := auth.HashPassword("admin123")
 
-	mockRepo.EXPECT().GetUserByEmail(gomock.Any(), "admin@example.com").Return(&auth_interface.User{
+	mockRepo.EXPECT().GetUserByEmail(gomock.Any(), "admin@example.com").Return(&auth.User{
 		ID:                 1,
 		Email:              "admin@example.com",
 		PasswordHash:       hashedPassword,
@@ -242,7 +221,7 @@ func TestLogin_Failure_SessionCleanupError(t *testing.T) {
 
 	mockRepo.EXPECT().
 		GetUserByEmail(gomock.Any(), "admin@example.com").
-		Return(&auth_interface.User{
+		Return(&auth.User{
 			ID:                 1,
 			Email:              "admin@example.com",
 			PasswordHash:       hashedPassword,
@@ -275,7 +254,7 @@ func TestLogin_Failure_SessionInsertError(t *testing.T) {
 
 	mockRepo.EXPECT().
 		GetUserByEmail(gomock.Any(), "admin@example.com").
-		Return(&auth_interface.User{
+		Return(&auth.User{
 			ID:                 1,
 			Email:              "admin@example.com",
 			PasswordHash:       hashedPassword,
@@ -391,7 +370,7 @@ func TestChangePassword_Success(t *testing.T) {
 	authService := auth.NewAuthService(mockRepo)
 	handler := auth.NewHandler(authService)
 
-	user := &auth_interface.User{
+	user := &auth.User{
 		ID:                 1,
 		Email:              "admin@example.com",
 		IsAdmin:            true,
@@ -429,7 +408,7 @@ func TestChangePassword_Failure_WrongOldPassword(t *testing.T) {
 	authService := auth.NewAuthService(mockRepo)
 	handler := auth.NewHandler(authService)
 
-	user := &auth_interface.User{
+	user := &auth.User{
 		ID:                 1,
 		Email:              "admin@example.com",
 		IsAdmin:            true,
@@ -470,7 +449,7 @@ func TestChangePassword_Failure_InvalidRequest(t *testing.T) {
 	authService := auth.NewAuthService(mockRepo)
 	handler := auth.NewHandler(authService)
 
-	user := &auth_interface.User{
+	user := &auth.User{
 		ID:                 1,
 		Email:              "admin@example.com",
 		IsAdmin:            true,
@@ -496,7 +475,7 @@ func TestChangePassword_Failure_DatabaseError(t *testing.T) {
 	authService := auth.NewAuthService(mockRepo)
 	handler := auth.NewHandler(authService)
 
-	user := &auth_interface.User{
+	user := &auth.User{
 		ID:                 1,
 		Email:              "admin@example.com",
 		IsAdmin:            true,
