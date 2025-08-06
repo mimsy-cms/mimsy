@@ -2,6 +2,7 @@
 import { Command } from 'commander'
 import { testCommand } from './commands/test'
 import { exportSchemaCommand } from './commands/export-schema'
+import { applyCommand } from './commands/apply'
 
 export function createProgram(): Command {
   const program = new Command()
@@ -13,6 +14,7 @@ export function createProgram(): Command {
   
   testCommand(program)
   exportSchemaCommand(program)
+  applyCommand(program)
   
   return program
 }
