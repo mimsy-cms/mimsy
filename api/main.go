@@ -25,6 +25,10 @@ func main() {
 	initLogger()
 	storage := initStorage()
 
+	if err := storage.Authenticate(context.Background()); err != nil {
+		slog.Error("Failed to authenticate storage", "error", err)
+	}
+
 	runConfig := migrations.NewRunConfig(
 		migrations.WithMigrationsDir("./migrations"),
 		migrations.WithPgURL(getPgURL()),
@@ -122,6 +126,7 @@ func initStorage() storage.Storage {
 			storage.WithSwiftTenant(os.Getenv("SWIFT_TENANT")),
 			storage.WithSwiftContainer(os.Getenv("SWIFT_CONTAINER")),
 			storage.WithSwiftRegion(os.Getenv("SWIFT_REGION")),
+			storage.WithSwiftSecretKey(os.Getenv("SWIFT_SECRET_KEY")),
 		)
 
 		slog.Info("Using Swift storage backend", "container", os.Getenv("SWIFT_CONTAINER"))

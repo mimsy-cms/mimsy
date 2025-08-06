@@ -49,7 +49,7 @@ func (h *mediaHandler) Upload(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *mediaHandler) FindAll(w http.ResponseWriter, r *http.Request) {
-	medias, err := h.mediaService.FindAll(r.Context())
+	media, err := h.mediaService.FindAll(r.Context())
 	if err != nil {
 		slog.Error("Failed to retrieve media", "error", err)
 		http.Error(w, "Failed to retrieve media", http.StatusInternalServerError)
@@ -57,8 +57,10 @@ func (h *mediaHandler) FindAll(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var response []MediaResponse
-	for _, media := range medias {
-		response = append(response, NewMediaResponse(&media))
+	for _, m := range media {
+		res := NewMediaResponse(&m)
+		res.URL, _ = h.mediaService.GetTemporaryURL(r.Context(), &m)
+		response = append(response, res)
 	}
 
 	util.JSON(w, http.StatusOK, response)

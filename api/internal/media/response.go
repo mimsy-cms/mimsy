@@ -8,6 +8,7 @@ type MediaResponse struct {
 	CreatedAt    string `json:"created_at"`
 	Size         int64  `json:"size"`
 	UploadedById int64  `json:"uploaded_by_id"`
+	URL          string `json:"url,omitempty"` // Optional URL for the media file
 }
 
 func NewMediaResponse(media *Media) MediaResponse {
