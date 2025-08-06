@@ -8,6 +8,11 @@
 		{ name: 'Services', href: '/globals/services' },
 		{ name: 'Footer', href: '/globals/footer' }
 	];
+
+	const builtins = [
+		{ name: 'Media', href: '/media' },
+		{ name: 'Users', href: '/users' }
+	];
 </script>
 
 <div class="flex flex-col gap-6">
@@ -40,6 +45,21 @@
 					href={global.href}
 				>
 					<span class="text-xl font-medium">{global.name}</span>
+				</a>
+			</li>
+		{/each}
+	</ol>
+
+	<Searchbar id="builtin-search" name="builtin-search" class="max-w-md" />
+
+	<ol class="flex min-h-32 gap-6">
+		{#each builtins as builtin}
+			<li class="contents">
+				<a
+					class="min-w-64 rounded-md border border-gray-200 bg-white px-3 py-2 hover:bg-gray-50"
+					href={builtin.href}
+				>
+					<span class="text-xl font-medium">{builtin.name}</span>
 				</a>
 			</li>
 		{/each}

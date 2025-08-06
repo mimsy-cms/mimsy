@@ -56,7 +56,7 @@ func (h *Handler) Items(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handler) List(w http.ResponseWriter, r *http.Request) {
-	collections, err := h.Service.ListCollections(r.Context())
+	collections, err := h.Service.List(r.Context())
 	if err != nil {
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 		return
