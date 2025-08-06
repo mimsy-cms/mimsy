@@ -6,7 +6,6 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/mimsy-cms/mimsy/internal/config"
 	auth_interface "github.com/mimsy-cms/mimsy/internal/interfaces/auth"
 )
 
