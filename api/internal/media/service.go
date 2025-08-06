@@ -11,6 +11,7 @@ import (
 
 type MediaService interface {
 	Upload(ctx context.Context, fileHeader *multipart.FileHeader, contentType string, user *auth.User) (*Media, error)
+	FindAll(ctx context.Context) ([]Media, error)
 }
 
 type mediaService struct {
@@ -53,4 +54,8 @@ func (s *mediaService) Upload(ctx context.Context, fileHeader *multipart.FileHea
 	}
 
 	return media, nil
+}
+
+func (s *mediaService) FindAll(ctx context.Context) ([]Media, error) {
+	return s.mediaRepository.FindAll(ctx)
 }

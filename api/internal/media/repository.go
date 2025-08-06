@@ -22,6 +22,7 @@ type Repository interface {
 	Create(ctx context.Context, params *CreateMediaParams) (*Media, error)
 	GetById(ctx context.Context, id int64) (*Media, error)
 	GetByUuid(ctx context.Context, uuid *uuid.UUID) (*Media, error)
+	FindAll(ctx context.Context) ([]Media, error)
 	Delete(ctx context.Context, media *Media) error
 }
 
@@ -100,6 +101,37 @@ func (r *mediaRepository) GetByUuid(ctx context.Context, uuid *uuid.UUID) (*Medi
 	}
 
 	return media, nil
+}
+
+func (r *mediaRepository) FindAll(ctx context.Context) ([]Media, error) {
+	query := `SELECT id, uuid, name, content_type, created_at, size, uploaded_by FROM media`
+	rows, err := r.db.QueryContext(ctx, query)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var medias []Media
+	for rows.Next() {
+		media := Media{}
+		if err := rows.Scan(
+			&media.Id,
+			&media.Uuid,
+			&media.Name,
+			&media.ContentType,
+			&media.CreatedAt,
+			&media.Size,
+			&media.UploadedById); err != nil {
+			return nil, err
+		}
+		medias = append(medias, media)
+	}
+
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+
+	return medias, nil
 }
 
 func (r *mediaRepository) Delete(ctx context.Context, media *Media) error {
