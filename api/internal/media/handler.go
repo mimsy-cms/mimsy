@@ -104,6 +104,12 @@ func (h *mediaHandler) Delete(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := h.mediaService.Delete(r.Context(), media); err != nil {
+		if err == ErrMediaReferenced {
+			slog.Error("Cannot delete media that is referenced by other entities", "error", err)
+			util.JSON(w, http.StatusConflict, struct{}{})
+			return
+		}
+
 		slog.Error("Failed to delete media", "error", err)
 		http.Error(w, "Failed to delete media", http.StatusInternalServerError)
 		return
