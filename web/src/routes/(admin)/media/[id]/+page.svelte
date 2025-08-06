@@ -46,7 +46,7 @@
 				}
 			}
 
-			goto('/collections/media');
+			goto('/media');
 		} catch (error) {
 			deleteError = error instanceof Error ? error.message : 'Failed to delete media';
 		} finally {
@@ -86,7 +86,7 @@
 
 	<div class="flex items-center gap-4">
 		<a
-			href="/collections/media"
+			href="/media"
 			class="flex items-center gap-2 text-gray-600 transition-colors hover:text-gray-900"
 		>
 			<ArrowLeftIcon class="size-4" />
