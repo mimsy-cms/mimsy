@@ -26,6 +26,7 @@ type AuthRepository interface {
 	UpdatePassword(ctx context.Context, userID int64, newHash string) error
 	UserExists(ctx context.Context, email string) (bool, error)
 	GetUserBySessionToken(ctx context.Context, token string) (*User, error)
+	GetUsers(ctx context.Context) ([]User, error)
 }
 
 type Repository struct{}
@@ -108,4 +109,23 @@ func (r *Repository) GetUserBySessionToken(ctx context.Context, token string) (*
 	}
 
 	return &user, nil
+}
+
+func (r *Repository) GetUsers(ctx context.Context) ([]User, error) {
+	rows, err := config.GetDB(ctx).QueryContext(ctx, `SELECT id, email, password, is_admin, must_change_password FROM "user"`)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var users []User
+	for rows.Next() {
+		var u User
+		if err := rows.Scan(&u.ID, &u.Email, &u.PasswordHash, &u.IsAdmin, &u.MustChangePassword); err != nil {
+			return nil, err
+		}
+		users = append(users, u)
+	}
+
+	return users, rows.Err()
 }
