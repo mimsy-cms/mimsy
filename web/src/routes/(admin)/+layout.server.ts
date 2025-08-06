@@ -24,6 +24,17 @@ export const load: PageServerLoad = async ({ cookies, fetch }) => {
     if (user.must_change_password) {
       throw redirect(303, '/password');
     }
-  
-    return { user };
+
+    const collectionsRes = await fetch(`${env.PUBLIC_API_URL}/v1/collections`, {
+      headers: {
+        Authorization: `Bearer ${session}`,
+      },
+    });
+
+    const collections = collectionsRes.ok ? await collectionsRes.json() : [];
+
+    return {
+      user,
+      collections
+    };
 };

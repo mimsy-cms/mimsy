@@ -2,6 +2,8 @@ module github.com/mimsy-cms/mimsy
 
 go 1.24.2
 
+require github.com/golang/mock v1.6.0
+
 require (
 	atomicgo.dev/cursor v0.2.0 // indirect
 	atomicgo.dev/keyboard v0.2.9 // indirect
