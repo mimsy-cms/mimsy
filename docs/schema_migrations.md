@@ -13,8 +13,12 @@ While we cannot guarantee that all migrations will work every time, we strive to
 ## Components
 
 ### Lock system
+
 To avoid situations where two instances if mimsy fights over each other, we use a distributed lock system. This system ensures that only one instance can perform a migration at a time, preventing data corruption and inconsistencies.
-This lock is based on postgres, which provides a reliable and efficient way to manage concurrent access to shared resources, without having to deploy yet another service.
+
+pgroll exposes the `State.IsActiveMigrationPeriod(ctx context.Context, schema string) bool` method, which allows us to check if a migration is currently in progress.
+
+We can move the lock further down the migration process by naming the migrations after the commit hash. This way, we can skip any migration that has already been applied, and only apply the one that need to be applied (at this stage, we need the pgroll locking mechanism).
 
 ### Github API Repo fetching
 
@@ -32,7 +36,6 @@ The results of this operation are also stored inside of the database, so in the 
 
 ### PgRoll Migration Generation
 
-
 The objective of this step is to take the JSON diff of the schema, and generate the migrations required to apply the changes wanted to the database.
 
 As always, once the migration is marked as finished, we can store the results inside of the database, so in the event of an error in the next step, we can re-execute it with all dependencies around.
@@ -42,13 +45,14 @@ This step is more complex, and should hold the following constraints:
 #### 1. Normalize the schema
 
 Take for example this easy schema:
+
 ```ts
-const Tags = collection('tags', {
+const Tags = collection("tags", {
   name: string(),
 });
-const Post = collection('posts', {
+const Post = collection("posts", {
   title: string(),
-  tags: multiRelation(Tags)
+  tags: multiRelation(Tags),
 });
 ```
 
@@ -79,6 +83,7 @@ This is the point where we call pgroll to apply the migration, that is going to 
 It should also handle the backfill, and execute it on the side.
 
 ### UI Looking Glass
+
 We want users to be involved in the loop, and allow them to understand what is happening in the background.
 
 Having a clear UI showing the synchronization status, and the current state of the migration process, will help users understand what is happening and how to resolve any issues that may arise.
