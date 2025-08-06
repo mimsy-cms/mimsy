@@ -2,6 +2,7 @@ package media
 
 import (
 	"context"
+	"database/sql"
 	"errors"
 	"time"
 
@@ -26,7 +27,7 @@ type Repository interface {
 	GetByUuid(ctx context.Context, uuid *uuid.UUID) (*Media, error)
 	FindAll(ctx context.Context) ([]Media, error)
 	Delete(ctx context.Context, media *Media) error
-	ExistsByName(ctx context.Context, name string) (bool, error)
+	FindByName(ctx context.Context, name string) (*Media, error)
 }
 
 type mediaRepository struct{}
@@ -154,13 +155,25 @@ func (r *mediaRepository) Delete(ctx context.Context, media *Media) error {
 	return nil
 }
 
-func (r *mediaRepository) ExistsByName(ctx context.Context, name string) (bool, error) {
-	query := `SELECT EXISTS(SELECT 1 FROM media WHERE name = $1)`
-	var exists bool
+func (r *mediaRepository) FindByName(ctx context.Context, name string) (*Media, error) {
+	query := `SELECT id, uuid, name, content_type, created_at, size, uploaded_by FROM media WHERE name = $1`
+	media := &Media{}
 
-	err := config.GetDB(ctx).QueryRowContext(ctx, query, name).Scan(&exists)
+	err := config.GetDB(ctx).QueryRowContext(ctx, query, name).Scan(
+		&media.Id,
+		&media.Uuid,
+		&media.Name,
+		&media.ContentType,
+		&media.CreatedAt,
+		&media.Size,
+		&media.UploadedById)
+
 	if err != nil {
-		return false, err
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, nil
+		}
+		return nil, err
 	}
-	return exists, nil
+
+	return media, nil
 }

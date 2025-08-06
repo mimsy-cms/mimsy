@@ -11,7 +11,6 @@ import (
 	"github.com/google/uuid"
 	"github.com/mimsy-cms/mimsy/internal/auth"
 	"github.com/mimsy-cms/mimsy/internal/config"
-	auth_interface "github.com/mimsy-cms/mimsy/internal/interfaces/auth"
 	"github.com/mimsy-cms/mimsy/internal/storage"
 )
 
@@ -44,11 +43,11 @@ func (s *mediaService) resolveFilenameConflict(ctx context.Context, original str
 	counter := 1
 
 	for {
-		exists, err := s.mediaRepository.ExistsByName(ctx, name)
+		existing, err := s.mediaRepository.FindByName(ctx, name)
 		if err != nil {
 			return "", err
 		}
-		if !exists {
+		if existing == nil {
 			break
 		}
 		name = fmt.Sprintf("%s(%d)%s", base, counter, ext)
