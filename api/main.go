@@ -47,6 +47,7 @@ func main() {
 
 	authRepository := auth.NewAuthRepository(db)
 	authService := auth.NewAuthService(authRepository)
+	authHandler := auth.NewHandler(authService)
 
 	if err := authService.CreateAdminUser(context.Background()); err != nil {
 		fmt.Println("Failed to create admin user:", err)
@@ -66,11 +67,11 @@ func main() {
 
 	mux.Handle("/v1/", http.StripPrefix("/v1", v1))
 
-	v1.HandleFunc("POST /auth/login", auth.LoginHandler(authService))
-	v1.HandleFunc("POST /auth/logout", auth.LogoutHandler(authService))
-	v1.HandleFunc("POST /auth/password", auth.ChangePasswordHandler(authService))
-	v1.HandleFunc("POST /auth/register", auth.RegisterHandler(authService))
-	v1.HandleFunc("GET /auth/me", auth.MeHandler())
+	v1.HandleFunc("POST /auth/login", authHandler.Login)
+	v1.HandleFunc("POST /auth/logout", authHandler.Logout)
+	v1.HandleFunc("POST /auth/password", authHandler.ChangePassword)
+	v1.HandleFunc("POST /auth/register", authHandler.Register)
+	v1.HandleFunc("GET /auth/me", authHandler.Me)
 	v1.HandleFunc("GET /collections", collectionHandler.List)
 	v1.HandleFunc("GET /collections/{collectionSlug}/definition", collectionHandler.Definition)
 	v1.HandleFunc("POST /collections/media", mediaHandler.Upload)
