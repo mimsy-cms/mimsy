@@ -15,6 +15,7 @@ import (
 
 	"github.com/mimsy-cms/mimsy/internal/auth"
 	"github.com/mimsy-cms/mimsy/internal/collection"
+	"github.com/mimsy-cms/mimsy/internal/config"
 	"github.com/mimsy-cms/mimsy/internal/logger"
 	"github.com/mimsy-cms/mimsy/internal/media"
 	"github.com/mimsy-cms/mimsy/internal/migrations"
@@ -60,7 +61,7 @@ func main() {
 	collectionService := collection.NewService(collectionRepository)
 	collectionHandler := collection.NewHandler(collectionService)
 
-	mediaRepository := media.NewRepository(db)
+	mediaRepository := media.NewRepository()
 	mediaService := media.NewService(storage, mediaRepository)
 	mediaHandler := media.NewHandler(mediaService)
 
@@ -83,7 +84,7 @@ func main() {
 
 	server := &http.Server{
 		Addr:    net.JoinHostPort("localhost", cmp.Or(os.Getenv("APP_PORT"), "3000")),
-		Handler: auth.WithUser(db)(mux),
+		Handler: config.WithDB(db)(auth.WithUser(mux)),
 	}
 
 	slog.Info("Starting server", "address", server.Addr)
