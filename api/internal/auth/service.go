@@ -29,6 +29,11 @@ type AuthService interface {
 	Logout(ctx context.Context, sessionToken string) error
 	ChangePassword(ctx context.Context, userID int64, oldPassword, newPassword string) error
 	Register(ctx context.Context, req CreateUserRequest) error
+	GetUserBySessionToken(ctx context.Context, sessionToken string) (*User, error)
+}
+
+func (s *authService) GetUserBySessionToken(ctx context.Context, sessionToken string) (*User, error) {
+	return s.repo.GetUserBySessionToken(ctx, sessionToken)
 }
 
 type authService struct {

@@ -24,6 +24,7 @@ type AuthRepository interface {
 	GetUserPassword(ctx context.Context, userID int64) (string, error)
 	UpdatePassword(ctx context.Context, userID int64, newHash string) error
 	UserExists(ctx context.Context, email string) (bool, error)
+	GetUserBySessionToken(ctx context.Context, token string) (*User, error)
 }
 
 type authRepo struct {
@@ -86,4 +87,26 @@ func (r *authRepo) UserExists(ctx context.Context, email string) (bool, error) {
 	var exists bool
 	err := r.db.QueryRowContext(ctx, `SELECT EXISTS(SELECT 1 FROM "user" WHERE email=$1)`, email).Scan(&exists)
 	return exists, err
+}
+
+func (r *authRepo) GetUserBySessionToken(ctx context.Context, token string) (*User, error) {
+	var user User
+	var userID int
+
+	err := r.db.QueryRowContext(ctx, `SELECT user_id FROM session WHERE id = $1`, token).Scan(&userID)
+	if err != nil {
+		return nil, err
+	}
+
+	err = r.db.QueryRowContext(ctx, `
+		SELECT id, email, password, must_change_password, is_admin
+		FROM "user"
+		WHERE id = $1`, userID).Scan(
+		&user.ID, &user.Email, &user.PasswordHash, &user.MustChangePassword, &user.IsAdmin,
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	return &user, nil
 }
