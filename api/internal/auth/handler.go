@@ -77,8 +77,14 @@ func (s *handler) ChangePassword(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := s.authService.ChangePassword(r.Context(), user.ID, req.OldPassword, req.NewPassword); err != nil {
-		http.Error(w, err.Error(), http.StatusUnauthorized)
+	err = s.authService.ChangePassword(r.Context(), user.ID, req.OldPassword, req.NewPassword)
+	if err != nil {
+		switch err.Error() {
+		case "old password is incorrect":
+			http.Error(w, err.Error(), http.StatusUnauthorized)
+		default:
+			http.Error(w, "Internal server error", http.StatusInternalServerError)
+		}
 		return
 	}
 
