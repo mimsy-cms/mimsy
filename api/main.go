@@ -15,7 +15,6 @@ import (
 
 	"github.com/mimsy-cms/mimsy/internal/auth"
 	"github.com/mimsy-cms/mimsy/internal/collection"
-	"github.com/mimsy-cms/mimsy/internal/config"
 	"github.com/mimsy-cms/mimsy/internal/logger"
 	"github.com/mimsy-cms/mimsy/internal/media"
 	"github.com/mimsy-cms/mimsy/internal/migrations"
@@ -50,9 +49,13 @@ func main() {
 	}
 	defer db.Close()
 
-	authDB := &auth.DBWrapper{DB: db}
+	wrappedDB := &auth.DBWrapper{DB: db}
 
-	if err := auth.CreateAdminUser(context.Background(), authDB); err != nil {
+	authRepository := auth.NewAuthRepository(wrappedDB)
+	authService := auth.NewAuthService(authRepository)
+	authHandler := auth.NewHandler(authService)
+
+	if err := authService.CreateAdminUser(context.Background()); err != nil {
 		fmt.Println("Failed to create admin user:", err)
 		return
 	}
@@ -70,11 +73,11 @@ func main() {
 
 	mux.Handle("/v1/", http.StripPrefix("/v1", v1))
 
-	v1.HandleFunc("POST /auth/login", auth.LoginHandler(authDB))
-	v1.HandleFunc("POST /auth/logout", auth.LogoutHandler(authDB))
-	v1.HandleFunc("POST /auth/password", auth.ChangePasswordHandler(authDB))
-	v1.HandleFunc("POST /auth/register", auth.RegisterHandler(db))
-	v1.HandleFunc("GET /auth/me", auth.MeHandler(db))
+	v1.HandleFunc("POST /auth/login", authHandler.Login)
+	v1.HandleFunc("POST /auth/logout", authHandler.Logout)
+	v1.HandleFunc("POST /auth/password", authHandler.ChangePassword)
+	v1.HandleFunc("POST /auth/register", authHandler.Register)
+	v1.HandleFunc("GET /auth/me", authHandler.Me)
 	v1.HandleFunc("GET /collections", collectionHandler.List)
 	v1.HandleFunc("GET /collections/{collectionSlug}/definition", collectionHandler.Definition)
 	v1.HandleFunc("POST /media", mediaHandler.Upload)
@@ -84,7 +87,7 @@ func main() {
 
 	server := &http.Server{
 		Addr:    net.JoinHostPort("localhost", cmp.Or(os.Getenv("APP_PORT"), "3000")),
-		Handler: config.WithDB(db)(auth.WithUser(mux)),
+		Handler: auth.WithUser(authService)(mux),
 	}
 
 	slog.Info("Starting server", "address", server.Addr)
