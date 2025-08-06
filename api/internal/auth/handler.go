@@ -29,7 +29,14 @@ func (s *handler) Login(w http.ResponseWriter, r *http.Request) {
 
 	resp, err := s.authService.Login(r.Context(), req.Email, req.Password)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusUnauthorized)
+		switch err.Error() {
+		case "user not found":
+			http.Error(w, "User not found", http.StatusUnauthorized)
+		case "invalid credentials":
+			http.Error(w, "Invalid credentials", http.StatusUnauthorized)
+		default:
+			http.Error(w, "Internal server error", http.StatusInternalServerError)
+		}
 		return
 	}
 
