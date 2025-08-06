@@ -5,12 +5,12 @@ import (
 	"mime/multipart"
 
 	"github.com/google/uuid"
-	"github.com/mimsy-cms/mimsy/internal/auth"
+	auth_interface "github.com/mimsy-cms/mimsy/internal/interfaces/auth"
 	"github.com/mimsy-cms/mimsy/internal/storage"
 )
 
 type MediaService interface {
-	Upload(ctx context.Context, fileHeader *multipart.FileHeader, contentType string, user *auth.User) (*Media, error)
+	Upload(ctx context.Context, fileHeader *multipart.FileHeader, contentType string, user *auth_interface.User) (*Media, error)
 }
 
 type mediaService struct {
@@ -22,7 +22,7 @@ func NewService(storage storage.Storage, mediaRepository Repository) MediaServic
 	return &mediaService{storage: storage, mediaRepository: mediaRepository}
 }
 
-func (s *mediaService) Upload(ctx context.Context, fileHeader *multipart.FileHeader, contentType string, user *auth.User) (*Media, error) {
+func (s *mediaService) Upload(ctx context.Context, fileHeader *multipart.FileHeader, contentType string, user *auth_interface.User) (*Media, error) {
 	id, err := uuid.NewV7()
 	if err != nil {
 		return nil, err
