@@ -2,3 +2,5 @@
 .direnv
 .claude/*.local.json
 hours
+node_modules
+data

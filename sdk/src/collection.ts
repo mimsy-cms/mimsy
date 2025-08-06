@@ -34,5 +34,6 @@ export function collection<T extends Schema>(
     name,
     schema,
   };
+  registerCollection(coll);
   return coll;
 }

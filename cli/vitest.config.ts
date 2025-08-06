@@ -17,15 +17,13 @@ export default defineConfig({
       reportsDirectory: "coverage/unit",
       include: ["src/**/*.ts"],
     },
-    typecheck: {
-      enabled: true,
-      tsconfig: "./tsconfig.json",
-    },
+    setupFiles: ['./tests/setup.ts'],
   },
   resolve: {
     alias: {
       $src: path.resolve(__dirname, "./src"),
       $test: path.resolve(__dirname, "./test"),
+      'esbuild-register': path.resolve(__dirname, './tests/__mocks__/esbuild-register.ts'),
     },
   },
   plugins: [swc.vite({ module: { type: "es6" } })],

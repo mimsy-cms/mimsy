@@ -12,16 +12,7 @@
 	let layoutMode = $state<'grid' | 'list'>('grid');
 	let uploads = $state<UploadProgress[]>([]); // TODO: We might want to use a reactive Set/Map here
 
-	const mediaItems = Array(10)
-		.fill(null)
-		.map((_, index) => ({
-			id: index.toString(),
-			url: 'https://placehold.co/600x400',
-			alt: '',
-			name: 'image.jpg',
-			size: 2393482934,
-			updatedAt: 'May 25th 2024, 08:12 PM'
-		}));
+	let { data } = $props();
 
 	async function handleFileDrop(files: FileList) {
 		const newUploads = createUploadProgress(files);
@@ -33,7 +24,7 @@
 				formData.append('file', uploadItem.file);
 
 				await uploadFile(formData, uploadItem.id, {
-					url: '/api/v1/collections/media',
+					url: '/api/v1/media',
 					onProgress: (uploadId, progress) => {
 						uploads = uploads.map((u) => (u.id === uploadId ? { ...u, progress } : u));
 					},
@@ -108,13 +99,13 @@
 	<Dropzone id="dropzone" name="dropzone" onChange={handleFileDrop}>
 		{#if layoutMode === 'grid'}
 			<div
-				class="grid grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5"
+				class="grid grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6"
 			>
-				{#each mediaItems as item}
+				{#each data.media as media}
 					<MediaCard
-						href={`/collections/media/${item.id}`}
-						url={item.url}
-						alt={item.alt}
+						href={`/collections/media/${media.id}`}
+						url={media.url}
+						alt={media.name}
 						class="transition-transform duration-75 hover:scale-105"
 					/>
 				{/each}
@@ -151,29 +142,31 @@
 						</tr>
 					</thead>
 					<tbody class="divide-y divide-gray-200">
-						{#each mediaItems as item}
+						{#each data.media as media}
 							<tr class="text-left hover:bg-gray-50">
 								<td class="px-6 py-3">
-									<div class="h-12 w-12 overflow-hidden rounded-md bg-gray-200">
-										<img src={item.url} alt={item.alt} class="h-full w-full object-cover" />
+									<div
+										class="flex h-12 w-12 items-center justify-center overflow-hidden rounded-md bg-gray-200"
+									>
+										<img src={media.url} alt={media.alt} />
 									</div>
 								</td>
 								<td class="px-6 py-3">
 									<a
 										class="text-sm text-gray-900 hover:text-blue-600"
-										href={`/collections/media/${item.id}`}
+										href={`/collections/media/${media.id}`}
 									>
-										{item.name}
+										{media.name}
 									</a>
 								</td>
 								<td class="whitespace-nowrap px-6 py-3">
 									<div class="text-sm text-gray-500">
-										{item.size}
+										{media.size}
 									</div>
 								</td>
 								<td class="whitespace-nowrap px-6 py-3">
 									<div class="text-sm text-gray-500">
-										{item.updatedAt}
+										{media.updatedAt}
 									</div>
 								</td>
 							</tr>
