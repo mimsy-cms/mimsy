@@ -45,7 +45,9 @@ func main() {
 	}
 	defer db.Close()
 
-	if err := auth.CreateAdminUser(context.Background(), db); err != nil {
+	authDB := &auth.DBWrapper{DB: db}
+
+	if err := auth.CreateAdminUser(context.Background(), authDB); err != nil {
 		fmt.Println("Failed to create admin user:", err)
 		return
 	}
@@ -63,9 +65,9 @@ func main() {
 
 	mux.Handle("/v1/", http.StripPrefix("/v1", v1))
 
-	v1.HandleFunc("POST /auth/login", auth.LoginHandler(db))
-	v1.HandleFunc("POST /auth/logout", auth.LogoutHandler(db))
-	v1.HandleFunc("POST /auth/password", auth.ChangePasswordHandler(db))
+	v1.HandleFunc("POST /auth/login", auth.LoginHandler(authDB))
+	v1.HandleFunc("POST /auth/logout", auth.LogoutHandler(authDB))
+	v1.HandleFunc("POST /auth/password", auth.ChangePasswordHandler(authDB))
 	v1.HandleFunc("POST /auth/register", auth.RegisterHandler(db))
 	v1.HandleFunc("GET /auth/me", auth.MeHandler(db))
 	v1.HandleFunc("GET /collections", collectionHandler.List)

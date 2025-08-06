@@ -5,6 +5,8 @@ import (
 	"database/sql"
 	"net/http"
 	"strings"
+
+	auth_interface "github.com/mimsy-cms/mimsy/internal/interfaces/auth"
 )
 
 type contextKey string
@@ -62,4 +64,32 @@ func UserFromContext(ctx context.Context) *User {
 		return user
 	}
 	return nil
+}
+
+type DBWrapper struct {
+	DB *sql.DB
+}
+
+func (w *DBWrapper) QueryRow(query string, args ...any) auth_interface.Row {
+	return w.DB.QueryRow(query, args...)
+}
+
+func (w *DBWrapper) QueryRowContext(ctx context.Context, query string, args ...any) auth_interface.Row {
+	return w.DB.QueryRowContext(ctx, query, args...)
+}
+
+func (w *DBWrapper) Exec(query string, args ...interface{}) (sql.Result, error) {
+	return w.DB.Exec(query, args...)
+}
+
+func (w *DBWrapper) ExecContext(ctx context.Context, query string, args ...any) (sql.Result, error) {
+	return w.DB.ExecContext(ctx, query, args...)
+}
+
+type RowWrapper struct {
+	Row *sql.Row
+}
+
+func (r *RowWrapper) Scan(dest ...interface{}) error {
+	return r.Row.Scan(dest...)
 }

@@ -14,6 +14,7 @@ import (
 	"strings"
 	"time"
 
+	auth_interface "github.com/mimsy-cms/mimsy/internal/interfaces/auth"
 	"github.com/mimsy-cms/mimsy/internal/util"
 	"golang.org/x/crypto/argon2"
 )
@@ -33,7 +34,7 @@ const (
 	HashLength = 32
 )
 
-func CreateAdminUser(ctx context.Context, db *sql.DB) error {
+func CreateAdminUser(ctx context.Context, db auth_interface.DB) error {
 	var userCount int
 	err := db.QueryRowContext(ctx, `SELECT COUNT(*) FROM "user"`).Scan(&userCount)
 	if err != nil {
@@ -144,7 +145,7 @@ type LoginResponse struct {
 	MustChangePassword bool   `json:"mustChangePassword"`
 }
 
-func LoginHandler(db *sql.DB) http.HandlerFunc {
+func LoginHandler(db auth_interface.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		req, err := util.DecodeJSON[LoginRequest](r)
 		if err != nil {
@@ -156,7 +157,7 @@ func LoginHandler(db *sql.DB) http.HandlerFunc {
 		if err = db.QueryRow(`SELECT id, email, password, must_change_password FROM "user" WHERE email = $1`, req.Email).
 			Scan(&user.ID, &user.Email, &user.PasswordHash, &user.MustChangePassword); err != nil {
 			if err == sql.ErrNoRows {
-				http.Error(w, "User not found", http.StatusUnauthorized)
+				http.Error(w, "Invalid credentials", http.StatusUnauthorized)
 			} else {
 				http.Error(w, "Database error", http.StatusInternalServerError)
 			}
@@ -183,8 +184,7 @@ func LoginHandler(db *sql.DB) http.HandlerFunc {
 		expiresAt := time.Now().Add(7 * 24 * time.Hour) // session valid for 7 days
 
 		_, err = db.Exec(
-			`INSERT INTO session (id, user_id, expires_at)
-			VALUES ($1, $2, $3)`, sessionToken, user.ID, expiresAt)
+			`INSERT INTO session (id, user_id, expires_at) VALUES ($1, $2, $3)`, sessionToken, user.ID, expiresAt)
 		if err != nil {
 			http.Error(w, "Failed to create session", http.StatusInternalServerError)
 			return
@@ -197,7 +197,7 @@ func LoginHandler(db *sql.DB) http.HandlerFunc {
 	}
 }
 
-func LogoutHandler(db *sql.DB) http.HandlerFunc {
+func LogoutHandler(db auth_interface.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		cookie, err := r.Cookie("session")
 		if err != nil {
@@ -221,7 +221,7 @@ type ChangePasswordRequest struct {
 	NewPassword string `json:"new_password"`
 }
 
-func ChangePasswordHandler(db *sql.DB) http.HandlerFunc {
+func ChangePasswordHandler(db auth_interface.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		user := UserFromContext(r.Context())
 		if user == nil {
@@ -243,7 +243,7 @@ func ChangePasswordHandler(db *sql.DB) http.HandlerFunc {
 		var currentHash string
 		err = db.QueryRow(`SELECT password FROM "user" WHERE id = $1`, user.ID).Scan(&currentHash)
 		if err != nil {
-			http.Error(w, "User not found", http.StatusInternalServerError)
+			http.Error(w, "Invalid credentials", http.StatusInternalServerError)
 			return
 		}
 
