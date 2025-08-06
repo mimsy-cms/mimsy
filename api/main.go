@@ -15,10 +15,12 @@ import (
 
 	"github.com/mimsy-cms/mimsy/internal/auth"
 	"github.com/mimsy-cms/mimsy/internal/collection"
+	"github.com/mimsy-cms/mimsy/internal/config"
 	"github.com/mimsy-cms/mimsy/internal/logger"
 	"github.com/mimsy-cms/mimsy/internal/media"
 	"github.com/mimsy-cms/mimsy/internal/migrations"
 	"github.com/mimsy-cms/mimsy/internal/storage"
+	"github.com/mimsy-cms/mimsy/internal/util"
 )
 
 func main() {
@@ -85,9 +87,14 @@ func main() {
 	v1.HandleFunc("GET /media/{id}", mediaHandler.GetById)
 	v1.HandleFunc("DELETE /media/{id}", mediaHandler.Delete)
 
+	handler := util.ApplyMiddlewares(
+		config.WithDB(db),
+		auth.WithUser(authService),
+	)
+
 	server := &http.Server{
 		Addr:    net.JoinHostPort("localhost", cmp.Or(os.Getenv("APP_PORT"), "3000")),
-		Handler: auth.WithUser(authService)(mux),
+		Handler: handler(mux),
 	}
 
 	slog.Info("Starting server", "address", server.Addr)
