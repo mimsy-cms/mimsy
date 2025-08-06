@@ -2,8 +2,9 @@ package auth
 
 import (
 	"context"
-	"database/sql"
 	"time"
+
+	auth_interface "github.com/mimsy-cms/mimsy/internal/interfaces/auth"
 )
 
 type User struct {
@@ -17,21 +18,21 @@ type User struct {
 type AuthRepository interface {
 	CountUsers(ctx context.Context) (int, error)
 	InsertUser(ctx context.Context, email, password string, isAdmin, mustChange bool) error
-	GetUserByEmail(ctx context.Context, email string) (*User, error)
+	GetUserByEmail(ctx context.Context, email string) (*auth_interface.User, error)
 	DeleteExpiredSessions(ctx context.Context) error
 	CreateSession(ctx context.Context, token string, userID int64, expiresAt time.Time) error
 	DeleteSession(ctx context.Context, token string) error
 	GetUserPassword(ctx context.Context, userID int64) (string, error)
 	UpdatePassword(ctx context.Context, userID int64, newHash string) error
 	UserExists(ctx context.Context, email string) (bool, error)
-	GetUserBySessionToken(ctx context.Context, token string) (*User, error)
+	GetUserBySessionToken(ctx context.Context, token string) (*auth_interface.User, error)
 }
 
 type authRepo struct {
-	db *sql.DB
+	db auth_interface.DB
 }
 
-func NewAuthRepository(db *sql.DB) AuthRepository {
+func NewAuthRepository(db auth_interface.DB) AuthRepository {
 	return &authRepo{db}
 }
 
@@ -48,8 +49,8 @@ func (r *authRepo) InsertUser(ctx context.Context, email, password string, isAdm
 	return err
 }
 
-func (r *authRepo) GetUserByEmail(ctx context.Context, email string) (*User, error) {
-	var u User
+func (r *authRepo) GetUserByEmail(ctx context.Context, email string) (*auth_interface.User, error) {
+	var u auth_interface.User
 	err := r.db.QueryRowContext(ctx, `SELECT id, email, password, is_admin, must_change_password FROM "user" WHERE email = $1`, email).
 		Scan(&u.ID, &u.Email, &u.PasswordHash, &u.IsAdmin, &u.MustChangePassword)
 	return &u, err
@@ -89,8 +90,8 @@ func (r *authRepo) UserExists(ctx context.Context, email string) (bool, error) {
 	return exists, err
 }
 
-func (r *authRepo) GetUserBySessionToken(ctx context.Context, token string) (*User, error) {
-	var user User
+func (r *authRepo) GetUserBySessionToken(ctx context.Context, token string) (*auth_interface.User, error) {
+	var user auth_interface.User
 	var userID int
 
 	err := r.db.QueryRowContext(ctx, `SELECT user_id FROM session WHERE id = $1`, token).Scan(&userID)

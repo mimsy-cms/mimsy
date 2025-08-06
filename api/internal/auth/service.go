@@ -10,6 +10,7 @@ import (
 	"strings"
 	"time"
 
+	auth_interface "github.com/mimsy-cms/mimsy/internal/interfaces/auth"
 	"golang.org/x/crypto/argon2"
 )
 
@@ -29,10 +30,10 @@ type AuthService interface {
 	Logout(ctx context.Context, sessionToken string) error
 	ChangePassword(ctx context.Context, userID int64, oldPassword, newPassword string) error
 	Register(ctx context.Context, req CreateUserRequest) error
-	GetUserBySessionToken(ctx context.Context, sessionToken string) (*User, error)
+	GetUserBySessionToken(ctx context.Context, sessionToken string) (*auth_interface.User, error)
 }
 
-func (s *authService) GetUserBySessionToken(ctx context.Context, sessionToken string) (*User, error) {
+func (s *authService) GetUserBySessionToken(ctx context.Context, sessionToken string) (*auth_interface.User, error) {
 	return s.repo.GetUserBySessionToken(ctx, sessionToken)
 }
 
@@ -67,7 +68,7 @@ func (s *authService) Login(ctx context.Context, email, password string) (*Login
 	if err := s.repo.DeleteExpiredSessions(ctx); err != nil {
 		return nil, err
 	}
-	token, err := generateSessionToken()
+	token, err := GenerateSessionToken()
 	if err != nil {
 		return nil, err
 	}
@@ -144,7 +145,7 @@ func CheckPasswordHash(password, encoded string) error {
 	return nil
 }
 
-func generateSessionToken() (string, error) {
+func GenerateSessionToken() (string, error) {
 	b := make([]byte, 32)
 	_, err := rand.Read(b)
 	return base64.RawURLEncoding.EncodeToString(b), err

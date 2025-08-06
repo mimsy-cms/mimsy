@@ -45,7 +45,9 @@ func main() {
 	}
 	defer db.Close()
 
-	authRepository := auth.NewAuthRepository(db)
+	wrappedDB := &auth.DBWrapper{DB: db}
+
+	authRepository := auth.NewAuthRepository(wrappedDB)
 	authService := auth.NewAuthService(authRepository)
 	authHandler := auth.NewHandler(authService)
 
