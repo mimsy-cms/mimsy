@@ -86,6 +86,7 @@ func main() {
 	v1.HandleFunc("GET /media", mediaHandler.FindAll)
 	v1.HandleFunc("GET /media/{id}", mediaHandler.GetById)
 	v1.HandleFunc("DELETE /media/{id}", mediaHandler.Delete)
+	v1.HandleFunc("GET /users", authHandler.GetUsers)
 
 	handler := util.ApplyMiddlewares(
 		config.WithDB(db),

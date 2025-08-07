@@ -30,6 +30,7 @@ type AuthService interface {
 	ChangePassword(ctx context.Context, userID int64, oldPassword, newPassword string) error
 	Register(ctx context.Context, req CreateUserRequest) error
 	GetUserBySessionToken(ctx context.Context, sessionToken string) (*User, error)
+	GetUsers(ctx context.Context) ([]User, error)
 }
 
 func (s *authService) GetUserBySessionToken(ctx context.Context, sessionToken string) (*User, error) {
@@ -158,4 +159,12 @@ func GenerateSessionToken() (string, error) {
 	b := make([]byte, 32)
 	_, err := rand.Read(b)
 	return base64.RawURLEncoding.EncodeToString(b), err
+}
+
+func (s *authService) GetUsers(ctx context.Context) ([]User, error) {
+	users, err := s.repo.GetUsers(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("failed to retrieve users: %w", err)
+	}
+	return users, nil
 }
