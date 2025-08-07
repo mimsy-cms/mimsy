@@ -62,7 +62,7 @@ func main() {
 		return
 	}
 
-	collectionRepository := collection.NewRepository(db)
+	collectionRepository := collection.NewRepository()
 	collectionService := collection.NewService(collectionRepository)
 	collectionHandler := collection.NewHandler(collectionService)
 

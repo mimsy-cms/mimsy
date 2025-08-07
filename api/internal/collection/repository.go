@@ -5,6 +5,8 @@ import (
 	"database/sql"
 	"encoding/json"
 	"errors"
+
+	"github.com/mimsy-cms/mimsy/internal/config"
 )
 
 type Repository interface {
@@ -14,12 +16,10 @@ type Repository interface {
 	List(ctx context.Context) ([]Collection, error)
 }
 
-type PostgresRepository struct {
-	DB *sql.DB
-}
+type PostgresRepository struct{}
 
-func NewRepository(db *sql.DB) *PostgresRepository {
-	return &PostgresRepository{DB: db}
+func NewRepository() *PostgresRepository {
+	return &PostgresRepository{}
 }
 
 type Collection struct {
@@ -29,7 +29,7 @@ type Collection struct {
 	CreatedAt string
 	CreatedBy string
 	UpdatedAt string
-	UpdatedBy string
+	UpdatedBy *string
 }
 
 type Item struct {
@@ -42,7 +42,7 @@ var ErrNotFound = errors.New("not found")
 
 func (r *PostgresRepository) FindBySlug(ctx context.Context, slug string) (*Collection, error) {
 	var coll Collection
-	err := r.DB.QueryRowContext(ctx,
+	err := config.GetDB(ctx).QueryRowContext(ctx,
 		`SELECT name, fields, created_at, created_by, updated_at, updated_by FROM "collection" WHERE slug = $1`,
 		slug,
 	).Scan(&coll.Name, &coll.Fields, &coll.CreatedAt, &coll.CreatedBy, &coll.UpdatedAt, &coll.UpdatedBy)
@@ -57,12 +57,12 @@ func (r *PostgresRepository) FindBySlug(ctx context.Context, slug string) (*Coll
 
 func (r *PostgresRepository) CollectionExists(ctx context.Context, slug string) (bool, error) {
 	var exists bool
-	err := r.DB.QueryRowContext(ctx, `SELECT EXISTS(SELECT 1 FROM "collection" WHERE slug = $1)`, slug).Scan(&exists)
+	err := config.GetDB(ctx).QueryRowContext(ctx, `SELECT EXISTS(SELECT 1 FROM "collection" WHERE slug = $1)`, slug).Scan(&exists)
 	return exists, err
 }
 
 func (r *PostgresRepository) FindItemsBySlug(ctx context.Context, slug string) ([]Item, error) {
-	rows, err := r.DB.QueryContext(ctx, `SELECT id, data, slug FROM "collection_item" WHERE collection_slug = $1`, slug)
+	rows, err := config.GetDB(ctx).QueryContext(ctx, `SELECT id, data, slug FROM "collection_item" WHERE collection_slug = $1`, slug)
 	if err != nil {
 		return nil, err
 	}
@@ -80,7 +80,7 @@ func (r *PostgresRepository) FindItemsBySlug(ctx context.Context, slug string) (
 }
 
 func (r *PostgresRepository) List(ctx context.Context) ([]Collection, error) {
-	rows, err := r.DB.QueryContext(ctx, `SELECT slug, name, fields, created_at, created_by, updated_at, updated_by FROM "collection"`)
+	rows, err := config.GetDB(ctx).QueryContext(ctx, `SELECT slug, name, fields, created_at, created_by, updated_at, updated_by FROM "collection"`)
 	if err != nil {
 		return nil, err
 	}
