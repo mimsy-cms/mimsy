@@ -8,6 +8,18 @@
 	export let data: PageData;
 
 	const users = data.users;
+
+	function formatDate(dateString: string): string {
+		const date = new Date(dateString);
+		return new Intl.DateTimeFormat('en-US', {
+			year: 'numeric',
+			month: 'short',
+			day: 'numeric',
+			hour: '2-digit',
+			minute: '2-digit',
+			hour12: false
+		}).format(date);
+	}
 </script>
 
 <div class="flex flex-col gap-6">
@@ -54,15 +66,7 @@
 					<tr class="hover:bg-gray-50">
 						<td class="w-1/3 px-6 py-3 text-sm text-gray-500">{user.id}</td>
 						<td class="w-1/3 px-6 py-3 text-sm text-gray-500">{user.email}</td>
-						<td class="w-1/3 px-6 py-3 text-sm text-gray-500">
-							{new Date(user.updated_at).toLocaleString(undefined, {
-								year: 'numeric',
-								month: 'long',
-								day: 'numeric',
-								hour: '2-digit',
-								minute: '2-digit'
-							})}
-						</td>
+						<td class="w-1/3 px-6 py-3 text-sm text-gray-500">{formatDate(user.updated_at)}</td>
 						<td class="w-12 whitespace-nowrap px-6 py-3 text-right text-sm font-medium">
 							<div class="flex items-center justify-end space-x-2">
 								<button class="text-gray-400 hover:text-gray-600">
