@@ -105,7 +105,7 @@
 			>
 				{#each data.media as media}
 					<MediaCard
-						href={`/collections/media/${media.id}`}
+						href={`/media/${media.id}`}
 						url={media.url}
 						alt={media.name}
 						class="transition-transform duration-75 hover:scale-105"
@@ -154,10 +154,7 @@
 									</div>
 								</td>
 								<td class="px-6 py-3">
-									<a
-										class="text-sm text-gray-900 hover:text-blue-600"
-										href={`/collections/media/${media.id}`}
-									>
+									<a class="text-sm text-gray-900 hover:text-blue-600" href={`/media/${media.id}`}>
 										{media.name}
 									</a>
 								</td>
