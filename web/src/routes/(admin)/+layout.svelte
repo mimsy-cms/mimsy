@@ -8,7 +8,7 @@
 	let mobileNavOpen = $state(false);
 
 	let collections = $derived(
-		data.collections.map((collection) => ({
+		(data.collections ?? []).map((collection) => ({
 			name: collection.name,
 			href: `/collections/${collection.slug}`
 		}))
