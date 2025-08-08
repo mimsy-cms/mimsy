@@ -7,19 +7,20 @@
 	import { cn } from '$lib/cn';
 	import MenuItem from './MenuItem.svelte';
 	import { goto } from '$app/navigation';
+	import AnvilIcon from '@lucide/svelte/icons/anvil';
+
+	type Collection = {
+		name: string;
+		href: string;
+	};
 
 	type Props = {
 		class?: string;
 		onNavigate: () => void;
+		collections: Collection[];
 	};
 
-	let { class: className, onNavigate }: Props = $props();
-
-	const collections = [
-		{ name: 'Posts', href: '/collections/posts' },
-		{ name: 'Pages', href: '/collections/pages' },
-		{ name: 'Events', href: '/collections/events' }
-	];
+	let { class: className, onNavigate, collections }: Props = $props();
 
 	const globals = [
 		{ name: 'Info', href: '/globals/info' },
@@ -27,17 +28,14 @@
 		{ name: 'Footer', href: '/globals/footer' }
 	];
 
-	async function logout() {
-		const res = await fetch(`/logout`, {
-			method: 'POST'
-		});
+	const builtins = [
+		{ name: 'Media', href: '/media' },
+		{ name: 'Users', href: '/users' }
+	];
 
-		if (res.ok) {
-			goto('/login');
-		} else {
-			const errorText = await res.text();
-			alert('Logout failed: ' + errorText);
-		}
+	async function logout() {
+		await fetch(`/logout`, { method: 'POST' });
+		goto('/login');
 	}
 </script>
 
@@ -50,8 +48,8 @@
 			</MenuItem>
 
 			<Accordion text="Collections" icon={DatabaseIcon} items={collections} {onNavigate} />
-
 			<Accordion text="Globals" icon={GlobeIcon} items={globals} {onNavigate} />
+			<Accordion text="Builtins" icon={AnvilIcon} items={builtins} {onNavigate} />
 		</nav>
 
 		<div class="p-2">

@@ -1,29 +1,22 @@
-import type { Actions, PageServerLoad } from './$types';
 import { redirect } from '@sveltejs/kit';
 import { env } from '$env/dynamic/public';
+import type { LayoutServerLoad } from './$types';
 
-export const load: PageServerLoad = async ({ cookies, fetch }) => {
-  const session = cookies.get('session');
-  
-    if (!session) {
-      throw redirect(303, '/login');
-    }
+type Collection = {
+	name: string;
+	slug: string;
+};
 
-    const res = await fetch(`${env.PUBLIC_API_URL}/v1/auth/me`, {
-      headers: {
-        Authorization: `Bearer ${session}`,
-      },
-    });
-  
-    if (!res.ok) {
-      throw redirect(303, '/login');
-    }
-  
-    const user = await res.json();
-  
-    if (user.must_change_password) {
-      throw redirect(303, '/password');
-    }
-  
-    return { user };
+export const load: LayoutServerLoad = async ({ cookies, fetch, locals }) => {
+	if (!locals.user) {
+		throw redirect(303, '/login');
+	}
+
+	const response = await fetch(`${env.PUBLIC_API_URL}/v1/collections`);
+
+	const collections = (await response.json()) as Collection[];
+
+	return {
+		collections
+	};
 };

@@ -1,0 +1,11 @@
+packages:
+  - "api"
+  - "cli"
+  - "docs"
+  - "flux"
+  - "landing"
+  - "sdk"
+  - "web"
+onlyBuiltDependencies:
+  - "@swc/core"
+  - esbuild

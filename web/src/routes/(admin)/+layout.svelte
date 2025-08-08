@@ -3,9 +3,16 @@
 	import MobileMenu from '$lib/components/admin/MobileMenu.svelte';
 	import Sidebar from '$lib/components/admin/Sidebar.svelte';
 
-	let { children } = $props();
+	let { children, data } = $props();
 
 	let mobileNavOpen = $state(false);
+
+	let collections = $derived(
+		data.collections.map((collection) => ({
+			name: collection.name,
+			href: `/collections/${collection.slug}`
+		}))
+	);
 </script>
 
 <div class="flex min-h-screen flex-col lg:flex-row">
@@ -18,6 +25,7 @@
 
 	<Sidebar
 		onNavigate={() => (mobileNavOpen = false)}
+		{collections}
 		class={cn('mt-13 absolute bottom-0 left-0 right-0 top-0 pt-[1px] lg:static lg:mt-0 lg:flex', {
 			hidden: !mobileNavOpen
 		})}

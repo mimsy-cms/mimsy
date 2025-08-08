@@ -15,15 +15,23 @@ import (
 
 	"github.com/mimsy-cms/mimsy/internal/auth"
 	"github.com/mimsy-cms/mimsy/internal/collection"
+	"github.com/mimsy-cms/mimsy/internal/config"
 	"github.com/mimsy-cms/mimsy/internal/logger"
 	"github.com/mimsy-cms/mimsy/internal/media"
 	"github.com/mimsy-cms/mimsy/internal/migrations"
 	"github.com/mimsy-cms/mimsy/internal/storage"
+	"github.com/mimsy-cms/mimsy/internal/util"
 )
 
 func main() {
 	initLogger()
 	storage := initStorage()
+
+	ctx := context.Background()
+
+	if err := storage.Authenticate(ctx); err != nil {
+		slog.Error("Failed to authenticate storage", "error", err)
+	}
 
 	runConfig := migrations.NewRunConfig(
 		migrations.WithMigrationsDir("./migrations"),
@@ -31,7 +39,7 @@ func main() {
 	)
 
 	// NOTE: Migrations should not be run like this in production.
-	migrationCount, err := migrations.Run(context.Background(), runConfig)
+	migrationCount, err := migrations.Run(ctx, runConfig)
 	if err != nil {
 		slog.Error("Failed to run migrations", "error", err)
 	} else {
@@ -45,12 +53,20 @@ func main() {
 	}
 	defer db.Close()
 
-	if err := auth.CreateAdminUser(context.Background(), db); err != nil {
+	authRepository := auth.NewRepository()
+	authService := auth.NewAuthService(authRepository)
+	authHandler := auth.NewHandler(authService)
+
+	if err := authService.CreateAdminUser(config.ContextWithDB(ctx, db)); err != nil {
 		fmt.Println("Failed to create admin user:", err)
 		return
 	}
 
-	mediaRepository := media.NewRepository(db)
+	collectionRepository := collection.NewRepository()
+	collectionService := collection.NewService(collectionRepository)
+	collectionHandler := collection.NewHandler(collectionService)
+
+	mediaRepository := media.NewRepository()
 	mediaService := media.NewService(storage, mediaRepository)
 	mediaHandler := media.NewHandler(mediaService)
 
@@ -59,17 +75,26 @@ func main() {
 
 	mux.Handle("/v1/", http.StripPrefix("/v1", v1))
 
-	v1.HandleFunc("POST /auth/login", auth.LoginHandler(db))
-	v1.HandleFunc("POST /auth/logout", auth.LogoutHandler(db))
-	v1.HandleFunc("POST /auth/password", auth.ChangePasswordHandler(db))
-	v1.HandleFunc("POST /auth/register", auth.RegisterHandler(db))
-	v1.HandleFunc("GET /auth/me", auth.MeHandler(db))
-	v1.HandleFunc("GET /collections/{collectionSlug}/definition", collection.DefinitionHandler(db))
-	v1.HandleFunc("POST /collections/media", mediaHandler.Upload)
+	v1.HandleFunc("POST /auth/login", authHandler.Login)
+	v1.HandleFunc("POST /auth/logout", authHandler.Logout)
+	v1.HandleFunc("POST /auth/password", authHandler.ChangePassword)
+	v1.HandleFunc("POST /auth/register", authHandler.Register)
+	v1.HandleFunc("GET /auth/me", authHandler.Me)
+	v1.HandleFunc("GET /collections", collectionHandler.List)
+	v1.HandleFunc("GET /collections/{collectionSlug}/definition", collectionHandler.Definition)
+	v1.HandleFunc("POST /media", mediaHandler.Upload)
+	v1.HandleFunc("GET /media", mediaHandler.FindAll)
+	v1.HandleFunc("GET /media/{id}", mediaHandler.GetById)
+	v1.HandleFunc("DELETE /media/{id}", mediaHandler.Delete)
+
+	handler := util.ApplyMiddlewares(
+		config.WithDB(db),
+		auth.WithUser(authService),
+	)
 
 	server := &http.Server{
 		Addr:    net.JoinHostPort("localhost", cmp.Or(os.Getenv("APP_PORT"), "3000")),
-		Handler: auth.WithUser(db)(mux),
+		Handler: handler(mux),
 	}
 
 	slog.Info("Starting server", "address", server.Addr)
@@ -114,6 +139,7 @@ func initStorage() storage.Storage {
 			storage.WithSwiftTenant(os.Getenv("SWIFT_TENANT")),
 			storage.WithSwiftContainer(os.Getenv("SWIFT_CONTAINER")),
 			storage.WithSwiftRegion(os.Getenv("SWIFT_REGION")),
+			storage.WithSwiftSecretKey(os.Getenv("SWIFT_SECRET_KEY")),
 		)
 
 		slog.Info("Using Swift storage backend", "container", os.Getenv("SWIFT_CONTAINER"))

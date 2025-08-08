@@ -11,6 +11,12 @@
 	let { url, href, alt, class: className }: Props = $props();
 </script>
 
-<a class={cn('overflow-hidden rounded-md bg-gray-200', className)} {href}>
-	<img src={url} {alt} class="object-cover" />
+<a
+	class={cn(
+		'flex items-center justify-center overflow-hidden rounded-md bg-gray-200/40',
+		className
+	)}
+	{href}
+>
+	<img src={url} {alt} class="object-fill" />
 </a>

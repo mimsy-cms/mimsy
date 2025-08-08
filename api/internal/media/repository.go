@@ -3,9 +3,12 @@ package media
 import (
 	"context"
 	"database/sql"
+	"errors"
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/mimsy-cms/mimsy/internal/config"
+	"github.com/mimsy-cms/mimsy/internal/postgres"
 )
 
 type Media struct {
@@ -22,16 +25,21 @@ type Repository interface {
 	Create(ctx context.Context, params *CreateMediaParams) (*Media, error)
 	GetById(ctx context.Context, id int64) (*Media, error)
 	GetByUuid(ctx context.Context, uuid *uuid.UUID) (*Media, error)
+	FindAll(ctx context.Context) ([]Media, error)
 	Delete(ctx context.Context, media *Media) error
+	FindByName(ctx context.Context, name string) (*Media, error)
 }
 
-type mediaRepository struct {
-	db *sql.DB
+type mediaRepository struct{}
+
+func NewRepository() Repository {
+	return &mediaRepository{}
 }
 
-func NewRepository(db *sql.DB) Repository {
-	return &mediaRepository{db: db}
-}
+var (
+	// ErrMediaReferenced is returned when trying to delete media that is being referenced by other content.
+	ErrMediaReferenced = errors.New("media is being referenced by other content")
+)
 
 type CreateMediaParams struct {
 	Uuid         uuid.UUID
@@ -48,7 +56,7 @@ func (r *mediaRepository) Create(ctx context.Context, params *CreateMediaParams)
 		RETURNING id`
 	var id int64
 
-	if err := r.db.QueryRowContext(ctx, query,
+	if err := config.GetDB(ctx).QueryRowContext(ctx, query,
 		params.Uuid,
 		params.Name,
 		params.ContentType,
@@ -66,7 +74,7 @@ func (r *mediaRepository) GetById(ctx context.Context, id int64) (*Media, error)
 	query := `SELECT id, uuid, name, content_type, created_at, size, uploaded_by FROM media WHERE id = $1`
 	media := &Media{}
 
-	err := r.db.QueryRowContext(ctx, query, id).Scan(
+	err := config.GetDB(ctx).QueryRowContext(ctx, query, id).Scan(
 		&media.Id,
 		&media.Uuid,
 		&media.Name,
@@ -86,7 +94,7 @@ func (r *mediaRepository) GetByUuid(ctx context.Context, uuid *uuid.UUID) (*Medi
 	query := `SELECT id, uuid, name, content_type, created_at, size, uploaded_by FROM media WHERE uuid = $1`
 	media := &Media{}
 
-	err := r.db.QueryRowContext(ctx, query, uuid).Scan(
+	err := config.GetDB(ctx).QueryRowContext(ctx, query, uuid).Scan(
 		&media.Id,
 		&media.Uuid,
 		&media.Name,
@@ -102,13 +110,70 @@ func (r *mediaRepository) GetByUuid(ctx context.Context, uuid *uuid.UUID) (*Medi
 	return media, nil
 }
 
+func (r *mediaRepository) FindAll(ctx context.Context) ([]Media, error) {
+	query := `SELECT id, uuid, name, content_type, created_at, size, uploaded_by FROM media`
+	rows, err := config.GetDB(ctx).QueryContext(ctx, query)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var medias []Media
+	for rows.Next() {
+		media := Media{}
+		if err := rows.Scan(
+			&media.Id,
+			&media.Uuid,
+			&media.Name,
+			&media.ContentType,
+			&media.CreatedAt,
+			&media.Size,
+			&media.UploadedById); err != nil {
+			return nil, err
+		}
+		medias = append(medias, media)
+	}
+
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+
+	return medias, nil
+}
+
 func (r *mediaRepository) Delete(ctx context.Context, media *Media) error {
 	query := `DELETE FROM media WHERE id = $1`
 
-	_, err := r.db.ExecContext(ctx, query, media.Id)
+	_, err := config.GetDB(ctx).ExecContext(ctx, query, media.Id)
 	if err != nil {
+		if postgres.IsErrCode(err, postgres.ErrForeignKeyViolation) {
+			return ErrMediaReferenced
+		}
 		return err
 	}
 
 	return nil
+}
+
+func (r *mediaRepository) FindByName(ctx context.Context, name string) (*Media, error) {
+	query := `SELECT id, uuid, name, content_type, created_at, size, uploaded_by FROM media WHERE name = $1`
+	media := &Media{}
+
+	err := config.GetDB(ctx).QueryRowContext(ctx, query, name).Scan(
+		&media.Id,
+		&media.Uuid,
+		&media.Name,
+		&media.ContentType,
+		&media.CreatedAt,
+		&media.Size,
+		&media.UploadedById)
+
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, nil
+		}
+		return nil, err
+	}
+
+	return media, nil
 }
