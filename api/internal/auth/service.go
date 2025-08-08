@@ -69,7 +69,7 @@ func (s *authService) CreateAdminUser(ctx context.Context) error {
 func (s *authService) Login(ctx context.Context, email, password string) (*LoginResponse, error) {
 	user, err := s.repo.GetUserByEmail(ctx, email)
 	if err != nil {
-		return nil, errors.New("user not found")
+		return nil, errors.New("invalid credentials")
 	}
 	if err := CheckPasswordHash(password, user.PasswordHash); err != nil {
 		return nil, errors.New("invalid credentials")
