@@ -7,6 +7,11 @@ export const load: PageServerLoad = async ({ fetch }) => {
 		}
 	});
 
+	if (!response.ok) {
+		console.error('Failed to fetch media:', response.status, await response.text());
+		return { media: [] };
+	}
+
 	const data = await response.json();
 
 	return { media: data };

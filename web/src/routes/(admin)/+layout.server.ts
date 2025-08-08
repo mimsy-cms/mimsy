@@ -14,6 +14,11 @@ export const load: LayoutServerLoad = async ({ cookies, fetch, locals }) => {
 
 	const response = await fetch(`${env.PUBLIC_API_URL}/v1/collections`);
 
+	if (!response.ok) {
+		console.error('Failed to fetch collections:', response.status, await response.text());
+		return { collections: [] };
+	}
+
 	const collections = (await response.json()) as Collection[];
 
 	return {
