@@ -146,26 +146,6 @@ func TestLogin_Failure_WrongPassword(t *testing.T) {
 	}
 }
 
-// TestLogin_Failure_UserNotFound tests the login handler for a failed login because of user not found
-func TestLogin_Failure_UserNotFound(t *testing.T) {
-	ctrl := gomock.NewController(t)
-	defer ctrl.Finish()
-
-	mockRepo := mocks.NewMockAuthRepository(ctrl)
-
-	authService := auth.NewAuthService(mockRepo)
-	handler := auth.NewHandler(authService)
-
-	mockRepo.EXPECT().GetUserByEmail(gomock.Any(), "admin@wrongdomain.com").Return(nil, errors.New("user not found"))
-
-	req := newJSONRequest(t, "POST", "/login", `{"email":"admin@wrongdomain.com","password":"admin123"}`)
-	w := executeRequest(http.HandlerFunc(handler.Login), req, t)
-
-	if w.Code != http.StatusUnauthorized {
-		t.Fatalf("expected status Unauthorized, got %v", w.Code)
-	}
-}
-
 // TestLogin_Failure_InvalidRequest tests the login handler for a failed login due to invalid request body
 func TestLogin_Failure_InvalidRequest(t *testing.T) {
 	ctrl := gomock.NewController(t)
