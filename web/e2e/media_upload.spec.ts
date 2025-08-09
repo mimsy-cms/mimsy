@@ -26,15 +26,12 @@ test.describe('Media upload flow', () => {
   // Default selection should be grid
   test('should have Grid layout selected by default on media page', async ({ page }) => {
     await login(page);
-    
     await page.goto('/media');
-
-    // // Wait for the page to load
-    // await page.waitForLoadState('networkidle');
 
     // Find buttons
     const gridButton = page.locator('button').filter({ hasText: 'Grid' });
     const listButton = page.locator('button').filter({ hasText: 'List' });
+
     await expect(gridButton).toBeVisible();
     await expect(listButton).toBeVisible();
 
@@ -55,6 +52,7 @@ test.describe('Media upload flow', () => {
 
     const gridButton = page.locator('button').filter({ hasText: 'Grid' });
     const listButton = page.locator('button').filter({ hasText: 'List' });
+
     await expect(gridButton).toBeVisible();
     await expect(listButton).toBeVisible();
 
@@ -67,5 +65,26 @@ test.describe('Media upload flow', () => {
     // Verify that the list table is actually displayed
     const listTable = page.locator('table');
     await expect(listTable).toBeVisible();
+  });
+
+  // Upload files test
+  test('should upload files', async ({ page }) => {
+    await login(page);
+    await page.goto('/media');
+    
+    const testImagePath = 'e2e/fixtures/test-image.jpg';
+
+    const uploadButton = page.locator('button').filter({ hasText: 'Upload' });
+    await expect(uploadButton).toBeVisible();
+
+    const fileChooserPromise = page.waitForEvent('filechooser');
+    await uploadButton.click();
+
+    const fileChooser = await fileChooserPromise;
+
+    await fileChooser.setFiles(testImagePath);
+
+    await page.waitForTimeout(3000);
+    await page.waitForLoadState('networkidle');
   });
 });
