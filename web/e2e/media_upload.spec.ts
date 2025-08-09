@@ -67,11 +67,13 @@ test.describe('Media upload flow', () => {
     await expect(listTable).toBeVisible();
   });
 
-  // Upload files test
-  test('should upload files', async ({ page }) => {
+  // Upload image test
+  test('should upload images', async ({ page }) => {
     await login(page);
     await page.goto('/media');
-    
+
+    const initialMediaCount = await page.locator('.grid img, table img').count();
+
     const testImagePath = 'e2e/fixtures/test-image.jpg';
 
     const uploadButton = page.locator('button').filter({ hasText: 'Upload' });
@@ -86,5 +88,78 @@ test.describe('Media upload flow', () => {
 
     await page.waitForTimeout(3000);
     await page.waitForLoadState('networkidle');
+
+    const finalMediaCount = await page.locator('.grid img, table img').count();
+    expect(finalMediaCount).toBeGreaterThan(initialMediaCount);
+
+    const uploadedFileSelectors = [
+        `img[alt*="test-image"]`,
+        `img[alt*="test-image.jpg"]`,
+        `img[src*="test-image"]`,
+        `a[href*="test-image"]`
+    ];
+
+    let fileFound = false;
+    for (const selector of uploadedFileSelectors) {
+        const elements = page.locator(selector);
+        if (await elements.count() > 0) {
+            fileFound = true;
+            break;
+        }
+    }
+
+    if (!fileFound) {
+        console.warn('Could not find uploaded file by name but media count increased');
+    }
+
+    expect(fileFound).toBe(true);
+  });
+
+  // Upload PDF test
+  test('should upload pdf', async ({ page }) => {
+    await login(page);
+    await page.goto('/media');
+
+    const initialMediaCount = await page.locator('.grid img, table img').count();
+
+    const testPdfPath = 'e2e/fixtures/test-document.pdf';
+
+    const uploadButton = page.locator('button').filter({ hasText: 'Upload' });
+    await expect(uploadButton).toBeVisible();
+
+    const fileChooserPromise = page.waitForEvent('filechooser');
+    await uploadButton.click();
+
+    const fileChooser = await fileChooserPromise;
+
+    await fileChooser.setFiles(testPdfPath);
+
+    await page.waitForTimeout(3000);
+    await page.waitForLoadState('networkidle');
+
+    const finalMediaCount = await page.locator('.grid img, table img').count();
+    expect(finalMediaCount).toBeGreaterThan(initialMediaCount);
+
+    const uploadedFileSelectors = [
+        `img[alt*="test-image"]`,
+        `img[alt*="test-image.jpg"]`,
+        `img[src*="test-image"]`,
+        `a[href*="test-image"]`
+    ];
+
+    let fileFound = false;
+    for (const selector of uploadedFileSelectors) {
+        const elements = page.locator(selector);
+        if (await elements.count() > 0) {
+            fileFound = true;
+            break;
+        }
+    }
+
+    if (!fileFound) {
+        console.warn('Could not find uploaded file by name but media count increased');
+    }
+
+    expect(fileFound).toBe(true);
   });
 });
