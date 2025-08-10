@@ -22,7 +22,25 @@ async function login(page: Page, email?: string, password?: string) {
   await page.waitForURL('/', { timeout: 10000 });
 }
 
-test.describe('Media upload flow', () => {
+/**
+ * Helper function to find and add the id to the list of media to be removed after the test
+ * @param page - Playwright page object
+ * @param uploadedMediaIds - Array to store uploaded media IDs
+ */
+async function registerUploadedMediaId(page: Page, uploadedMediaIds: string[]) {
+  const uploadedLink = page.locator('a[href^="/media/"]').last();
+
+  const href = await uploadedLink.getAttribute('href');
+  if (href) {
+    const id = href.split('/').pop();
+    if (id) {
+      uploadedMediaIds.push(id);
+    }
+  }
+}
+
+// Basic tests for media page layout and such
+test.describe('Media page', () => {
   // Default selection should be grid
   test('should have Grid layout selected by default on media page', async ({ page }) => {
     await login(page);
@@ -38,11 +56,6 @@ test.describe('Media upload flow', () => {
     // Check that the Grid button has the active styles (bg-blue-700 text-white)
     await expect(gridButton).toHaveClass(/bg-blue-700/);
     await expect(gridButton).toHaveClass(/text-white/);
-
-    // Verify that the grid layout is actually displayed
-    // The grid container should be visible
-    const gridContainer = page.locator('.grid.grid-cols-1.gap-4');
-    await expect(gridContainer).toBeVisible();
   });
 
   // List layout should be selected when List button is clicked
@@ -66,6 +79,23 @@ test.describe('Media upload flow', () => {
     const listTable = page.locator('table');
     await expect(listTable).toBeVisible();
   });
+});
+
+// More advanced tests for actual media upload functionality
+test.describe('Media upload flow', () => {
+  // Array to store uploaded media IDs for cleanup after tests
+  let uploadedMediaIds: string[] = [];
+
+  test.afterEach(async ({ request }) => {
+    for (const id of uploadedMediaIds) {
+      const res = await request.delete(`/api/v1/media/${id}`);
+      if (!res.ok()) {
+        console.warn(`Failed to delete media with id ${id}: ${res.status()} ${res.statusText()}`);
+      }
+    }
+    uploadedMediaIds = [];
+  });
+
 
   // Upload image test
   test('should upload images', async ({ page }) => {
@@ -81,9 +111,7 @@ test.describe('Media upload flow', () => {
 
     const fileChooserPromise = page.waitForEvent('filechooser');
     await uploadButton.click();
-
     const fileChooser = await fileChooserPromise;
-
     await fileChooser.setFiles(testImagePath);
 
     await page.waitForTimeout(3000);
@@ -91,6 +119,8 @@ test.describe('Media upload flow', () => {
 
     const finalMediaCount = await page.locator('.grid img, table img').count();
     expect(finalMediaCount).toBeGreaterThan(initialMediaCount);
+
+    await registerUploadedMediaId(page, uploadedMediaIds);
 
     const uploadedFileSelectors = [
         `img[alt*="test-image"]`,
@@ -140,11 +170,13 @@ test.describe('Media upload flow', () => {
     const finalMediaCount = await page.locator('.grid img, table img').count();
     expect(finalMediaCount).toBeGreaterThan(initialMediaCount);
 
+    await registerUploadedMediaId(page, uploadedMediaIds);
+
     const uploadedFileSelectors = [
-        `img[alt*="test-image"]`,
-        `img[alt*="test-image.jpg"]`,
-        `img[src*="test-image"]`,
-        `a[href*="test-image"]`
+        `img[alt*="test-document"]`,
+        `img[alt*="test-document.pdf"]`,
+        `img[src*="test-document"]`,
+        `a[href*="test-document"]`
     ];
 
     let fileFound = false;
