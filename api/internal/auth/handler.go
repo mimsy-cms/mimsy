@@ -131,3 +131,13 @@ func (s *handler) Me(w http.ResponseWriter, r *http.Request) {
 		MustChangePassword: user.MustChangePassword,
 	})
 }
+
+func (s *handler) GetUsers(w http.ResponseWriter, r *http.Request) {
+	users, err := s.authService.GetUsers(r.Context())
+	if err != nil {
+		http.Error(w, "Failed to retrieve users", http.StatusInternalServerError)
+		return
+	}
+
+	util.JSON(w, http.StatusOK, users)
+}

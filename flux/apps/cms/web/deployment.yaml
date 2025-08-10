@@ -20,7 +20,7 @@ spec:
         - name: regcred
       containers:
         - name: web
-          image: ghcr.io/mimsy-cms/web:20250808-192500-6747111 # {"$imagepolicy": "mimsy:web"}
+          image: ghcr.io/mimsy-cms/web:20250810-080102-4c45184 # {"$imagepolicy": "mimsy:web"}
           env:
             - name: PUBLIC_API_URL
               value: "https://cms.mimsy.kodai.ch/api"

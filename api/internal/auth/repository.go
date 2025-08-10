@@ -8,11 +8,13 @@ import (
 )
 
 type User struct {
-	ID                 int64  `json:"id"`
-	Email              string `json:"email"`
-	PasswordHash       string `json:"-"`
-	IsAdmin            bool   `json:"is_admin"`
-	MustChangePassword bool   `json:"must_change_password"`
+	ID                 int64     `json:"id"`
+	Email              string    `json:"email"`
+	PasswordHash       string    `json:"-"`
+	IsAdmin            bool      `json:"is_admin"`
+	MustChangePassword bool      `json:"must_change_password"`
+	CreatedAt          time.Time `json:"created_at"`
+	UpdatedAt          time.Time `json:"updated_at"`
 }
 
 type AuthRepository interface {
@@ -26,6 +28,7 @@ type AuthRepository interface {
 	UpdatePassword(ctx context.Context, userID int64, newHash string) error
 	UserExists(ctx context.Context, email string) (bool, error)
 	GetUserBySessionToken(ctx context.Context, token string) (*User, error)
+	GetUsers(ctx context.Context) ([]User, error)
 }
 
 type Repository struct{}
@@ -42,15 +45,15 @@ func (r *Repository) CountUsers(ctx context.Context) (int, error) {
 
 func (r *Repository) InsertUser(ctx context.Context, email, password string, isAdmin, mustChange bool) error {
 	_, err := config.GetDB(ctx).ExecContext(ctx,
-		`INSERT INTO "user" (email, password, is_admin, must_change_password) VALUES ($1, $2, $3, $4)`,
-		email, password, isAdmin, mustChange)
+		`INSERT INTO "user" (email, password, is_admin, must_change_password, created_at, updated_at) VALUES ($1, $2, $3, $4, $5, $6)`,
+		email, password, isAdmin, mustChange, time.Now(), time.Now())
 	return err
 }
 
 func (r *Repository) GetUserByEmail(ctx context.Context, email string) (*User, error) {
 	var u User
-	err := config.GetDB(ctx).QueryRowContext(ctx, `SELECT id, email, password, is_admin, must_change_password FROM "user" WHERE email = $1`, email).
-		Scan(&u.ID, &u.Email, &u.PasswordHash, &u.IsAdmin, &u.MustChangePassword)
+	err := config.GetDB(ctx).QueryRowContext(ctx, `SELECT id, email, password, is_admin, must_change_password, created_at, updated_at FROM "user" WHERE email = $1`, email).
+		Scan(&u.ID, &u.Email, &u.PasswordHash, &u.IsAdmin, &u.MustChangePassword, &u.CreatedAt, &u.UpdatedAt)
 	return &u, err
 }
 
@@ -78,7 +81,7 @@ func (r *Repository) GetUserPassword(ctx context.Context, userID int64) (string,
 }
 
 func (r *Repository) UpdatePassword(ctx context.Context, userID int64, newHash string) error {
-	_, err := config.GetDB(ctx).ExecContext(ctx, `UPDATE "user" SET password = $1, must_change_password = FALSE WHERE id = $2`, newHash, userID)
+	_, err := config.GetDB(ctx).ExecContext(ctx, `UPDATE "user" SET password = $1, must_change_password = FALSE, updated_at = $2 WHERE id = $3`, newHash, time.Now(), userID)
 	return err
 }
 
@@ -98,14 +101,33 @@ func (r *Repository) GetUserBySessionToken(ctx context.Context, token string) (*
 	}
 
 	err = config.GetDB(ctx).QueryRowContext(ctx, `
-		SELECT id, email, password, must_change_password, is_admin
+		SELECT id, email, password, must_change_password, is_admin, created_at, updated_at
 		FROM "user"
 		WHERE id = $1`, userID).Scan(
-		&user.ID, &user.Email, &user.PasswordHash, &user.MustChangePassword, &user.IsAdmin,
+		&user.ID, &user.Email, &user.PasswordHash, &user.MustChangePassword, &user.IsAdmin, &user.CreatedAt, &user.UpdatedAt,
 	)
 	if err != nil {
 		return nil, err
 	}
 
 	return &user, nil
+}
+
+func (r *Repository) GetUsers(ctx context.Context) ([]User, error) {
+	rows, err := config.GetDB(ctx).QueryContext(ctx, `SELECT id, email, password, is_admin, must_change_password, created_at, updated_at FROM "user"`)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var users []User
+	for rows.Next() {
+		var u User
+		if err := rows.Scan(&u.ID, &u.Email, &u.PasswordHash, &u.IsAdmin, &u.MustChangePassword, &u.CreatedAt, &u.UpdatedAt); err != nil {
+			return nil, err
+		}
+		users = append(users, u)
+	}
+
+	return users, rows.Err()
 }

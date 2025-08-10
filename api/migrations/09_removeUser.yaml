@@ -1,0 +1,15 @@
+operations:
+  - add_column:
+      table: user
+      column:
+        name: created_at
+        type: timestamp with time zone
+        nullable: false
+        default: now()
+  - add_column:
+      table: user
+      column:
+        name: updated_at
+        type: timestamp with time zone
+        nullable: false
+        default: now()
