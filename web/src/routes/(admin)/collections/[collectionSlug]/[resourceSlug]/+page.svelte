@@ -32,25 +32,25 @@
 						<label for={field.name}>
 							{field.label}
 						</label>
-						<DateField id={field.name} name={field.name} />
+						<DateField id={field.name} name={field.name} label={field.label} />
 					{:else if field.type === 'number'}
 						<label for={field.name}>
 							{field.label}
 						</label>
 						<NumberField id={field.name} name={field.name} />
 					{:else if field.type === 'checkbox'}
-						<CheckboxField id={field.name} name={field.name} />
+						<CheckboxField id={field.name} name={field.name} label={field.label} />
 					{:else if field.type === 'select'}
 						<label for={field.name}>
 							{field.label}
 						</label>
-						<SelectField id={field.name} name={field.name} options={field.options} />
+						<SelectField name={field.name} options={field.options} />
 					{:else if field.type === 'richtext'}
 						<label for={field.name}>
 							{field.label}
 						</label>
-						<RichTextField id={field.name} name={field.name} />
-					{:else if field.type === 'plain_text'}
+						<RichTextField />
+					{:else if field.type === 'plaintext'}
 						<label for={field.name}>
 							{field.label}
 						</label>

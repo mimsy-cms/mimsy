@@ -18,9 +18,6 @@ async function fetchResource(
 	const response = await fetch(
 		`${env.PUBLIC_API_URL}/v1/collections/${collectionSlug}/${resourceSlug}`
 	);
-	if (!response.ok) {
-		throw new Error(`Failed to fetch resource: ${response.statusText}`);
-	}
 	return response.json();
 }
 

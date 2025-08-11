@@ -1,3 +1,12 @@
+type BaseField = {
+	name: string;
+	label: string;
+};
+
+type FieldSelect = {
+	type: 'select';
+};
+
 type FieldRelation = {
 	type: 'relation';
 	relation: {
@@ -5,8 +14,16 @@ type FieldRelation = {
 	};
 };
 
-type FieldText = {
-	type: 'text';
+type FieldCheckbox = {
+	type: 'checkbox';
+};
+
+type FieldRichText = {
+	type: 'richtext';
+};
+
+type FieldPlainText = {
+	type: 'plaintext';
 };
 
 type FieldDateTime = {
@@ -25,7 +42,18 @@ type FieldEmail = {
 	type: 'email';
 };
 
-type Field = FieldRelation | FieldText | FieldDateTime | FieldDate | FieldNumber | FieldEmail;
+type Field = BaseField &
+	(
+		| FieldSelect
+		| FieldRichText
+		| FieldPlainText
+		| FieldRelation
+		| FieldCheckbox
+		| FieldDateTime
+		| FieldDate
+		| FieldNumber
+		| FieldEmail
+	);
 
 export type CollectionDefinition = {
 	slug: string;

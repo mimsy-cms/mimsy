@@ -6,17 +6,16 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"strings"
 
-	"github.com/lib/pq"
 	"github.com/mimsy-cms/mimsy/internal/config"
 )
 
 type Repository interface {
 	FindBySlug(ctx context.Context, slug string) (*Collection, error)
 	CollectionExists(ctx context.Context, slug string) (bool, error)
+	FindResource(ctx context.Context, collection *Collection, slug string) (*Resource, error)
 	FindResources(ctx context.Context, collection *Collection) ([]Resource, error)
-	List(ctx context.Context) ([]Collection, error)
+	FindAll(ctx context.Context) ([]Collection, error)
 }
 
 type repository struct{}
@@ -86,64 +85,25 @@ func (r *repository) CollectionExists(ctx context.Context, slug string) (bool, e
 	return exists, err
 }
 
+func (r *repository) FindResource(ctx context.Context, collection *Collection, slug string) (*Resource, error) {
+	fields := map[string]Field{}
+	if err := json.Unmarshal(collection.Fields, &fields); err != nil {
+		return nil, fmt.Errorf("failed to unmarshal fields: %w", err)
+	}
+
+	return NewSelectQuery(collection.Slug, fields).FindOne(ctx)
+}
+
 func (r *repository) FindResources(ctx context.Context, collection *Collection) ([]Resource, error) {
 	fields := map[string]Field{}
 	if err := json.Unmarshal(collection.Fields, &fields); err != nil {
 		return nil, fmt.Errorf("failed to unmarshal fields: %w", err)
 	}
 
-	queryFields := []string{"id", "slug"}
-	for name, field := range fields {
-		if field.Type == "relation" {
-			if field.Relation.Type == FieldRelationTypeManyToOne {
-				queryFields = append(queryFields, fmt.Sprintf("%s_id", name))
-			}
-		} else {
-			queryFields = append(queryFields, name)
-		}
-	}
-
-	quotedQueryFields := make([]string, len(queryFields))
-	for i, field := range queryFields {
-		quotedQueryFields[i] = pq.QuoteIdentifier(field)
-	}
-
-	query := fmt.Sprintf(
-		`SELECT %s FROM %s`,
-		strings.Join(quotedQueryFields, ", "),
-		pq.QuoteIdentifier(collection.Slug),
-	)
-
-	rows, err := config.GetDB(ctx).QueryContext(ctx, query)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-
-	// We need to dynamically scan the rows as we dynamically built the selected columns.
-	values := make([]any, len(queryFields))
-	valuesPtrs := make([]any, len(queryFields))
-	for i := range values {
-		valuesPtrs[i] = &values[i]
-	}
-
-	var resources []Resource
-	for rows.Next() {
-		resource := Resource{}
-		if err := rows.Scan(valuesPtrs...); err != nil {
-			return nil, err
-		}
-
-		for i := range values {
-			resource[queryFields[i]] = values[i]
-		}
-
-		resources = append(resources, resource)
-	}
-	return resources, nil
+	return NewSelectQuery(collection.Slug, fields).FindAll(ctx)
 }
 
-func (r *repository) List(ctx context.Context) ([]Collection, error) {
+func (r *repository) FindAll(ctx context.Context) ([]Collection, error) {
 	rows, err := config.GetDB(ctx).QueryContext(ctx, `SELECT slug, name, fields, created_at, created_by, updated_at, updated_by FROM "collection"`)
 	if err != nil {
 		return nil, err

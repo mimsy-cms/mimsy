@@ -1,7 +1,6 @@
 package collection
 
 import (
-	"encoding/json"
 	"log/slog"
 	"net/http"
 
@@ -9,21 +8,34 @@ import (
 )
 
 type Handler struct {
-	Service *Service
+	Service Service
 }
 
-func NewHandler(service *Service) *Handler {
+func NewHandler(service Service) *Handler {
 	return &Handler{Service: service}
 }
 
 func (h *Handler) Definition(w http.ResponseWriter, r *http.Request) {
 	slug := r.PathValue("slug")
-	if slug == "" {
-		http.Error(w, "Missing slug", http.StatusBadRequest)
+
+	collection, err := h.Service.FindById(r.Context(), slug)
+	if err != nil {
+		slog.Error("Failed to get collection definition", "slug", slug, "error", err)
+		if err == ErrNotFound {
+			http.Error(w, "Collection not found", http.StatusNotFound)
+		} else {
+			http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		}
 		return
 	}
 
-	def, err := h.Service.GetDefinition(r.Context(), slug)
+	util.JSON(w, http.StatusOK, NewCollectionResponse(collection))
+}
+
+func (h *Handler) GetResources(w http.ResponseWriter, r *http.Request) {
+	slug := r.PathValue("slug")
+
+	collection, err := h.Service.FindById(r.Context(), slug)
 	if err != nil {
 		if err == ErrNotFound {
 			http.Error(w, "Collection not found", http.StatusNotFound)
@@ -33,18 +45,7 @@ func (h *Handler) Definition(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(def)
-}
-
-func (h *Handler) GetResources(w http.ResponseWriter, r *http.Request) {
-	slug := r.PathValue("slug")
-	if slug == "" {
-		http.Error(w, "Missing slug", http.StatusBadRequest)
-		return
-	}
-
-	resources, err := h.Service.GetResources(r.Context(), slug)
+	resources, err := h.Service.FindResources(r.Context(), collection)
 	if err != nil {
 		slog.Error("Failed to get resources", "slug", slug, "error", err)
 		if err == ErrNotFound {
@@ -55,22 +56,16 @@ func (h *Handler) GetResources(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := util.JSON(w, http.StatusOK, resources); err != nil {
-		slog.Error("Failed to encode resources", "slug", slug, "error", err)
-	}
+	util.JSON(w, http.StatusOK, resources)
 }
 
 func (h *Handler) GetResource(w http.ResponseWriter, r *http.Request) {
 	slug := r.PathValue("slug")
 	resourceSlug := r.PathValue("resourceSlug")
-	if slug == "" || resourceSlug == "" {
-		http.Error(w, "Missing slug or resource slug", http.StatusBadRequest)
-		return
-	}
 
-	resources, err := h.Service.GetResources(r.Context(), slug)
+	collection, err := h.Service.FindById(r.Context(), slug)
 	if err != nil {
-		slog.Error("Failed to get resources", "slug", slug, "error", err)
+		slog.Error("Failed to get collection", "slug", slug, "error", err)
 		if err == ErrNotFound {
 			http.Error(w, "Collection not found", http.StatusNotFound)
 		} else {
@@ -79,24 +74,31 @@ func (h *Handler) GetResource(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	for _, resource := range resources {
-		if resource["slug"] == resourceSlug {
-			w.Header().Set("Content-Type", "application/json")
-			json.NewEncoder(w).Encode(resource)
-			return
+	resource, err := h.Service.FindResource(r.Context(), collection, resourceSlug)
+	if err != nil {
+		slog.Error("Failed to get resource", "slug", slug, "resourceSlug", resourceSlug, "error", err)
+		if err == ErrNotFound {
+			http.Error(w, "Resource not found", http.StatusNotFound)
+		} else {
+			http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 		}
+		return
 	}
 
-	http.Error(w, "Resource not found", http.StatusNotFound)
+	util.JSON(w, http.StatusOK, resource)
 }
 
 func (h *Handler) List(w http.ResponseWriter, r *http.Request) {
-	collections, err := h.Service.List(r.Context())
+	collections, err := h.Service.FindAll(r.Context())
 	if err != nil {
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 		return
 	}
 
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(collections)
+	response := make([]CollectionResponse, len(collections))
+	for i, collection := range collections {
+		response[i] = *NewCollectionResponse(&collection)
+	}
+
+	util.JSON(w, http.StatusOK, response)
 }
