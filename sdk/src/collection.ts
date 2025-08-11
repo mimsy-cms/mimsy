@@ -1,6 +1,6 @@
 import { BuiltInValue } from "./builtins";
 import { Field } from "./fields";
-import { registerCollection } from "./registry";
+import { registerCollection, registerGlobal } from "./registry";
 
 export type Schema =
   | BuiltInValue
@@ -11,6 +11,13 @@ export type Schema =
 export type Collection<T extends Schema> = {
   name: string;
   schema: T;
+  isGlobal: false;
+};
+
+export type Global<T extends Schema> = {
+  name: string;
+  schema: T;
+  isGlobal: true;
 };
 
 type ObjectOf<S extends Schema> = S extends BuiltInValue
@@ -33,7 +40,21 @@ export function collection<T extends Schema>(
   const coll = {
     name,
     schema,
-  };
+    isGlobal: false,
+  } satisfies Collection<T>;
   registerCollection(coll);
+  return coll;
+}
+
+export function global<T extends Schema>(
+  name: string,
+  schema: T,
+): Global<T> {
+  const coll = {
+    name,
+    schema,
+    isGlobal: true,
+  } satisfies Global<T>;
+  registerGlobal(coll);
   return coll;
 }
