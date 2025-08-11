@@ -154,7 +154,7 @@ func (s *schemaGenerator) HandleDirectField(name string, element mimsy_schema.Sc
 	case "rich_text":
 		return Column{
 			Name:         name,
-			Type:         "JSONB",
+			Type:         "jsonb",
 			IsNotNull:    element.IsRequired(),
 			DefaultValue: "",
 		}, nil
