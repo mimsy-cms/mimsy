@@ -65,3 +65,14 @@ func (h *Handler) List(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(collections)
 }
+
+func (h *Handler) ListGlobals(w http.ResponseWriter, r *http.Request) {
+	globals, err := h.Service.ListGlobals(r.Context())
+	if err != nil {
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(globals)
+}

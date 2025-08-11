@@ -13,10 +13,13 @@ export const load: LayoutServerLoad = async ({ cookies, fetch, locals }) => {
 	}
 
 	const response = await fetch(`${env.PUBLIC_API_URL}/v1/collections`);
+	const globalResponse = await fetch(`${env.PUBLIC_API_URL}/v1/collections/globals`);
 
 	const collections = (await response.json()) as Collection[];
+	const globals = (await globalResponse.json()) as Collection[];
 
 	return {
-		collections
+		collections,
+		globals
 	};
 };
