@@ -36,6 +36,28 @@ type Collection struct {
 
 type Resource map[string]any
 
+// MarshalJSON implements the json.Marshaler interface for Resource.
+// We need this custom implementation to handle the conversion of byte slices in the Resource map to JSON.
+func (r Resource) MarshalJSON() ([]byte, error) {
+	transformed := make(map[string]any)
+
+	for key, value := range r {
+		switch v := value.(type) {
+		case []byte:
+			var jsonObject any
+			if err := json.Unmarshal(v, &jsonObject); err != nil {
+				transformed[key] = string(v)
+			} else {
+				transformed[key] = jsonObject
+			}
+		default:
+			transformed[key] = value
+		}
+	}
+
+	return json.Marshal(transformed)
+}
+
 type Field struct {
 	Type     string
 	Relation *FieldRelation
