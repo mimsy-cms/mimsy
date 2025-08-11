@@ -9,70 +9,110 @@ import (
 func Diff(oldSchema schema_generator.SqlSchema, newSchema schema_generator.SqlSchema) []migrations.Operation {
 	operations := []migrations.Operation{}
 
+	operations = append(operations, processTableChanges(oldSchema, newSchema)...)
+	operations = append(operations, processDroppedTables(oldSchema, newSchema)...)
+	operations = append(operations, processDroppedColumns(oldSchema, newSchema)...)
+
+	return operations
+}
+
+func processTableChanges(oldSchema, newSchema schema_generator.SqlSchema) []migrations.Operation {
+	operations := []migrations.Operation{}
+
 	for _, table := range newSchema.Tables {
-		if oldTable, ok := oldSchema.GetTable(table.Name); ok {
-			for _, column := range table.Columns {
-				if oldColumn, ok := oldTable.GetColumn(column.Name); ok {
-					if column.Type != oldColumn.Type {
-						operation := migrations.OpAlterColumn{
-							Table:  table.Name,
-							Column: column.Name,
-							Type:   &column.Type,
-						}
-						operations = append(operations, &operation)
-					} else if column.IsNotNull != oldColumn.IsNotNull {
-						operation := migrations.OpAlterColumn{
-							Table:    table.Name,
-							Column:   column.Name,
-							Nullable: &column.IsNotNull,
-						}
-						operations = append(operations, &operation)
-					} else if column.DefaultValue != oldColumn.DefaultValue {
-						operation := migrations.OpAlterColumn{
-							Table:   table.Name,
-							Column:  column.Name,
-							Default: nullable.NewNullableWithValue(column.DefaultValue),
-						}
-						operations = append(operations, &operation)
-					}
-				} else {
-					operation := migrations.OpAddColumn{
-						Table: table.Name,
-						Column: migrations.Column{
-							Name:     column.Name,
-							Type:     column.Type,
-							Nullable: column.IsNotNull,
-						},
-					}
-					operations = append(operations, &operation)
-				}
-			}
-		} else {
-			columns := make([]migrations.Column, len(table.Columns))
-			for i, column := range table.Columns {
-				var defaultValue *string
-				if column.DefaultValue != "" {
-					defaultValue = &column.DefaultValue
-				}
+		oldTable, exists := oldSchema.GetTable(table.Name)
+		if !exists {
+			operations = append(operations, createTableOperation(table))
+			continue
+		}
 
-				columns[i] = migrations.Column{
-					Name:     column.Name,
-					Type:     column.Type,
-					Nullable: column.IsNotNull,
-					Default:  defaultValue,
-				}
-			}
+		operations = append(operations, processColumnChanges(table, oldTable)...)
+	}
 
-			operation := migrations.OpCreateTable{
-				Name:    table.Name,
-				Columns: columns,
-			}
-			operations = append(operations, &operation)
+	return operations
+}
+
+func createTableOperation(table *schema_generator.Table) migrations.Operation {
+	columns := make([]migrations.Column, len(table.Columns))
+	for i, column := range table.Columns {
+		var defaultValue *string
+		if column.DefaultValue != "" {
+			defaultValue = &column.DefaultValue
+		}
+
+		columns[i] = migrations.Column{
+			Name:     column.Name,
+			Type:     column.Type,
+			Nullable: column.IsNotNull,
+			Default:  defaultValue,
 		}
 	}
 
+	return &migrations.OpCreateTable{
+		Name:    table.Name,
+		Columns: columns,
+	}
+}
+
+func processColumnChanges(table, oldTable *schema_generator.Table) []migrations.Operation {
+	operations := []migrations.Operation{}
+
+	for _, column := range table.Columns {
+		oldColumn, exists := oldTable.GetColumn(column.Name)
+		if !exists {
+			operation := migrations.OpAddColumn{
+				Table: table.Name,
+				Column: migrations.Column{
+					Name:     column.Name,
+					Type:     column.Type,
+					Nullable: column.IsNotNull,
+				},
+			}
+			operations = append(operations, &operation)
+			continue
+		}
+
+		if alterOp := createAlterColumnOperation(table.Name, column, oldColumn); alterOp != nil {
+			operations = append(operations, alterOp)
+		}
+	}
+
+	return operations
+}
+
+func createAlterColumnOperation(tableName string, column schema_generator.Column, oldColumn *schema_generator.Column) migrations.Operation {
+	if column.Type != oldColumn.Type {
+		return &migrations.OpAlterColumn{
+			Table:  tableName,
+			Column: column.Name,
+			Type:   &column.Type,
+		}
+	}
+
+	if column.IsNotNull != oldColumn.IsNotNull {
+		return &migrations.OpAlterColumn{
+			Table:    tableName,
+			Column:   column.Name,
+			Nullable: &column.IsNotNull,
+		}
+	}
+
+	if column.DefaultValue != oldColumn.DefaultValue {
+		return &migrations.OpAlterColumn{
+			Table:   tableName,
+			Column:  column.Name,
+			Default: nullable.NewNullableWithValue(column.DefaultValue),
+		}
+	}
+
+	return nil
+}
+
+func processDroppedTables(oldSchema, newSchema schema_generator.SqlSchema) []migrations.Operation {
+	operations := []migrations.Operation{}
+
 	for _, oldTable := range oldSchema.Tables {
-		if _, ok := newSchema.GetTable(oldTable.Name); !ok {
+		if _, exists := newSchema.GetTable(oldTable.Name); !exists {
 			operation := migrations.OpDropTable{
 				Name: oldTable.Name,
 			}
@@ -80,16 +120,25 @@ func Diff(oldSchema schema_generator.SqlSchema, newSchema schema_generator.SqlSc
 		}
 	}
 
+	return operations
+}
+
+func processDroppedColumns(oldSchema, newSchema schema_generator.SqlSchema) []migrations.Operation {
+	operations := []migrations.Operation{}
+
 	for _, oldTable := range oldSchema.Tables {
-		if newTable, ok := newSchema.GetTable(oldTable.Name); ok {
-			for _, oldColumn := range oldTable.Columns {
-				if _, ok := newTable.GetColumn(oldColumn.Name); !ok {
-					operation := migrations.OpDropColumn{
-						Table:  oldTable.Name,
-						Column: oldColumn.Name,
-					}
-					operations = append(operations, &operation)
+		newTable, exists := newSchema.GetTable(oldTable.Name)
+		if !exists {
+			continue
+		}
+
+		for _, oldColumn := range oldTable.Columns {
+			if _, exists := newTable.GetColumn(oldColumn.Name); !exists {
+				operation := migrations.OpDropColumn{
+					Table:  oldTable.Name,
+					Column: oldColumn.Name,
 				}
+				operations = append(operations, &operation)
 			}
 		}
 	}
