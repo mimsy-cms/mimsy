@@ -47,7 +47,7 @@ export function multiRelation<T extends Schema>(
 ): Field<UnfetchedMultiRelation<T>> {
   return {
     _marker: fieldType,
-    type: "relation",
+    type: "multi_relation",
     ...options,
   };
 }
