@@ -5,69 +5,41 @@ import (
 	"encoding/json"
 )
 
-func NewService(collectionRepository Repository) *Service {
-	return &Service{
+type Service interface {
+	FindById(ctx context.Context, slug string) (*Collection, error)
+	FindResource(ctx context.Context, collection *Collection, slug string) (*Resource, error)
+	FindResources(ctx context.Context, collection *Collection) ([]Resource, error)
+	FindAll(ctx context.Context) ([]Collection, error)
+	ListGlobals(ctx context.Context) ([]map[string]any, error)
+}
+
+func NewService(collectionRepository Repository) *service {
+	return &service{
 		collectionRepository: collectionRepository,
 	}
 }
 
-type Service struct {
+type service struct {
 	collectionRepository Repository
 }
 
-func (s *Service) GetDefinition(ctx context.Context, slug string) (map[string]any, error) {
-	collection, err := s.collectionRepository.FindBySlug(ctx, slug)
-	if err != nil {
-		return nil, err
-	}
-
-	return map[string]any{
-		"slug":       slug,
-		"name":       collection.Name,
-		"fields":     json.RawMessage(collection.Fields),
-		"created_at": collection.CreatedAt,
-		"created_by": collection.CreatedBy,
-		"updated_at": collection.UpdatedAt,
-		"updated_by": collection.UpdatedBy,
-	}, nil
+func (s *service) FindById(ctx context.Context, slug string) (*Collection, error) {
+	return s.collectionRepository.FindBySlug(ctx, slug)
 }
 
-func (s *Service) GetItems(ctx context.Context, slug string) ([]Item, error) {
-	exists, err := s.collectionRepository.CollectionExists(ctx, slug)
-	if err != nil {
-		return nil, err
-	}
-	if !exists {
-		return nil, ErrNotFound
-	}
-
-	return s.collectionRepository.FindItemsBySlug(ctx, slug)
+func (s *service) FindResource(ctx context.Context, collection *Collection, slug string) (*Resource, error) {
+	return s.collectionRepository.FindResource(ctx, collection, slug)
 }
 
-func (s *Service) List(ctx context.Context) ([]map[string]any, error) {
-	collections, err := s.collectionRepository.List(ctx)
-	if err != nil {
-		return nil, err
-	}
-
-	var result []map[string]any
-	for _, coll := range collections {
-		result = append(result, map[string]any{
-			"slug":       coll.Slug,
-			"name":       coll.Name,
-			"fields":     json.RawMessage(coll.Fields),
-			"created_at": coll.CreatedAt,
-			"created_by": coll.CreatedBy,
-			"updated_at": coll.UpdatedAt,
-			"updated_by": coll.UpdatedBy,
-			"is_global":  coll.IsGlobal,
-		})
-	}
-
-	return result, nil
+func (s *service) FindResources(ctx context.Context, collection *Collection) ([]Resource, error) {
+	return s.collectionRepository.FindResources(ctx, collection)
 }
 
-func (s *Service) ListGlobals(ctx context.Context) ([]map[string]any, error) {
+func (s *service) FindAll(ctx context.Context) ([]Collection, error) {
+	return s.collectionRepository.FindAll(ctx)
+}
+
+func (s *service) ListGlobals(ctx context.Context) ([]map[string]any, error) {
 	globals, err := s.collectionRepository.ListGlobals(ctx)
 	if err != nil {
 		return nil, err

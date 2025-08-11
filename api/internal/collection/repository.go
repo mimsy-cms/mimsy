@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"encoding/json"
 	"errors"
+	"fmt"
 
 	"github.com/mimsy-cms/mimsy/internal/config"
 )
@@ -12,21 +13,22 @@ import (
 type Repository interface {
 	FindBySlug(ctx context.Context, slug string) (*Collection, error)
 	CollectionExists(ctx context.Context, slug string) (bool, error)
-	FindItemsBySlug(ctx context.Context, slug string) ([]Item, error)
-	List(ctx context.Context) ([]Collection, error)
+	FindResource(ctx context.Context, collection *Collection, slug string) (*Resource, error)
+	FindResources(ctx context.Context, collection *Collection) ([]Resource, error)
+	FindAll(ctx context.Context) ([]Collection, error)
 	ListGlobals(ctx context.Context) ([]Collection, error)
 }
 
-type PostgresRepository struct{}
+type repository struct{}
 
-func NewRepository() *PostgresRepository {
-	return &PostgresRepository{}
+func NewRepository() *repository {
+	return &repository{}
 }
 
 type Collection struct {
 	Slug      string
 	Name      string
-	Fields    []byte
+	Fields    json.RawMessage
 	CreatedAt string
 	CreatedBy string
 	UpdatedAt string
@@ -34,54 +36,98 @@ type Collection struct {
 	IsGlobal  bool
 }
 
-type Item struct {
-	ID           int             `json:"id"`
-	ResourceSlug string          `json:"slug"`
-	Data         json.RawMessage `json:"data"`
+type Resource map[string]any
+
+// MarshalJSON implements the json.Marshaler interface for Resource.
+// We need this custom implementation to handle the conversion of byte slices in the Resource map to JSON.
+func (r Resource) MarshalJSON() ([]byte, error) {
+	transformed := make(map[string]any)
+
+	for key, value := range r {
+		switch v := value.(type) {
+		case []byte:
+			var jsonObject any
+			if err := json.Unmarshal(v, &jsonObject); err != nil {
+				transformed[key] = string(v)
+			} else {
+				transformed[key] = jsonObject
+			}
+		default:
+			transformed[key] = value
+		}
+	}
+
+	return json.Marshal(transformed)
+}
+
+type Field struct {
+	Type     string
+	Relation *FieldRelation
+}
+
+type FieldRelationType string
+
+const (
+	FieldRelationTypeManyToOne  FieldRelationType = "many-to-one"
+	FieldRelationTypeManyToMany FieldRelationType = "many-to-many"
+)
+
+type FieldRelation struct {
+	To   string
+	Type FieldRelationType
 }
 
 var ErrNotFound = errors.New("not found")
 
-func (r *PostgresRepository) FindBySlug(ctx context.Context, slug string) (*Collection, error) {
-	var coll Collection
+func (r *repository) FindBySlug(ctx context.Context, slug string) (*Collection, error) {
+	var collection Collection
 	err := config.GetDB(ctx).QueryRowContext(ctx,
-		`SELECT name, fields, created_at, created_by, updated_at, updated_by FROM "collection" WHERE slug = $1`,
+		`SELECT slug, name, fields, created_at, created_by, updated_at, updated_by FROM "collection" WHERE slug = $1`,
 		slug,
-	).Scan(&coll.Name, &coll.Fields, &coll.CreatedAt, &coll.CreatedBy, &coll.UpdatedAt, &coll.UpdatedBy)
+	).Scan(
+		&collection.Slug,
+		&collection.Name,
+		&collection.Fields,
+		&collection.CreatedAt,
+		&collection.CreatedBy,
+		&collection.UpdatedAt,
+		&collection.UpdatedBy,
+	)
 
 	if err == sql.ErrNoRows {
 		return nil, ErrNotFound
 	} else if err != nil {
 		return nil, err
 	}
-	return &coll, nil
+
+	return &collection, nil
 }
 
-func (r *PostgresRepository) CollectionExists(ctx context.Context, slug string) (bool, error) {
+func (r *repository) CollectionExists(ctx context.Context, slug string) (bool, error) {
 	var exists bool
 	err := config.GetDB(ctx).QueryRowContext(ctx, `SELECT EXISTS(SELECT 1 FROM "collection" WHERE slug = $1)`, slug).Scan(&exists)
 	return exists, err
 }
 
-func (r *PostgresRepository) FindItemsBySlug(ctx context.Context, slug string) ([]Item, error) {
-	rows, err := config.GetDB(ctx).QueryContext(ctx, `SELECT id, data, slug FROM "collection_item" WHERE collection_slug = $1`, slug)
-	if err != nil {
-		return nil, err
+func (r *repository) FindResource(ctx context.Context, collection *Collection, slug string) (*Resource, error) {
+	fields := map[string]Field{}
+	if err := json.Unmarshal(collection.Fields, &fields); err != nil {
+		return nil, fmt.Errorf("failed to unmarshal fields: %w", err)
 	}
-	defer rows.Close()
 
-	var items []Item
-	for rows.Next() {
-		var item Item
-		if err := rows.Scan(&item.ID, &item.Data, &item.ResourceSlug); err != nil {
-			return nil, err
-		}
-		items = append(items, item)
-	}
-	return items, nil
+	return NewSelectQuery(collection.Slug, fields).FindOne(ctx)
 }
 
-func (r *PostgresRepository) List(ctx context.Context) ([]Collection, error) {
+func (r *repository) FindResources(ctx context.Context, collection *Collection) ([]Resource, error) {
+	fields := map[string]Field{}
+	if err := json.Unmarshal(collection.Fields, &fields); err != nil {
+		return nil, fmt.Errorf("failed to unmarshal fields: %w", err)
+	}
+
+	return NewSelectQuery(collection.Slug, fields).FindAll(ctx)
+}
+
+func (r *repository) FindAll(ctx context.Context) ([]Collection, error) {
 	rows, err := config.GetDB(ctx).QueryContext(ctx, `SELECT slug, name, fields, created_at, created_by, updated_at, updated_by, is_global FROM "collection" WHERE is_global = false`)
 	if err != nil {
 		return nil, err
@@ -99,7 +145,7 @@ func (r *PostgresRepository) List(ctx context.Context) ([]Collection, error) {
 	return collections, nil
 }
 
-func (r *PostgresRepository) ListGlobals(ctx context.Context) ([]Collection, error) {
+func (r *repository) ListGlobals(ctx context.Context) ([]Collection, error) {
 	rows, err := config.GetDB(ctx).QueryContext(ctx, `SELECT slug, name, fields, created_at, created_by, updated_at, updated_by, is_global FROM "collection" WHERE is_global = true`)
 	if err != nil {
 		return nil, err
