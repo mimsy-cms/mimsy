@@ -44,6 +44,6 @@
 	</form>
 
 	{#if $message}
-		<p class="text-red-600 mt-2 text-sm">{$message}</p>
+		<p role="alert" class="text-red-600 mt-2 text-sm">{$message}</p>
 	{/if}
 </div>
