@@ -74,7 +74,35 @@ func downloadZipArchive(ctx context.Context, client *github.Client, owner, repo 
 	return zipReader, nil
 }
 
-func createInstallationClient(ctx context.Context, token string) *github.Client {
+func fetchLatestCommit(ctx context.Context, client *github.Client, owner, repo string) (string, error) {
+	// Get the default branch first
+	repository, _, err := client.Repositories.Get(ctx, owner, repo)
+	if err != nil {
+		return "", fmt.Errorf("failed to get repository info: %w", err)
+	}
+
+	defaultBranch := repository.GetDefaultBranch()
+	if defaultBranch == "" {
+		defaultBranch = "main"
+	}
+
+	// Get the latest commit from the default branch
+	commits, _, err := client.Repositories.ListCommits(ctx, owner, repo, &github.CommitsListOptions{
+		SHA:         defaultBranch,
+		ListOptions: github.ListOptions{PerPage: 1},
+	})
+	if err != nil {
+		return "", fmt.Errorf("failed to list commits: %w", err)
+	}
+
+	if len(commits) == 0 {
+		return "", fmt.Errorf("no commits found in repository")
+	}
+
+	return commits[0].GetSHA(), nil
+}
+
+func createInstallationClient(_ context.Context, token string) *github.Client {
 	httpClient := &http.Client{
 		Transport: &tokenTransport{
 			token: token,
