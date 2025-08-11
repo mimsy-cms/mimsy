@@ -60,6 +60,30 @@ func (s *Service) List(ctx context.Context) ([]map[string]any, error) {
 			"created_by": coll.CreatedBy,
 			"updated_at": coll.UpdatedAt,
 			"updated_by": coll.UpdatedBy,
+			"is_global":  coll.IsGlobal,
+		})
+	}
+
+	return result, nil
+}
+
+func (s *Service) ListGlobals(ctx context.Context) ([]map[string]any, error) {
+	globals, err := s.collectionRepository.ListGlobals(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	var result []map[string]any
+	for _, coll := range globals {
+		result = append(result, map[string]any{
+			"slug":       coll.Slug,
+			"name":       coll.Name,
+			"fields":     json.RawMessage(coll.Fields),
+			"created_at": coll.CreatedAt,
+			"created_by": coll.CreatedBy,
+			"updated_at": coll.UpdatedAt,
+			"updated_by": coll.UpdatedBy,
+			"is_global":  coll.IsGlobal,
 		})
 	}
 

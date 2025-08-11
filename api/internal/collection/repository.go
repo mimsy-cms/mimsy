@@ -14,6 +14,7 @@ type Repository interface {
 	CollectionExists(ctx context.Context, slug string) (bool, error)
 	FindItemsBySlug(ctx context.Context, slug string) ([]Item, error)
 	List(ctx context.Context) ([]Collection, error)
+	ListGlobals(ctx context.Context) ([]Collection, error)
 }
 
 type PostgresRepository struct{}
@@ -30,6 +31,7 @@ type Collection struct {
 	CreatedBy string
 	UpdatedAt string
 	UpdatedBy *string
+	IsGlobal  bool
 }
 
 type Item struct {
@@ -80,7 +82,7 @@ func (r *PostgresRepository) FindItemsBySlug(ctx context.Context, slug string) (
 }
 
 func (r *PostgresRepository) List(ctx context.Context) ([]Collection, error) {
-	rows, err := config.GetDB(ctx).QueryContext(ctx, `SELECT slug, name, fields, created_at, created_by, updated_at, updated_by FROM "collection"`)
+	rows, err := config.GetDB(ctx).QueryContext(ctx, `SELECT slug, name, fields, created_at, created_by, updated_at, updated_by, is_global FROM "collection" WHERE is_global = false`)
 	if err != nil {
 		return nil, err
 	}
@@ -89,7 +91,25 @@ func (r *PostgresRepository) List(ctx context.Context) ([]Collection, error) {
 	var collections []Collection
 	for rows.Next() {
 		var coll Collection
-		if err := rows.Scan(&coll.Slug, &coll.Name, &coll.Fields, &coll.CreatedAt, &coll.CreatedBy, &coll.UpdatedAt, &coll.UpdatedBy); err != nil {
+		if err := rows.Scan(&coll.Slug, &coll.Name, &coll.Fields, &coll.CreatedAt, &coll.CreatedBy, &coll.UpdatedAt, &coll.UpdatedBy, &coll.IsGlobal); err != nil {
+			return nil, err
+		}
+		collections = append(collections, coll)
+	}
+	return collections, nil
+}
+
+func (r *PostgresRepository) ListGlobals(ctx context.Context) ([]Collection, error) {
+	rows, err := config.GetDB(ctx).QueryContext(ctx, `SELECT slug, name, fields, created_at, created_by, updated_at, updated_by, is_global FROM "collection" WHERE is_global = true`)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var collections []Collection
+	for rows.Next() {
+		var coll Collection
+		if err := rows.Scan(&coll.Slug, &coll.Name, &coll.Fields, &coll.CreatedAt, &coll.CreatedBy, &coll.UpdatedAt, &coll.UpdatedBy, &coll.IsGlobal); err != nil {
 			return nil, err
 		}
 		collections = append(collections, coll)
