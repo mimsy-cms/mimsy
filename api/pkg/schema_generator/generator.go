@@ -12,13 +12,13 @@ type SchemaGenerator interface {
 	GenerateSqlSchema(*mimsy_schema.Schema) (SqlSchema, error)
 }
 
-type SchemaGeneratorImpl struct {
+type schemaGenerator struct {
 }
 
 func New() SchemaGenerator {
-	return &SchemaGeneratorImpl{}
+	return &schemaGenerator{}
 }
-func (s *SchemaGeneratorImpl) GenerateSqlSchema(schema *mimsy_schema.Schema) (SqlSchema, error) {
+func (s *schemaGenerator) GenerateSqlSchema(schema *mimsy_schema.Schema) (SqlSchema, error) {
 	// For each collection in the schema
 	sqlSchema := SqlSchema{}
 	for _, collection := range schema.Collections {
@@ -33,7 +33,7 @@ func (s *SchemaGeneratorImpl) GenerateSqlSchema(schema *mimsy_schema.Schema) (Sq
 	return sqlSchema, nil
 }
 
-func (s *SchemaGeneratorImpl) GenerateIdColumn() Column {
+func (s *schemaGenerator) GenerateIdColumn() Column {
 	return Column{
 		Name:         "id",
 		Type:         "bigint",
@@ -42,14 +42,14 @@ func (s *SchemaGeneratorImpl) GenerateIdColumn() Column {
 	}
 }
 
-func (s *SchemaGeneratorImpl) GenerateIdConstraint(collection *mimsy_schema.Collection) Constraint {
+func (s *schemaGenerator) GenerateIdConstraint(collection *mimsy_schema.Collection) Constraint {
 	return &PrimaryKeyConstraint{
 		Table: collection.Name,
 		Key:   "id",
 	}
 }
 
-func (s *SchemaGeneratorImpl) GenerateSlugColumn() Column {
+func (s *schemaGenerator) GenerateSlugColumn() Column {
 	return Column{
 		Name:      "slug",
 		Type:      "varchar(60)",
@@ -57,7 +57,7 @@ func (s *SchemaGeneratorImpl) GenerateSlugColumn() Column {
 	}
 }
 
-func (s *SchemaGeneratorImpl) GenerateSlugConstraint(collection *mimsy_schema.Collection) Constraint {
+func (s *schemaGenerator) GenerateSlugConstraint(collection *mimsy_schema.Collection) Constraint {
 	return &UniqueConstraint{
 		Table: collection.Name,
 		Key:   "slug",
@@ -96,7 +96,7 @@ func OrderFields(collection *mimsy_schema.Collection) []Entry {
 	return fields
 }
 
-func (s *SchemaGeneratorImpl) HandleCollection(collection mimsy_schema.Collection) (SqlSchema, error) {
+func (s *schemaGenerator) HandleCollection(collection mimsy_schema.Collection) (SqlSchema, error) {
 	baseTable := Table{
 		Name:        collection.Name,
 		Columns:     []Column{},
@@ -142,7 +142,7 @@ func (s *SchemaGeneratorImpl) HandleCollection(collection mimsy_schema.Collectio
 	return schema, nil
 }
 
-func (s *SchemaGeneratorImpl) HandleDirectField(name string, element mimsy_schema.SchemaElement) (Column, error) {
+func (s *schemaGenerator) HandleDirectField(name string, element mimsy_schema.SchemaElement) (Column, error) {
 	switch element.Type {
 	case "string":
 		return Column{
@@ -170,7 +170,7 @@ func (s *SchemaGeneratorImpl) HandleDirectField(name string, element mimsy_schem
 	}
 }
 
-func (s *SchemaGeneratorImpl) HandleRelationField(name string, element mimsy_schema.SchemaElement, table *Table) (*SqlSchema, error) {
+func (s *schemaGenerator) HandleRelationField(name string, element mimsy_schema.SchemaElement, table *Table) (*SqlSchema, error) {
 	switch element.Type {
 	case "relation":
 		return s.HandleManyToOneField(name, element, table)
@@ -181,7 +181,7 @@ func (s *SchemaGeneratorImpl) HandleRelationField(name string, element mimsy_sch
 	}
 }
 
-func (s *SchemaGeneratorImpl) HandleManyToManyField(name string, element mimsy_schema.SchemaElement, table *Table) (*SqlSchema, error) {
+func (s *schemaGenerator) HandleManyToManyField(name string, element mimsy_schema.SchemaElement, table *Table) (*SqlSchema, error) {
 	joinTableName, err := GetRelationTableName(&element, table.Name, name)
 	if err != nil {
 		return nil, err
@@ -242,7 +242,7 @@ func (s *SchemaGeneratorImpl) HandleManyToManyField(name string, element mimsy_s
 	}, nil
 }
 
-func (s *SchemaGeneratorImpl) HandleManyToOneField(name string, element mimsy_schema.SchemaElement, table *Table) (*SqlSchema, error) {
+func (s *schemaGenerator) HandleManyToOneField(name string, element mimsy_schema.SchemaElement, table *Table) (*SqlSchema, error) {
 	// Add a new column and constraint
 	idColumnName := fmt.Sprintf("%s_id", name)
 	referenceTable := element.RelatesTo
