@@ -3,12 +3,6 @@
 
 	let { data } = $props();
 
-	const globals = [
-		{ name: 'Info', href: '/globals/info' },
-		{ name: 'Services', href: '/globals/services' },
-		{ name: 'Footer', href: '/globals/footer' }
-	];
-
 	const builtins = [
 		{ name: 'Media', href: '/media' },
 		{ name: 'Users', href: '/users' }
@@ -38,11 +32,11 @@
 	<Searchbar id="global-search" name="global-search" class="max-w-md" />
 
 	<ol class="flex min-h-32 gap-6">
-		{#each globals as global}
+		{#each data.globals as global}
 			<li class="contents">
 				<a
 					class="min-w-64 rounded-md border border-gray-200 bg-white px-3 py-2 hover:bg-gray-50"
-					href={global.href}
+					href={`/collections/${global.slug}`}
 				>
 					<span class="text-xl font-medium">{global.name}</span>
 				</a>

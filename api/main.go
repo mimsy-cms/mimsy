@@ -84,6 +84,7 @@ func main() {
 	v1.HandleFunc("GET /collections/{slug}", collectionHandler.GetResources)
 	v1.HandleFunc("GET /collections/{slug}/{resourceSlug}", collectionHandler.GetResource)
 	v1.HandleFunc("GET /collections/{slug}/definition", collectionHandler.Definition)
+	v1.HandleFunc("GET /collections/globals", collectionHandler.ListGlobals)
 	v1.HandleFunc("POST /media", mediaHandler.Upload)
 	v1.HandleFunc("GET /media", mediaHandler.FindAll)
 	v1.HandleFunc("GET /media/{id}", mediaHandler.GetById)

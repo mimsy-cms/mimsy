@@ -2,6 +2,7 @@ package collection
 
 import (
 	"context"
+	"encoding/json"
 )
 
 type Service interface {
@@ -9,6 +10,7 @@ type Service interface {
 	FindResource(ctx context.Context, collection *Collection, slug string) (*Resource, error)
 	FindResources(ctx context.Context, collection *Collection) ([]Resource, error)
 	FindAll(ctx context.Context) ([]Collection, error)
+	ListGlobals(ctx context.Context) ([]map[string]any, error)
 }
 
 func NewService(collectionRepository Repository) *service {
@@ -35,4 +37,27 @@ func (s *service) FindResources(ctx context.Context, collection *Collection) ([]
 
 func (s *service) FindAll(ctx context.Context) ([]Collection, error) {
 	return s.collectionRepository.FindAll(ctx)
+}
+
+func (s *service) ListGlobals(ctx context.Context) ([]map[string]any, error) {
+	globals, err := s.collectionRepository.ListGlobals(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	var result []map[string]any
+	for _, coll := range globals {
+		result = append(result, map[string]any{
+			"slug":       coll.Slug,
+			"name":       coll.Name,
+			"fields":     json.RawMessage(coll.Fields),
+			"created_at": coll.CreatedAt,
+			"created_by": coll.CreatedBy,
+			"updated_at": coll.UpdatedAt,
+			"updated_by": coll.UpdatedBy,
+			"is_global":  coll.IsGlobal,
+		})
+	}
+
+	return result, nil
 }

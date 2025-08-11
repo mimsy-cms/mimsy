@@ -1,7 +1,9 @@
-import { Collection, Schema } from "./collection";
+import { collection, Collection, Global, Schema } from "./collection";
 import { Field } from "./fields";
 
-const collectionRegistry = new Map<string, Collection<any>>();
+export type RegistryEntry = Collection<any> | Global<any>;
+
+const collectionRegistry = new Map<string, RegistryEntry>();
 
 export function registerCollection<T extends Schema>(
   collection: Collection<T>,
@@ -11,10 +13,23 @@ export function registerCollection<T extends Schema>(
       `[Mimsy SDK] Warning: A collection with the name "${collection.name}" is already registered. It will be overwritten.`,
     );
   }
+  collection.isGlobal = false;
   collectionRegistry.set(collection.name, collection);
 }
 
-export function getAllCollections(): Collection<any>[] {
+export function registerGlobal<T extends Schema>(
+  global: Global<T>,
+): void {
+  if (collectionRegistry.has(global.name)) {
+    console.warn(
+      `[Mimsy SDK] Warning: A global with the name "${global.name}" is already registered. It will be overwritten.`,
+    );
+  }
+  global.isGlobal = true;
+  collectionRegistry.set(global.name, global);
+}
+
+export function getAllCollections(): RegistryEntry[] {
   return Array.from(collectionRegistry.values());
 }
 
@@ -22,7 +37,7 @@ export function clearRegistry(): void {
   collectionRegistry.clear();
 }
 
-export function getCollection(name: string): Collection<any> | undefined {
+export function getCollection(name: string): RegistryEntry | undefined {
   return collectionRegistry.get(name);
 }
 
@@ -41,6 +56,7 @@ type SerializedSchema = {
 type SerializedCollection = {
   name: string;
   schema: SerializedSchema;
+  isGlobal?: boolean;
 };
 
 function serializeField(field: Field<any>): SerializedField {
@@ -83,7 +99,7 @@ function serializeSchema(schema: Schema): SerializedSchema {
 }
 
 export function exportSchema(): {
-  collections: SerializedCollection[];
+  collections: (SerializedCollection & { isGlobal: boolean })[];
   generatedAt: string;
 } {
   const collections = getAllCollections();
@@ -92,6 +108,7 @@ export function exportSchema(): {
     collections: collections.map((coll) => ({
       name: coll.name,
       schema: serializeSchema(coll.schema),
+      isGlobal: coll.isGlobal ?? false,
     })),
     generatedAt: new Date().toISOString(),
   };

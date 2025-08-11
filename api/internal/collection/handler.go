@@ -102,3 +102,13 @@ func (h *Handler) List(w http.ResponseWriter, r *http.Request) {
 
 	util.JSON(w, http.StatusOK, response)
 }
+
+func (h *Handler) ListGlobals(w http.ResponseWriter, r *http.Request) {
+	globals, err := h.Service.ListGlobals(r.Context())
+	if err != nil {
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		return
+	}
+
+	util.JSON(w, http.StatusOK, globals)
+}
