@@ -32,16 +32,13 @@ func (s *Service) GetDefinition(ctx context.Context, slug string) (map[string]an
 	}, nil
 }
 
-func (s *Service) GetItems(ctx context.Context, slug string) ([]Item, error) {
-	exists, err := s.collectionRepository.CollectionExists(ctx, slug)
+func (s *Service) GetResources(ctx context.Context, slug string) ([]Resource, error) {
+	collection, err := s.collectionRepository.FindBySlug(ctx, slug)
 	if err != nil {
 		return nil, err
 	}
-	if !exists {
-		return nil, ErrNotFound
-	}
 
-	return s.collectionRepository.FindItemsBySlug(ctx, slug)
+	return s.collectionRepository.FindResources(ctx, collection)
 }
 
 func (s *Service) List(ctx context.Context) ([]map[string]any, error) {

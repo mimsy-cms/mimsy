@@ -2,7 +2,10 @@ package collection
 
 import (
 	"encoding/json"
+	"log/slog"
 	"net/http"
+
+	"github.com/mimsy-cms/mimsy/internal/util"
 )
 
 type Handler struct {
@@ -14,7 +17,7 @@ func NewHandler(service *Service) *Handler {
 }
 
 func (h *Handler) Definition(w http.ResponseWriter, r *http.Request) {
-	slug := r.PathValue("collectionSlug")
+	slug := r.PathValue("slug")
 	if slug == "" {
 		http.Error(w, "Missing slug", http.StatusBadRequest)
 		return
@@ -34,15 +37,16 @@ func (h *Handler) Definition(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(def)
 }
 
-func (h *Handler) Items(w http.ResponseWriter, r *http.Request) {
-	slug := r.PathValue("collectionSlug")
+func (h *Handler) GetResources(w http.ResponseWriter, r *http.Request) {
+	slug := r.PathValue("slug")
 	if slug == "" {
 		http.Error(w, "Missing slug", http.StatusBadRequest)
 		return
 	}
 
-	items, err := h.Service.GetItems(r.Context(), slug)
+	resources, err := h.Service.GetResources(r.Context(), slug)
 	if err != nil {
+		slog.Error("Failed to get resources", "slug", slug, "error", err)
 		if err == ErrNotFound {
 			http.Error(w, "Collection not found", http.StatusNotFound)
 		} else {
@@ -51,8 +55,39 @@ func (h *Handler) Items(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(items)
+	if err := util.JSON(w, http.StatusOK, resources); err != nil {
+		slog.Error("Failed to encode resources", "slug", slug, "error", err)
+	}
+}
+
+func (h *Handler) GetResource(w http.ResponseWriter, r *http.Request) {
+	slug := r.PathValue("slug")
+	resourceSlug := r.PathValue("resourceSlug")
+	if slug == "" || resourceSlug == "" {
+		http.Error(w, "Missing slug or resource slug", http.StatusBadRequest)
+		return
+	}
+
+	resources, err := h.Service.GetResources(r.Context(), slug)
+	if err != nil {
+		slog.Error("Failed to get resources", "slug", slug, "error", err)
+		if err == ErrNotFound {
+			http.Error(w, "Collection not found", http.StatusNotFound)
+		} else {
+			http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		}
+		return
+	}
+
+	for _, resource := range resources {
+		if resource["slug"] == resourceSlug {
+			w.Header().Set("Content-Type", "application/json")
+			json.NewEncoder(w).Encode(resource)
+			return
+		}
+	}
+
+	http.Error(w, "Resource not found", http.StatusNotFound)
 }
 
 func (h *Handler) List(w http.ResponseWriter, r *http.Request) {

@@ -5,81 +5,145 @@ import (
 	"database/sql"
 	"encoding/json"
 	"errors"
+	"fmt"
+	"strings"
 
+	"github.com/lib/pq"
 	"github.com/mimsy-cms/mimsy/internal/config"
 )
 
 type Repository interface {
 	FindBySlug(ctx context.Context, slug string) (*Collection, error)
 	CollectionExists(ctx context.Context, slug string) (bool, error)
-	FindItemsBySlug(ctx context.Context, slug string) ([]Item, error)
+	FindResources(ctx context.Context, collection *Collection) ([]Resource, error)
 	List(ctx context.Context) ([]Collection, error)
 }
 
-type PostgresRepository struct{}
+type repository struct{}
 
-func NewRepository() *PostgresRepository {
-	return &PostgresRepository{}
+func NewRepository() *repository {
+	return &repository{}
 }
 
 type Collection struct {
 	Slug      string
 	Name      string
-	Fields    []byte
+	Fields    json.RawMessage
 	CreatedAt string
 	CreatedBy string
 	UpdatedAt string
 	UpdatedBy *string
 }
 
-type Item struct {
-	ID           int             `json:"id"`
-	ResourceSlug string          `json:"slug"`
-	Data         json.RawMessage `json:"data"`
+type Resource map[string]any
+
+type Field struct {
+	Type     string
+	Relation *FieldRelation
+}
+
+type FieldRelationType string
+
+const (
+	FieldRelationTypeManyToOne  FieldRelationType = "many-to-one"
+	FieldRelationTypeManyToMany FieldRelationType = "many-to-many"
+)
+
+type FieldRelation struct {
+	To   string
+	Type FieldRelationType
 }
 
 var ErrNotFound = errors.New("not found")
 
-func (r *PostgresRepository) FindBySlug(ctx context.Context, slug string) (*Collection, error) {
-	var coll Collection
+func (r *repository) FindBySlug(ctx context.Context, slug string) (*Collection, error) {
+	var collection Collection
 	err := config.GetDB(ctx).QueryRowContext(ctx,
-		`SELECT name, fields, created_at, created_by, updated_at, updated_by FROM "collection" WHERE slug = $1`,
+		`SELECT slug, name, fields, created_at, created_by, updated_at, updated_by FROM "collection" WHERE slug = $1`,
 		slug,
-	).Scan(&coll.Name, &coll.Fields, &coll.CreatedAt, &coll.CreatedBy, &coll.UpdatedAt, &coll.UpdatedBy)
+	).Scan(
+		&collection.Slug,
+		&collection.Name,
+		&collection.Fields,
+		&collection.CreatedAt,
+		&collection.CreatedBy,
+		&collection.UpdatedAt,
+		&collection.UpdatedBy,
+	)
 
 	if err == sql.ErrNoRows {
 		return nil, ErrNotFound
 	} else if err != nil {
 		return nil, err
 	}
-	return &coll, nil
+
+	return &collection, nil
 }
 
-func (r *PostgresRepository) CollectionExists(ctx context.Context, slug string) (bool, error) {
+func (r *repository) CollectionExists(ctx context.Context, slug string) (bool, error) {
 	var exists bool
 	err := config.GetDB(ctx).QueryRowContext(ctx, `SELECT EXISTS(SELECT 1 FROM "collection" WHERE slug = $1)`, slug).Scan(&exists)
 	return exists, err
 }
 
-func (r *PostgresRepository) FindItemsBySlug(ctx context.Context, slug string) ([]Item, error) {
-	rows, err := config.GetDB(ctx).QueryContext(ctx, `SELECT id, data, slug FROM "collection_item" WHERE collection_slug = $1`, slug)
+func (r *repository) FindResources(ctx context.Context, collection *Collection) ([]Resource, error) {
+	fields := map[string]Field{}
+	if err := json.Unmarshal(collection.Fields, &fields); err != nil {
+		return nil, fmt.Errorf("failed to unmarshal fields: %w", err)
+	}
+
+	queryFields := []string{"id", "slug"}
+	for name, field := range fields {
+		if field.Type == "relation" {
+			if field.Relation.Type == FieldRelationTypeManyToOne {
+				queryFields = append(queryFields, fmt.Sprintf("%s_id", name))
+			}
+		} else {
+			queryFields = append(queryFields, name)
+		}
+	}
+
+	quotedQueryFields := make([]string, len(queryFields))
+	for i, field := range queryFields {
+		quotedQueryFields[i] = pq.QuoteIdentifier(field)
+	}
+
+	query := fmt.Sprintf(
+		`SELECT %s FROM %s`,
+		strings.Join(quotedQueryFields, ", "),
+		pq.QuoteIdentifier(collection.Slug),
+	)
+
+	rows, err := config.GetDB(ctx).QueryContext(ctx, query)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
 
-	var items []Item
+	// We need to dynamically scan the rows as we dynamically built the selected columns.
+	values := make([]any, len(queryFields))
+	valuesPtrs := make([]any, len(queryFields))
+	for i := range values {
+		valuesPtrs[i] = &values[i]
+	}
+
+	var resources []Resource
 	for rows.Next() {
-		var item Item
-		if err := rows.Scan(&item.ID, &item.Data, &item.ResourceSlug); err != nil {
+		resource := Resource{}
+		if err := rows.Scan(valuesPtrs...); err != nil {
 			return nil, err
 		}
-		items = append(items, item)
+
+		for i := range values {
+			resource[queryFields[i]] = values[i]
+		}
+
+		resources = append(resources, resource)
 	}
-	return items, nil
+	return resources, nil
 }
 
-func (r *PostgresRepository) List(ctx context.Context) ([]Collection, error) {
+func (r *repository) List(ctx context.Context) ([]Collection, error) {
 	rows, err := config.GetDB(ctx).QueryContext(ctx, `SELECT slug, name, fields, created_at, created_by, updated_at, updated_by FROM "collection"`)
 	if err != nil {
 		return nil, err
