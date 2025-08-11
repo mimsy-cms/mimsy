@@ -5,6 +5,7 @@ go 1.24.2
 require github.com/golang/mock v1.6.0
 
 require github.com/gorilla/schema v1.4.1 // indirect
+require github.com/google/go-querystring v1.1.0 // indirect
 
 require (
 	atomicgo.dev/cursor v0.2.0 // indirect
@@ -15,6 +16,8 @@ require (
 	github.com/containerd/console v1.0.3 // indirect
 	github.com/fsnotify/fsnotify v1.8.0 // indirect
 	github.com/go-viper/mapstructure/v2 v2.3.0 // indirect
+	github.com/google/go-cmp v0.7.0
+	github.com/google/go-github/v74 v74.0.0
 	github.com/google/uuid v1.6.0 // indirect
 	github.com/gookit/color v1.5.4 // indirect
 	github.com/inconshreveable/mousetrap v1.1.0 // indirect
@@ -31,6 +34,7 @@ require (
 	github.com/pterm/pterm v0.12.80 // indirect
 	github.com/rivo/uniseg v0.4.4 // indirect
 	github.com/sagikazarmark/locafero v0.7.0 // indirect
+	github.com/sergi/go-diff v1.4.0
 	github.com/sourcegraph/conc v0.3.0 // indirect
 	github.com/spf13/afero v1.12.0 // indirect
 	github.com/spf13/cast v1.7.1 // indirect
