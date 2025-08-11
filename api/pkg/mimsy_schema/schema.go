@@ -35,7 +35,7 @@ type SchemaElementConstraints struct {
 
 // IsRelation returns true if the schema element is a relation type
 func (se *SchemaElement) IsRelation() bool {
-	return se.Type == "relation"
+	return se.Type == "relation" || se.Type == "multi_relation"
 }
 
 // IsRequired returns true if the schema element has a required constraint

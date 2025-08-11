@@ -1,9 +1,11 @@
-package mimsy_schema
+package mimsy_schema_test
 
 import (
 	"encoding/json"
 	"testing"
 	"time"
+
+	"github.com/mimsy-cms/mimsy/pkg/mimsy_schema"
 )
 
 func TestSchemaUnmarshal(t *testing.T) {
@@ -68,7 +70,7 @@ func TestSchemaUnmarshal(t *testing.T) {
 		"generatedAt": "2025-08-11T07:55:00.170Z"
 	}`
 
-	var schema Schema
+	var schema mimsy_schema.Schema
 	err := json.Unmarshal([]byte(jsonData), &schema)
 	if err != nil {
 		t.Fatalf("Failed to unmarshal schema: %v", err)
@@ -159,16 +161,16 @@ func TestSchemaUnmarshal(t *testing.T) {
 }
 
 func TestSchemaMarshal(t *testing.T) {
-	schema := Schema{
-		Collections: []Collection{
+	schema := mimsy_schema.Schema{
+		Collections: []mimsy_schema.Collection{
 			{
 				Name: "users",
-				Schema: map[string]SchemaElement{
+				Schema: map[string]mimsy_schema.SchemaElement{
 					"username": {
 						Type: "string",
-						Options: &SchemaElementOptions{
+						Options: &mimsy_schema.SchemaElementOptions{
 							Description: "The username",
-							Constraints: &SchemaElementConstraints{
+							Constraints: &mimsy_schema.SchemaElementConstraints{
 								Required:  true,
 								MinLength: 3,
 								MaxLength: 20,
@@ -178,7 +180,7 @@ func TestSchemaMarshal(t *testing.T) {
 					"profile": {
 						Type:      "relation",
 						RelatesTo: "profiles",
-						Options: &SchemaElementOptions{
+						Options: &mimsy_schema.SchemaElementOptions{
 							Description: "User profile",
 						},
 					},
@@ -194,7 +196,7 @@ func TestSchemaMarshal(t *testing.T) {
 	}
 
 	// Unmarshal back to verify
-	var unmarshaled Schema
+	var unmarshaled mimsy_schema.Schema
 	err = json.Unmarshal(data, &unmarshaled)
 	if err != nil {
 		t.Fatalf("Failed to unmarshal marshaled data: %v", err)
@@ -239,7 +241,7 @@ func TestEmptySchema(t *testing.T) {
 		"generatedAt": "2024-01-01T00:00:00Z"
 	}`
 
-	var schema Schema
+	var schema mimsy_schema.Schema
 	err := json.Unmarshal([]byte(jsonData), &schema)
 	if err != nil {
 		t.Fatalf("Failed to unmarshal empty schema: %v", err)
@@ -261,7 +263,7 @@ func TestCollectionWithEmptySchema(t *testing.T) {
 		"generatedAt": "2024-01-01T00:00:00Z"
 	}`
 
-	var schema Schema
+	var schema mimsy_schema.Schema
 	err := json.Unmarshal([]byte(jsonData), &schema)
 	if err != nil {
 		t.Fatalf("Failed to unmarshal schema with empty collection: %v", err)
