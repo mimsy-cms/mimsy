@@ -81,6 +81,7 @@ func main() {
 	v1.HandleFunc("POST /auth/register", authHandler.Register)
 	v1.HandleFunc("GET /auth/me", authHandler.Me)
 	v1.HandleFunc("GET /collections", collectionHandler.List)
+	v1.HandleFunc("GET /collections/globals", collectionHandler.ListGlobals)
 	v1.HandleFunc("GET /collections/{collectionSlug}/definition", collectionHandler.Definition)
 	v1.HandleFunc("POST /media", mediaHandler.Upload)
 	v1.HandleFunc("GET /media", mediaHandler.FindAll)

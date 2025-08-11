@@ -18,15 +18,10 @@
 		class?: string;
 		onNavigate: () => void;
 		collections: Collection[];
+		globals: Collection[];
 	};
 
-	let { class: className, onNavigate, collections }: Props = $props();
-
-	const globals = [
-		{ name: 'Info', href: '/globals/info' },
-		{ name: 'Services', href: '/globals/services' },
-		{ name: 'Footer', href: '/globals/footer' }
-	];
+	let { class: className, onNavigate, collections, globals }: Props = $props();
 
 	const builtins = [
 		{ name: 'Media', href: '/media' },

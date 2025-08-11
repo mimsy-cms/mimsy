@@ -13,6 +13,13 @@
 			href: `/collections/${collection.slug}`
 		}))
 	);
+
+	let globals = $derived(
+		(data.globals ?? []).map((global) => ({
+			name: global.name,
+			href: `/collections/${global.slug}`
+		}))
+	);
 </script>
 
 <div class="flex min-h-screen flex-col lg:flex-row">
@@ -26,6 +33,7 @@
 	<Sidebar
 		onNavigate={() => (mobileNavOpen = false)}
 		{collections}
+		{globals}
 		class={cn('mt-13 absolute bottom-0 left-0 right-0 top-0 pt-[1px] lg:static lg:mt-0 lg:flex', {
 			hidden: !mobileNavOpen
 		})}
