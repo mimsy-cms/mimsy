@@ -6,7 +6,9 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"log/slog"
 
+	sq "github.com/Masterminds/squirrel"
 	"github.com/mimsy-cms/mimsy/internal/config"
 )
 
@@ -15,8 +17,8 @@ type Repository interface {
 	CollectionExists(ctx context.Context, slug string) (bool, error)
 	FindResource(ctx context.Context, collection *Collection, slug string) (*Resource, error)
 	FindResources(ctx context.Context, collection *Collection) ([]Resource, error)
-	FindAll(ctx context.Context) ([]Collection, error)
-	ListGlobals(ctx context.Context) ([]Collection, error)
+	FindAll(ctx context.Context, params *FindAllParams) ([]Collection, error)
+	FindAllGlobals(ctx context.Context, params *FindAllParams) ([]Collection, error)
 }
 
 type repository struct{}
@@ -127,10 +129,27 @@ func (r *repository) FindResources(ctx context.Context, collection *Collection) 
 	return NewSelectQuery(collection.Slug, fields).FindAll(ctx)
 }
 
-func (r *repository) FindAll(ctx context.Context) ([]Collection, error) {
-	rows, err := config.GetDB(ctx).QueryContext(ctx, `SELECT slug, name, fields, created_at, created_by, updated_at, updated_by, is_global FROM "collection" WHERE is_global = false`)
+type FindAllParams struct {
+	Search string
+}
+
+func (r *repository) FindAll(ctx context.Context, params *FindAllParams) ([]Collection, error) {
+	sql, args, err := sq.StatementBuilder.PlaceholderFormat(sq.Dollar).
+		Select(
+			"slug", "name", "fields", "created_at", "created_by", "updated_at", "updated_by", "is_global",
+		).
+		From("collection").
+		Where(sq.Eq{"is_global": false}).
+		Where(sq.ILike{`"name"`: fmt.Sprintf("%%%s%%", params.Search)}).
+		ToSql()
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to build SQL query: %w", err)
+	}
+
+	rows, err := config.GetDB(ctx).QueryContext(ctx, sql, args...)
+	if err != nil {
+		slog.Error("Failed to query collections", "error", err)
+		return nil, fmt.Errorf("failed to query collections: %w", err)
 	}
 	defer rows.Close()
 
@@ -145,8 +164,20 @@ func (r *repository) FindAll(ctx context.Context) ([]Collection, error) {
 	return collections, nil
 }
 
-func (r *repository) ListGlobals(ctx context.Context) ([]Collection, error) {
-	rows, err := config.GetDB(ctx).QueryContext(ctx, `SELECT slug, name, fields, created_at, created_by, updated_at, updated_by, is_global FROM "collection" WHERE is_global = true`)
+func (r *repository) FindAllGlobals(ctx context.Context, params *FindAllParams) ([]Collection, error) {
+	sql, args, err := sq.StatementBuilder.PlaceholderFormat(sq.Dollar).
+		Select(
+			"slug", "name", "fields", "created_at", "created_by", "updated_at", "updated_by", "is_global",
+		).
+		From("collection").
+		Where(sq.Eq{"is_global": true}).
+		Where(sq.ILike{`"name"`: fmt.Sprintf("%%%s%%", params.Search)}).
+		ToSql()
+	if err != nil {
+		return nil, fmt.Errorf("failed to build SQL query: %w", err)
+	}
+
+	rows, err := config.GetDB(ctx).QueryContext(ctx, sql, args...)
 	if err != nil {
 		return nil, err
 	}

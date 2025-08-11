@@ -4,19 +4,23 @@ go 1.24.2
 
 require github.com/golang/mock v1.6.0
 
+require github.com/gorilla/schema v1.4.1 // indirect
+
 require (
 	atomicgo.dev/cursor v0.2.0 // indirect
 	atomicgo.dev/keyboard v0.2.9 // indirect
 	atomicgo.dev/schedule v0.1.0 // indirect
+	github.com/Masterminds/squirrel v1.5.4 // indirect
 	github.com/cloudflare/backoff v0.0.0-20240920015135-e46b80a3a7d0 // indirect
 	github.com/containerd/console v1.0.3 // indirect
 	github.com/fsnotify/fsnotify v1.8.0 // indirect
 	github.com/go-viper/mapstructure/v2 v2.3.0 // indirect
-	github.com/golang/mock v1.6.0
 	github.com/google/uuid v1.6.0 // indirect
 	github.com/gookit/color v1.5.4 // indirect
 	github.com/inconshreveable/mousetrap v1.1.0 // indirect
 	github.com/joho/godotenv v1.5.1 // indirect
+	github.com/lann/builder v0.0.0-20180802200727-47ae307949d0 // indirect
+	github.com/lann/ps v0.0.0-20150810152359-62de8c46ede0 // indirect
 	github.com/lib/pq v1.10.9 // indirect
 	github.com/lithammer/fuzzysearch v1.1.8 // indirect
 	github.com/mattn/go-runewidth v0.0.16 // indirect
