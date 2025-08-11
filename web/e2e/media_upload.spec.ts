@@ -1,4 +1,8 @@
 import { test, expect, type Page } from '@playwright/test';
+import fs from 'fs';
+import os from 'os';
+import path from 'path';
+import { Buffer } from 'buffer';
 
 /**
  * Helper function to log in a user
@@ -138,10 +142,6 @@ test.describe('Media upload flow', () => {
         }
     }
 
-    if (!fileFound) {
-        console.warn('Could not find uploaded file by name but media count increased');
-    }
-
     expect(fileFound).toBe(true);
   });
 
@@ -188,10 +188,46 @@ test.describe('Media upload flow', () => {
         }
     }
 
-    if (!fileFound) {
-        console.warn('Could not find uploaded file by name but media count increased');
-    }
-
     expect(fileFound).toBe(true);
+  });
+
+  // Upload oversized file test
+  test('should show an error when uploading oversized file', async ({ page }) => {
+    const tempDir = os.tmpdir();
+    const filePath = path.join(tempDir, 'oversized-file.jpg');
+
+    const fileSize = 256 * 1024 * 1024 + 1;
+
+    await new Promise<void>((resolve, reject) => {
+      const fd = fs.openSync(filePath, 'w');
+      try {
+        fs.writeSync(fd, Buffer.from([0xff, 0xd8, 0xff]), 0, 3, 0);
+        fs.writeSync(fd, Buffer.from([0]), 0, 1, fileSize - 1);
+        fs.closeSync(fd);
+        resolve();
+      } catch (err) {
+        reject(err);
+      }
+    });
+
+    // Listen for the alert dialog and verify the message
+    page.once('dialog', async dialog => {
+      expect(dialog.message()).toContain('The following files are too large to upload');
+      await dialog.dismiss();
+    });
+
+    await login(page);
+    await page.goto('/media');
+
+    const uploadButton = page.locator('button', { hasText: 'Upload' });
+    await expect(uploadButton).toBeVisible();
+
+    const fileChooserPromise = page.waitForEvent('filechooser');
+    await uploadButton.click();
+    const fileChooser = await fileChooserPromise;
+
+    await fileChooser.setFiles(filePath);
+    
+    fs.unlinkSync(filePath);
   });
 });
