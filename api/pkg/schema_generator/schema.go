@@ -14,3 +14,12 @@ func (s *SqlSchema) ToSql() string {
 
 	return sql
 }
+
+func (s *SqlSchema) GetTable(name string) (*Table, bool) {
+	for _, table := range s.Tables {
+		if table.Name == name {
+			return table, true
+		}
+	}
+	return nil, false
+}

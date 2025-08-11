@@ -66,3 +66,13 @@ func (t *Table) ToSql() string {
 
 	return sql
 }
+
+func (t *Table) GetColumn(columnName string) (*Column, bool) {
+	for _, column := range t.Columns {
+		if column.Name == columnName {
+			return &column, true
+		}
+	}
+
+	return nil, false
+}
