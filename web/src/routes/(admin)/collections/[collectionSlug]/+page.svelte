@@ -7,7 +7,7 @@
 
 <div class="flex flex-col gap-6">
 	<h1 class="text-4xl font-medium">
-		{data.collectionSlug.charAt(0).toUpperCase() + data.collectionSlug.slice(1)}
+		{data.collectionName}
 	</h1>
 
 	<Searchbar id="search" name="search" class="max-w-md" />
