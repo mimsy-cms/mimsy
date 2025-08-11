@@ -122,3 +122,28 @@ func (t *tokenTransport) RoundTrip(req *http.Request) (*http.Response, error) {
 	req.Header.Set("Accept", "application/vnd.github+json")
 	return t.base.RoundTrip(req)
 }
+
+// CreateCommitStatus creates a commit status for the specified repository and commit
+func CreateCommitStatus(ctx context.Context, client *github.Client, repository, commitSHA, state, description, targetURL string) error {
+	owner, repo, err := parseRepository(repository)
+	if err != nil {
+		return fmt.Errorf("failed to parse repository: %w", err)
+	}
+
+	status := &github.RepoStatus{
+		State:       &state,
+		Description: &description,
+		Context:     github.String("mimsy/db-migration"),
+	}
+
+	if targetURL != "" {
+		status.TargetURL = &targetURL
+	}
+
+	_, _, err = client.Repositories.CreateStatus(ctx, owner, repo, commitSHA, status)
+	if err != nil {
+		return fmt.Errorf("failed to create commit status: %w", err)
+	}
+
+	return nil
+}

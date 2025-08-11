@@ -153,7 +153,7 @@ func TestParseRepository(t *testing.T) {
 	}
 }
 
-func TestGithubFetcherMocked(t *testing.T) {
+func TestGithubProviderMocked(t *testing.T) {
 	privateKey, err := os.ReadFile("testdata/test_key.pem")
 	if err != nil {
 		t.Fatalf("failed to read test key: %v", err)

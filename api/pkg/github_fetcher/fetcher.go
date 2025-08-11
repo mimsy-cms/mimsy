@@ -11,19 +11,21 @@ type RepositoryContents struct {
 	LatestCommitHash string
 }
 
-type GithubFetcher interface {
+type GithubProvider interface {
 	// IsInstalled checks if the given app token is installed for the provided repository.
 	IsInstalled(ctx context.Context, repository string) bool
 	// GetRepositoryContents retrieves the contents of the specified repository, and exposes them as a zip.Reader.
 	GetRepositoryContents(ctx context.Context, repository string) (*RepositoryContents, error)
+	// CreateCommitStatus creates a commit status for the specified repository and commit.
+	CreateCommitStatus(ctx context.Context, repository, commitSHA, state, description, targetURL string) error
 }
 
-type githubFetcher struct {
+type githubProvider struct {
 	appID       int64
 	authManager *authManager
 }
 
-func New(appID int64, privateKeyPEM []byte) (GithubFetcher, error) {
+func New(appID int64, privateKeyPEM []byte) (GithubProvider, error) {
 	if appID <= 0 {
 		return nil, fmt.Errorf("invalid app ID: must be positive")
 	}
@@ -37,13 +39,13 @@ func New(appID int64, privateKeyPEM []byte) (GithubFetcher, error) {
 		return nil, fmt.Errorf("failed to create auth manager: %w", err)
 	}
 
-	return &githubFetcher{
+	return &githubProvider{
 		appID:       appID,
 		authManager: authManager,
 	}, nil
 }
 
-func (f *githubFetcher) IsInstalled(ctx context.Context, repository string) bool {
+func (f *githubProvider) IsInstalled(ctx context.Context, repository string) bool {
 	owner, repo, err := parseRepository(repository)
 	if err != nil {
 		return false
@@ -53,7 +55,7 @@ func (f *githubFetcher) IsInstalled(ctx context.Context, repository string) bool
 	return err == nil
 }
 
-func (f *githubFetcher) GetRepositoryContents(ctx context.Context, repository string) (*RepositoryContents, error) {
+func (f *githubProvider) GetRepositoryContents(ctx context.Context, repository string) (*RepositoryContents, error) {
 	owner, repo, err := parseRepository(repository)
 	if err != nil {
 		return nil, err
@@ -86,4 +88,25 @@ func (f *githubFetcher) GetRepositoryContents(ctx context.Context, repository st
 		Reader:           zipReader,
 		LatestCommitHash: latestCommit,
 	}, nil
+}
+
+func (f *githubProvider) CreateCommitStatus(ctx context.Context, repository, commitSHA, state, description, targetURL string) error {
+	owner, repo, err := parseRepository(repository)
+	if err != nil {
+		return err
+	}
+
+	installationID, err := f.authManager.getInstallationID(ctx, owner, repo)
+	if err != nil {
+		return fmt.Errorf("failed to get installation ID: %w", err)
+	}
+
+	token, err := f.authManager.getInstallationToken(ctx, installationID)
+	if err != nil {
+		return fmt.Errorf("failed to get installation token: %w", err)
+	}
+
+	client := createInstallationClient(ctx, token)
+
+	return CreateCommitStatus(ctx, client, repository, commitSHA, state, description, targetURL)
 }
