@@ -2,8 +2,10 @@ package collection
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"strings"
+	"time"
 
 	"github.com/lib/pq"
 	"github.com/mimsy-cms/mimsy/internal/config"
@@ -30,23 +32,33 @@ var (
 	defaultColumns = []string{"id", "slug"}
 )
 
-func (q *selectQuery) FindOne(ctx context.Context) (*Resource, error) {
-	query := q.buildSelectQuery(q.tableName)
+func (q *selectQuery) FindOne(ctx context.Context, slug string) (*Resource, error) {
+	query := fmt.Sprintf(
+		`SELECT id, slug, content, created_at, updated_at FROM %s WHERE slug = $1`,
+		pq.QuoteIdentifier(q.tableName),
+	)
 
-	row := config.GetDB(ctx).QueryRowContext(ctx, query)
-	if row.Err() != nil {
-		return nil, fmt.Errorf("failed to execute query: %w", row.Err())
-	}
+	var resource Resource
+	err := config.GetDB(ctx).QueryRowContext(ctx, query, slug).Scan(
+		&resource.ID,
+		&resource.Slug,
+		&resource.Content,
+		&resource.CreatedAt,
+		&resource.UpdatedAt,
+	)
 
-	resource, err := q.scan(row)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to execute query: %w", err)
 	}
-	return resource, nil
+
+	return &resource, nil
 }
 
 func (q *selectQuery) FindAll(ctx context.Context) ([]Resource, error) {
-	query := q.buildSelectQuery(q.tableName)
+	query := fmt.Sprintf(
+		`SELECT id, slug, content, created_at, updated_at FROM %s ORDER BY created_at DESC`,
+		pq.QuoteIdentifier(q.tableName),
+	)
 
 	rows, err := config.GetDB(ctx).QueryContext(ctx, query)
 	if err != nil {
@@ -54,17 +66,25 @@ func (q *selectQuery) FindAll(ctx context.Context) ([]Resource, error) {
 	}
 	defer rows.Close()
 
-	resources := []Resource{}
+	var resources []Resource
 	for rows.Next() {
-		resource, err := q.scan(rows)
-		if err != nil {
-			return nil, err
+		var resource Resource
+		if err := rows.Scan(
+			&resource.ID,
+			&resource.Slug,
+			&resource.Content,
+			&resource.CreatedAt,
+			&resource.UpdatedAt,
+		); err != nil {
+			return nil, fmt.Errorf("failed to scan row: %w", err)
 		}
-		resources = append(resources, *resource)
+		resources = append(resources, resource)
 	}
+
 	if err := rows.Err(); err != nil {
 		return nil, fmt.Errorf("error iterating over rows: %w", err)
 	}
+
 	return resources, nil
 }
 
@@ -81,7 +101,29 @@ func (q *selectQuery) scan(row rowScanner) (*Resource, error) {
 
 	resource := Resource{}
 	for i := range values {
-		resource[q.queryFields[i]] = values[i]
+		switch q.queryFields[i] {
+		case "id":
+			if v, ok := values[i].(int64); ok {
+				resource.ID = int(v)
+			}
+		case "slug":
+			if v, ok := values[i].(string); ok {
+				resource.Slug = v
+			}
+		case "content":
+			if v, ok := values[i].(string); ok {
+				resource.Content = json.RawMessage(v)
+			}
+		case "created_at":
+			if v, ok := values[i].(time.Time); ok {
+				resource.CreatedAt = v
+			}
+		case "updated_at":
+			if v, ok := values[i].(time.Time); ok {
+				resource.UpdatedAt = v
+			}
+			// Add more fields as needed
+		}
 	}
 
 	return &resource, nil
