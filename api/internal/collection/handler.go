@@ -1,6 +1,7 @@
 package collection
 
 import (
+	"encoding/json"
 	"log/slog"
 	"net/http"
 
@@ -57,6 +58,41 @@ func (h *Handler) GetResources(w http.ResponseWriter, r *http.Request) {
 	}
 
 	util.JSON(w, http.StatusOK, resources)
+}
+
+func (h *Handler) UpdateResource(w http.ResponseWriter, r *http.Request) {
+	slug := r.PathValue("slug")
+	resourceSlug := r.PathValue("resourceSlug")
+
+	var contentData map[string]any
+	if err := json.NewDecoder(r.Body).Decode(&contentData); err != nil {
+		http.Error(w, "Invalid JSON", http.StatusBadRequest)
+		return
+	}
+
+	collection, err := h.Service.FindBySlug(r.Context(), slug)
+	if err != nil {
+		slog.Error("Failed to get collection", "slug", slug, "error", err)
+		if err == ErrNotFound {
+			http.Error(w, "Collection not found", http.StatusNotFound)
+		} else {
+			http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		}
+		return
+	}
+
+	updatedResource, err := h.Service.UpdateResourceContent(r.Context(), collection, resourceSlug, contentData)
+	if err != nil {
+		slog.Error("Failed to update resource", "slug", slug, "resourceSlug", resourceSlug, "error", err)
+		if err == ErrNotFound {
+			http.Error(w, "Resource not found", http.StatusNotFound)
+		} else {
+			http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		}
+		return
+	}
+
+	util.JSON(w, http.StatusOK, updatedResource)
 }
 
 func (h *Handler) GetResource(w http.ResponseWriter, r *http.Request) {
@@ -132,7 +168,12 @@ func (h *Handler) FindAllGlobals(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	util.JSON(w, http.StatusOK, globals)
+	response := make([]CollectionResponse, len(globals))
+	for i, global := range globals {
+		response[i] = *NewCollectionResponse(&global)
+	}
+
+	util.JSON(w, http.StatusOK, response)
 }
 
 func (h *Handler) DeleteResource(w http.ResponseWriter, r *http.Request) {

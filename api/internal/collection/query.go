@@ -3,6 +3,7 @@ package collection
 import (
 	"context"
 	"fmt"
+	"time"
 
 	sq "github.com/Masterminds/squirrel"
 	"github.com/lib/pq"
@@ -27,7 +28,8 @@ func NewSelectQuery(tableName string, fields map[string]Field) *selectQuery {
 
 var (
 	// defaultColumns are the columns that will always be selected in a query.
-	defaultColumns = []string{"id", "slug"}
+	defaultColumns  = []string{"id", "slug", "created_at", "updated_at"}
+	readOnlyColumns = []string{"id", "created_at", "updated_at"}
 )
 
 func (q *selectQuery) FindOne(ctx context.Context, slug string) (*Resource, error) {
@@ -86,12 +88,14 @@ func (q *selectQuery) scan(row rowScanner) (*Resource, error) {
 	}
 
 	resource := Resource{Fields: map[string]any{}}
-	for i := 2; i < len(values); i++ {
+	for i := 4; i < len(values); i++ {
 		resource.Fields[q.queryFields[i]] = values[i]
 	}
 
 	resource.Id = values[0].(int64)
 	resource.Slug = values[1].(string)
+	resource.CreatedAt = values[2].(time.Time)
+	resource.UpdatedAt = values[3].(time.Time)
 
 	return &resource, nil
 }

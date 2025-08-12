@@ -2,7 +2,6 @@ package collection
 
 import (
 	"context"
-	"encoding/json"
 )
 
 type Service interface {
@@ -10,7 +9,8 @@ type Service interface {
 	FindResource(ctx context.Context, collection *Collection, slug string) (*Resource, error)
 	FindResources(ctx context.Context, collection *Collection) ([]Resource, error)
 	FindAll(ctx context.Context, params *FindAllParams) ([]Collection, error)
-	FindAllGlobals(ctx context.Context, params *FindAllParams) ([]map[string]any, error)
+	FindAllGlobals(ctx context.Context, params *FindAllParams) ([]Collection, error)
+	UpdateResourceContent(ctx context.Context, collection *Collection, resourceSlug string, content map[string]any) (*Resource, error)
 	DeleteResource(ctx context.Context, resource *Resource) error
 }
 
@@ -40,27 +40,12 @@ func (s *service) FindAll(ctx context.Context, params *FindAllParams) ([]Collect
 	return s.collectionRepository.FindAll(ctx, params)
 }
 
-func (s *service) FindAllGlobals(ctx context.Context, params *FindAllParams) ([]map[string]any, error) {
-	globals, err := s.collectionRepository.FindAllGlobals(ctx, params)
-	if err != nil {
-		return nil, err
-	}
+func (s *service) FindAllGlobals(ctx context.Context, params *FindAllParams) ([]Collection, error) {
+	return s.collectionRepository.FindAllGlobals(ctx, params)
+}
 
-	var result []map[string]any
-	for _, coll := range globals {
-		result = append(result, map[string]any{
-			"slug":       coll.Slug,
-			"name":       coll.Name,
-			"fields":     json.RawMessage(coll.Fields),
-			"created_at": coll.CreatedAt,
-			"created_by": coll.CreatedBy,
-			"updated_at": coll.UpdatedAt,
-			"updated_by": coll.UpdatedBy,
-			"is_global":  coll.IsGlobal,
-		})
-	}
-
-	return result, nil
+func (s *service) UpdateResourceContent(ctx context.Context, collection *Collection, resourceSlug string, content map[string]any) (*Resource, error) {
+	return s.collectionRepository.UpdateResourceContent(ctx, collection, resourceSlug, content)
 }
 
 func (s *service) DeleteResource(ctx context.Context, resource *Resource) error {

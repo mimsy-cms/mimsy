@@ -7,6 +7,10 @@ import (
 	"errors"
 	"fmt"
 	"log/slog"
+	"slices"
+	"time"
+
+	"github.com/lib/pq"
 
 	sq "github.com/Masterminds/squirrel"
 	"github.com/mimsy-cms/mimsy/internal/config"
@@ -19,6 +23,7 @@ type Repository interface {
 	FindResources(ctx context.Context, collection *Collection) ([]Resource, error)
 	FindAll(ctx context.Context, params *FindAllParams) ([]Collection, error)
 	FindAllGlobals(ctx context.Context, params *FindAllParams) ([]Collection, error)
+	UpdateResourceContent(ctx context.Context, collection *Collection, resourceSlug string, content map[string]any) (*Resource, error)
 	DeleteResource(ctx context.Context, resource *Resource) error
 }
 
@@ -44,6 +49,10 @@ type Resource struct {
 	Id int64
 	// Slug is the public identifier for the resource within the collection.
 	Slug string
+	// CreatedAt is the timestamp when the resource was created.
+	CreatedAt time.Time
+	// UpdatedAt is the timestamp when the resource was last updated.
+	UpdatedAt time.Time
 	// Fields is a map of field names to their values.
 	Fields map[string]any
 	// Collection is the slug of the collection this resource belongs to.
@@ -57,6 +66,8 @@ func (r Resource) MarshalJSON() ([]byte, error) {
 
 	transformed["id"] = r.Id
 	transformed["slug"] = r.Slug
+	transformed["created_at"] = r.CreatedAt
+	transformed["updated_at"] = r.UpdatedAt
 
 	for key, value := range r.Fields {
 		switch v := value.(type) {
@@ -76,8 +87,21 @@ func (r Resource) MarshalJSON() ([]byte, error) {
 }
 
 type Field struct {
-	Type     string
-	Relation *FieldRelation
+	Type       string         `json:"type"`
+	Label      string         `json:"label"`
+	Required   bool           `json:"required,omitempty"`
+	Default    any            `json:"default,omitempty"`
+	Options    []string       `json:"options,omitempty"`
+	Relation   *FieldRelation `json:"relation,omitempty"`
+	Validation *Validation    `json:"validation,omitempty"`
+}
+
+type Validation struct {
+	MinLength int    `json:"min_length,omitempty"`
+	MaxLength int    `json:"max_length,omitempty"`
+	Pattern   string `json:"pattern,omitempty"`
+	Min       *int   `json:"min,omitempty"`
+	Max       *int   `json:"max,omitempty"`
 }
 
 type FieldRelationType string
@@ -237,4 +261,36 @@ func (r *repository) DeleteResource(ctx context.Context, resource *Resource) err
 	}
 
 	return nil
+}
+
+func (r *repository) UpdateResourceContent(ctx context.Context, collection *Collection, resourceSlug string, content map[string]any) (*Resource, error) {
+	psql := sq.StatementBuilder.PlaceholderFormat(sq.Dollar)
+
+	b := psql.
+		Update(pq.QuoteIdentifier(collection.Slug)).
+		Where(sq.Eq{"slug": resourceSlug}).
+		Set("updated_at", sq.Expr("NOW()"))
+
+	for field, value := range content {
+		// Skip read only columns that should not be updated
+		if slices.Contains(readOnlyColumns, field) {
+			continue
+		}
+
+		b = b.Set(pq.QuoteIdentifier(field), value)
+	}
+
+	query, args, err := b.ToSql()
+	if err != nil {
+		return nil, fmt.Errorf("failed to build update SQL query: %w", err)
+	}
+
+	if _, err := config.GetDB(ctx).ExecContext(ctx, query, args...); err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, ErrNotFound
+		}
+		return nil, fmt.Errorf("failed to update resource content: %w", err)
+	}
+
+	return r.FindResource(ctx, collection, resourceSlug)
 }
