@@ -115,7 +115,6 @@
 </script>
 
 <div class="flex flex-col gap-6">
-	<!-- Header with actions -->
 	<div class="flex items-center justify-between">
 		<h1 class="text-4xl font-medium">{data.definition.name}</h1>
 		<div class="flex gap-2">
@@ -129,7 +128,6 @@
 		</div>
 	</div>
 
-	<!-- Success/Error Messages -->
 	{#if error}
 		<div class="rounded bg-red-100 border border-red-400 text-red-700 px-4 py-3">
 			{error}
@@ -241,7 +239,6 @@
 			{/if}
 		</div>
 
-		<!-- Details Sidebar -->
 		<div class="w-80 shrink-0 rounded-md border border-gray-300 bg-white p-4">
 			<h2 class="text-2xl font-medium">Details</h2>
 			<hr class="my-4 border-t-gray-300" />
