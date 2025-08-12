@@ -7,6 +7,7 @@ import (
 	"errors"
 	"fmt"
 	"log/slog"
+	"slices"
 	"time"
 
 	"github.com/lib/pq"
@@ -267,9 +268,15 @@ func (r *repository) UpdateResourceContent(ctx context.Context, collection *Coll
 
 	b := psql.
 		Update(pq.QuoteIdentifier(collection.Slug)).
-		Where(sq.Eq{"slug": resourceSlug})
+		Where(sq.Eq{"slug": resourceSlug}).
+		Set("updated_at", sq.Expr("NOW()"))
 
 	for field, value := range content {
+		// Skip read only columns that should not be updated
+		if slices.Contains(readOnlyColumns, field) {
+			continue
+		}
+
 		b = b.Set(pq.QuoteIdentifier(field), value)
 	}
 

@@ -16,9 +16,13 @@
 	let resourceContent = $state({
 		slug: data.resource?.slug || '',
 		...Object.fromEntries(
-			Object.keys(data.definition.fields).map((fieldName) => [
-				fieldName, data.resource?.content?.[fieldName] ?? getDefaultValue(data.definition.fields[fieldName])
-			])
+			Object.keys(data.definition.fields).map((fieldName) => {
+				let value = data.resource?.[fieldName] ?? getDefaultValue(data.definition.fields[fieldName]);
+				if (data.definition.fields[fieldName].type === 'date' && typeof value === 'string' && value) {
+					value = new Date(value);
+				}
+				return [fieldName, value];
+			})
 		)
 	});
 
@@ -49,7 +53,7 @@
 			case 'number':
 				return 0;
 			case 'date':
-				return '';
+				return new Date();
 			default:
 				return '';
 		}
@@ -150,15 +154,11 @@
 			</div>
 
 			{#if Object.keys(data.definition.fields).length > 0}
-				<div class="flex flex-col gap-2">
-					<label class="text-lg font-medium">Schema Fields</label>
-				</div>
-
 				{#each Object.entries(data.definition.fields) as [fieldName, field] (fieldName)}
 					<div class="flex flex-col gap-2">
 						{#if field.type === 'email'}
 							<label for={fieldName}>
-								{field.label}
+								{fieldName}
 								{#if field.required}<span class="text-red-500">*</span>{/if}
 							</label>
 							<EmailField 
@@ -170,7 +170,7 @@
 							/>
 						{:else if field.type === 'date'}
 							<label for={fieldName}>
-								{field.label}
+								{fieldName}
 								{#if field.required}<span class="text-red-500">*</span>{/if}
 							</label>
 							<DateField 
@@ -182,7 +182,7 @@
 							/>
 						{:else if field.type === 'number'}
 							<label for={fieldName}>
-								{field.label}
+								{fieldName}
 								{#if field.required}<span class="text-red-500">*</span>{/if}
 							</label>
 							<NumberField 
@@ -192,6 +192,10 @@
 								required={field.required}
 							/>
 						{:else if field.type === 'checkbox'}
+							<label for={fieldName}>
+								{fieldName}
+								{#if field.required}<span class="text-red-500">*</span>{/if}
+							</label>
 							<CheckboxField 
 								id={fieldName} 
 								name={fieldName} 
@@ -201,7 +205,7 @@
 							/>
 						{:else if field.type === 'select'}
 							<label for={fieldName}>
-								{field.label}
+								{fieldName}
 								{#if field.required}<span class="text-red-500">*</span>{/if}
 							</label>
 							<SelectField 
@@ -212,7 +216,7 @@
 							/>
 						{:else if field.type === 'richtext'}
 							<label for={fieldName}>
-								{field.label}
+								{fieldName}
 								{#if field.required}<span class="text-red-500">*</span>{/if}
 							</label>
 							<!-- <RichTextField
@@ -220,7 +224,7 @@
 							/> -->
 						{:else if field.type === 'plaintext'}
 							<label for={fieldName}>
-								{field.label}
+								{fieldName}
 								{#if field.required}<span class="text-red-500">*</span>{/if}
 							</label>
 							<PlainTextField 
