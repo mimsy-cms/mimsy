@@ -3,9 +3,9 @@ package collection
 import (
 	"context"
 	"fmt"
-	"strings"
 	"time"
 
+	sq "github.com/Masterminds/squirrel"
 	"github.com/lib/pq"
 	"github.com/mimsy-cms/mimsy/internal/config"
 )
@@ -28,60 +28,50 @@ func NewSelectQuery(tableName string, fields map[string]Field) *selectQuery {
 
 var (
 	// defaultColumns are the columns that will always be selected in a query.
-	defaultColumns = []string{"id", "slug"}
+	defaultColumns = []string{"id", "slug", "created_at", "updated_at"}
 )
 
 func (q *selectQuery) FindOne(ctx context.Context, slug string) (*Resource, error) {
-	query := fmt.Sprintf(
-		`SELECT id, slug, created_at, updated_at FROM %s WHERE slug = $1`,
-		pq.QuoteIdentifier(q.tableName),
-	)
-
-	var resource Resource
-	err := config.GetDB(ctx).QueryRowContext(ctx, query, slug).Scan(
-		&resource.ID,
-		&resource.Slug,
-		&resource.CreatedAt,
-		&resource.UpdatedAt,
-	)
-
+	query, args, err := q.buildSelectQuery(q.tableName, slug)
 	if err != nil {
-		return nil, fmt.Errorf("failed to execute query: %w", err)
+		return nil, fmt.Errorf("failed to build select SQL query: %w", err)
 	}
 
-	return &resource, nil
+	row := config.GetDB(ctx).QueryRowContext(ctx, query, args...)
+	if row.Err() != nil {
+		return nil, fmt.Errorf("failed to execute query: %w", row.Err())
+	}
+
+	resource, err := q.scan(row)
+	if err != nil {
+		return nil, err
+	}
+	return resource, nil
 }
 
 func (q *selectQuery) FindAll(ctx context.Context) ([]Resource, error) {
-	query := fmt.Sprintf(
-		`SELECT id, slug, created_at, updated_at FROM %s ORDER BY created_at DESC`,
-		pq.QuoteIdentifier(q.tableName),
-	)
+	query, args, err := q.buildSelectQuery(q.tableName)
+	if err != nil {
+		return nil, fmt.Errorf("failed to build select SQL query: %w", err)
+	}
 
-	rows, err := config.GetDB(ctx).QueryContext(ctx, query)
+	rows, err := config.GetDB(ctx).QueryContext(ctx, query, args...)
 	if err != nil {
 		return nil, fmt.Errorf("failed to execute query: %w", err)
 	}
 	defer rows.Close()
 
-	var resources []Resource
+	resources := []Resource{}
 	for rows.Next() {
-		var resource Resource
-		if err := rows.Scan(
-			&resource.ID,
-			&resource.Slug,
-			&resource.CreatedAt,
-			&resource.UpdatedAt,
-		); err != nil {
-			return nil, fmt.Errorf("failed to scan row: %w", err)
+		resource, err := q.scan(rows)
+		if err != nil {
+			return nil, err
 		}
-		resources = append(resources, resource)
+		resources = append(resources, *resource)
 	}
-
 	if err := rows.Err(); err != nil {
 		return nil, fmt.Errorf("error iterating over rows: %w", err)
 	}
-
 	return resources, nil
 }
 
@@ -96,28 +86,15 @@ func (q *selectQuery) scan(row rowScanner) (*Resource, error) {
 		return nil, fmt.Errorf("failed to scan row: %w", err)
 	}
 
-	resource := Resource{}
-	for i := range values {
-		switch q.queryFields[i] {
-		case "id":
-			if v, ok := values[i].(int64); ok {
-				resource.ID = int(v)
-			}
-		case "slug":
-			if v, ok := values[i].(string); ok {
-				resource.Slug = v
-			}
-		case "created_at":
-			if v, ok := values[i].(time.Time); ok {
-				resource.CreatedAt = v
-			}
-		case "updated_at":
-			if v, ok := values[i].(time.Time); ok {
-				resource.UpdatedAt = v
-			}
-			// Add more fields as needed
-		}
+	resource := Resource{Fields: map[string]any{}}
+	for i := 4; i < len(values); i++ {
+		resource.Fields[q.queryFields[i]] = values[i]
 	}
+
+	resource.Id = values[0].(int64)
+	resource.Slug = values[1].(string)
+	resource.CreatedAt = values[2].(time.Time)
+	resource.UpdatedAt = values[3].(time.Time)
 
 	return &resource, nil
 }
@@ -136,17 +113,18 @@ func transformQueryFields(fields map[string]Field) []string {
 	return queryFields
 }
 
-func (q *selectQuery) buildSelectQuery(tableName string) string {
+func (q *selectQuery) buildSelectQuery(tableName string, slug ...string) (string, []any, error) {
 	quotedQueryFields := make([]string, len(q.queryFields))
 	for i, field := range q.queryFields {
 		quotedQueryFields[i] = pq.QuoteIdentifier(field)
 	}
 
-	query := fmt.Sprintf(
-		`SELECT %s FROM %s`,
-		strings.Join(quotedQueryFields, ", "),
-		pq.QuoteIdentifier(tableName),
-	)
+	psql := sq.StatementBuilder.PlaceholderFormat(sq.Dollar)
+	b := psql.Select(quotedQueryFields...).From(pq.QuoteIdentifier(tableName))
 
-	return query
+	if len(slug) > 0 {
+		b = b.Where(sq.Eq{"slug": slug[0]})
+	}
+
+	return b.ToSql()
 }

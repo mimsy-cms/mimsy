@@ -6,10 +6,12 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"log/slog"
 	"time"
 
-	sq "github.com/Masterminds/squirrel"
 	"github.com/lib/pq"
+
+	sq "github.com/Masterminds/squirrel"
 	"github.com/mimsy-cms/mimsy/internal/config"
 )
 
@@ -18,9 +20,10 @@ type Repository interface {
 	CollectionExists(ctx context.Context, slug string) (bool, error)
 	FindResource(ctx context.Context, collection *Collection, slug string) (*Resource, error)
 	FindResources(ctx context.Context, collection *Collection) ([]Resource, error)
-	FindAll(ctx context.Context) ([]Collection, error)
-	ListGlobals(ctx context.Context) ([]Collection, error)
+	FindAll(ctx context.Context, params *FindAllParams) ([]Collection, error)
+	FindAllGlobals(ctx context.Context, params *FindAllParams) ([]Collection, error)
 	UpdateResourceContent(ctx context.Context, collection *Collection, resourceSlug string, content map[string]any) (*Resource, error)
+	DeleteResource(ctx context.Context, resource *Resource) error
 }
 
 type repository struct{}
@@ -41,36 +44,45 @@ type Collection struct {
 }
 
 type Resource struct {
-	ID        int             `json:"id"`
-	Slug      string          `json:"slug"`
-	Content   json.RawMessage `json:"content"`
-	CreatedAt time.Time       `json:"created_at"`
-	UpdatedAt time.Time       `json:"updated_at"`
+	// Id is the private identifier for the resource.
+	Id int64
+	// Slug is the public identifier for the resource within the collection.
+	Slug string
+	// CreatedAt is the timestamp when the resource was created.
+	CreatedAt time.Time
+	// UpdatedAt is the timestamp when the resource was last updated.
+	UpdatedAt time.Time
+	// Fields is a map of field names to their values.
+	Fields map[string]any
+	// Collection is the slug of the collection this resource belongs to.
+	Collection string
 }
 
 // MarshalJSON implements the json.Marshaler interface for Resource.
 // We need this custom implementation to handle the conversion of byte slices in the Resource map to JSON.
 func (r Resource) MarshalJSON() ([]byte, error) {
-	var contentData map[string]any
-	if len(r.Content) > 0 {
-		_ = json.Unmarshal(r.Content, &contentData)
-	} else {
-		contentData = make(map[string]any)
+	transformed := make(map[string]any)
+
+	transformed["id"] = r.Id
+	transformed["slug"] = r.Slug
+	transformed["created_at"] = r.CreatedAt
+	transformed["updated_at"] = r.UpdatedAt
+
+	for key, value := range r.Fields {
+		switch v := value.(type) {
+		case []byte:
+			var jsonObject any
+			if err := json.Unmarshal(v, &jsonObject); err != nil {
+				transformed[key] = string(v)
+			} else {
+				transformed[key] = jsonObject
+			}
+		default:
+			transformed[key] = value
+		}
 	}
 
-	response := map[string]any{
-		"id":         r.ID,
-		"slug":       r.Slug,
-		"created_at": r.CreatedAt,
-		"updated_at": r.UpdatedAt,
-		"content":    contentData,
-	}
-
-	for key, value := range contentData {
-		response[key] = value
-	}
-
-	return json.Marshal(response)
+	return json.Marshal(transformed)
 }
 
 type Field struct {
@@ -136,53 +148,91 @@ func (r *repository) CollectionExists(ctx context.Context, slug string) (bool, e
 }
 
 func (r *repository) FindResource(ctx context.Context, collection *Collection, slug string) (*Resource, error) {
-	query := fmt.Sprintf(`SELECT id, slug, content, created_at, updated_at FROM %s WHERE slug = $1`, pq.QuoteIdentifier(collection.Slug))
-
-	var resource Resource
-	err := config.GetDB(ctx).QueryRowContext(ctx, query, slug).Scan(
-		&resource.ID,
-		&resource.Slug,
-		&resource.Content,
-		&resource.CreatedAt,
-		&resource.UpdatedAt,
-	)
-
-	if err == sql.ErrNoRows {
-		return nil, ErrNotFound
-	} else if err != nil {
-		return nil, err
+	fields := map[string]Field{}
+	if err := json.Unmarshal(collection.Fields, &fields); err != nil {
+		return nil, fmt.Errorf("failed to unmarshal fields: %w", err)
 	}
 
-	return &resource, nil
+	resource, err := NewSelectQuery(collection.Slug, fields).FindOne(ctx, slug)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, ErrNotFound
+		}
+		return nil, fmt.Errorf("failed to find resource: %w", err)
+	}
+
+	resource.Collection = collection.Slug
+
+	return resource, nil
 }
 
 func (r *repository) FindResources(ctx context.Context, collection *Collection) ([]Resource, error) {
-	query := fmt.Sprintf(`SELECT id, slug, content, created_at, updated_at FROM %s`, pq.QuoteIdentifier(collection.Slug))
+	fields := map[string]Field{}
+	if err := json.Unmarshal(collection.Fields, &fields); err != nil {
+		return nil, fmt.Errorf("failed to unmarshal fields: %w", err)
+	}
 
-	rows, err := config.GetDB(ctx).QueryContext(ctx, query)
+	resources, err := NewSelectQuery(collection.Slug, fields).FindAll(ctx)
 	if err != nil {
-		return nil, fmt.Errorf("failed to query resources: %w", err)
-	}
-	defer rows.Close()
-
-	var resources []Resource
-	for rows.Next() {
-		var resource Resource
-		if err := rows.Scan(&resource.ID, &resource.Slug, &resource.Content, &resource.CreatedAt, &resource.UpdatedAt); err != nil {
-			return nil, fmt.Errorf("failed to scan resource: %w", err)
-		}
-		resources = append(resources, resource)
+		return nil, fmt.Errorf("failed to find resources: %w", err)
 	}
 
-	if err := rows.Err(); err != nil {
-		return nil, fmt.Errorf("error iterating over resources: %w", err)
+	for i := range resources {
+		resources[i].Collection = collection.Slug
 	}
 
 	return resources, nil
 }
 
-func (r *repository) FindAll(ctx context.Context) ([]Collection, error) {
-	rows, err := config.GetDB(ctx).QueryContext(ctx, `SELECT slug, name, fields, created_at, created_by, updated_at, updated_by, is_global FROM "collection" WHERE is_global = false`)
+type FindAllParams struct {
+	Search string
+}
+
+func (r *repository) FindAll(ctx context.Context, params *FindAllParams) ([]Collection, error) {
+	sql, args, err := sq.StatementBuilder.PlaceholderFormat(sq.Dollar).
+		Select(
+			"slug", "name", "fields", "created_at", "created_by", "updated_at", "updated_by", "is_global",
+		).
+		From("collection").
+		Where(sq.Eq{"is_global": false}).
+		Where(sq.ILike{`"name"`: fmt.Sprintf("%%%s%%", params.Search)}).
+		ToSql()
+	if err != nil {
+		return nil, fmt.Errorf("failed to build SQL query: %w", err)
+	}
+
+	rows, err := config.GetDB(ctx).QueryContext(ctx, sql, args...)
+	if err != nil {
+		slog.Error("Failed to query collections", "error", err)
+		return nil, fmt.Errorf("failed to query collections: %w", err)
+	}
+	defer rows.Close()
+
+	var collections []Collection
+	for rows.Next() {
+		var coll Collection
+		if err := rows.Scan(&coll.Slug, &coll.Name, &coll.Fields, &coll.CreatedAt, &coll.CreatedBy, &coll.UpdatedAt, &coll.UpdatedBy, &coll.IsGlobal); err != nil {
+			return nil, err
+		}
+		collections = append(collections, coll)
+	}
+	return collections, nil
+}
+
+func (r *repository) FindAllGlobals(ctx context.Context, params *FindAllParams) ([]Collection, error) {
+	sql, args, err := sq.StatementBuilder.PlaceholderFormat(sq.Dollar).
+		Select(
+			"slug", "name", "fields", "created_at", "created_by", "updated_at", "updated_by", "is_global",
+		).
+		From("collection").
+		Where(sq.Eq{"is_global": true}).
+		Where(sq.ILike{`"name"`: fmt.Sprintf("%%%s%%", params.Search)}).
+		ToSql()
+	if err != nil {
+		return nil, fmt.Errorf("failed to build SQL query: %w", err)
+	}
+
+	rows, err := config.GetDB(ctx).QueryContext(ctx, sql, args...)
 	if err != nil {
 		return nil, err
 	}
@@ -199,22 +249,17 @@ func (r *repository) FindAll(ctx context.Context) ([]Collection, error) {
 	return collections, nil
 }
 
-func (r *repository) ListGlobals(ctx context.Context) ([]Collection, error) {
-	rows, err := config.GetDB(ctx).QueryContext(ctx, `SELECT slug, name, fields, created_at, created_by, updated_at, updated_by, is_global FROM "collection" WHERE is_global = true`)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
+func (r *repository) DeleteResource(ctx context.Context, resource *Resource) error {
+	query := fmt.Sprintf(`DELETE FROM "%s" WHERE slug = $1`, resource.Collection)
 
-	var collections []Collection
-	for rows.Next() {
-		var coll Collection
-		if err := rows.Scan(&coll.Slug, &coll.Name, &coll.Fields, &coll.CreatedAt, &coll.CreatedBy, &coll.UpdatedAt, &coll.UpdatedBy, &coll.IsGlobal); err != nil {
-			return nil, err
+	if _, err := config.GetDB(ctx).ExecContext(ctx, query, resource.Slug); err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return ErrNotFound
 		}
-		collections = append(collections, coll)
+		return fmt.Errorf("failed to delete resource: %w", err)
 	}
-	return collections, nil
+
+	return nil
 }
 
 func (r *repository) UpdateResourceContent(ctx context.Context, collection *Collection, resourceSlug string, content map[string]any) (*Resource, error) {
@@ -230,20 +275,5 @@ func (r *repository) UpdateResourceContent(ctx context.Context, collection *Coll
 		b = b.Set(pq.QuoteIdentifier(field), value)
 	}
 
-	query, args, err := b.ToSql()
-	if err != nil {
-		return nil, fmt.Errorf("failed to build update query: %w", err)
-	}
-
-	var res Resource
-	if err := config.GetDB(ctx).QueryRowContext(ctx, query, args...).Scan(
-		&res.ID, &res.Slug, &res.CreatedAt, &res.UpdatedAt, &res.Content,
-	); err != nil {
-		if errors.Is(err, sql.ErrNoRows) {
-			return nil, ErrNotFound
-		}
-		return nil, err
-	}
-
-	return &res, nil
+	return r.FindResource(ctx, collection, resourceSlug)
 }
