@@ -23,6 +23,7 @@
 			'border-blue-900 bg-blue-500 data-[state=unchecked]:border-gray-300 data-[state=unchecked]:bg-white',
 			'peer inline-flex size-6 items-center justify-center rounded-md border transition-all duration-75 ease-in-out active:scale-[0.98]'
 		]}
+		bind:checked
 	>
 		{#snippet children({ checked })}
 			<div class="inline-flex items-center justify-center text-white">

@@ -7,6 +7,10 @@ import (
 	"errors"
 	"fmt"
 	"log/slog"
+	"slices"
+	"time"
+
+	"github.com/lib/pq"
 
 	sq "github.com/Masterminds/squirrel"
 	"github.com/mimsy-cms/mimsy/internal/config"
@@ -19,6 +23,8 @@ type Repository interface {
 	FindResources(ctx context.Context, collection *Collection) ([]Resource, error)
 	FindAll(ctx context.Context, params *FindAllParams) ([]Collection, error)
 	FindAllGlobals(ctx context.Context, params *FindAllParams) ([]Collection, error)
+	UpdateResourceContent(ctx context.Context, collection *Collection, resourceSlug string, content map[string]any) (*Resource, error)
+	DeleteResource(ctx context.Context, resource *Resource) error
 }
 
 type repository struct{}
@@ -38,14 +44,32 @@ type Collection struct {
 	IsGlobal  bool
 }
 
-type Resource map[string]any
+type Resource struct {
+	// Id is the private identifier for the resource.
+	Id int64
+	// Slug is the public identifier for the resource within the collection.
+	Slug string
+	// CreatedAt is the timestamp when the resource was created.
+	CreatedAt time.Time
+	// UpdatedAt is the timestamp when the resource was last updated.
+	UpdatedAt time.Time
+	// Fields is a map of field names to their values.
+	Fields map[string]any
+	// Collection is the slug of the collection this resource belongs to.
+	Collection string
+}
 
 // MarshalJSON implements the json.Marshaler interface for Resource.
 // We need this custom implementation to handle the conversion of byte slices in the Resource map to JSON.
 func (r Resource) MarshalJSON() ([]byte, error) {
 	transformed := make(map[string]any)
 
-	for key, value := range r {
+	transformed["id"] = r.Id
+	transformed["slug"] = r.Slug
+	transformed["created_at"] = r.CreatedAt
+	transformed["updated_at"] = r.UpdatedAt
+
+	for key, value := range r.Fields {
 		switch v := value.(type) {
 		case []byte:
 			var jsonObject any
@@ -63,8 +87,21 @@ func (r Resource) MarshalJSON() ([]byte, error) {
 }
 
 type Field struct {
-	Type     string
-	Relation *FieldRelation
+	Type       string         `json:"type"`
+	Label      string         `json:"label"`
+	Required   bool           `json:"required,omitempty"`
+	Default    any            `json:"default,omitempty"`
+	Options    []string       `json:"options,omitempty"`
+	Relation   *FieldRelation `json:"relation,omitempty"`
+	Validation *Validation    `json:"validation,omitempty"`
+}
+
+type Validation struct {
+	MinLength int    `json:"min_length,omitempty"`
+	MaxLength int    `json:"max_length,omitempty"`
+	Pattern   string `json:"pattern,omitempty"`
+	Min       *int   `json:"min,omitempty"`
+	Max       *int   `json:"max,omitempty"`
 }
 
 type FieldRelationType string
@@ -117,7 +154,17 @@ func (r *repository) FindResource(ctx context.Context, collection *Collection, s
 		return nil, fmt.Errorf("failed to unmarshal fields: %w", err)
 	}
 
-	return NewSelectQuery(collection.Slug, fields).FindOne(ctx)
+	resource, err := NewSelectQuery(collection.Slug, fields).FindOne(ctx, slug)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, ErrNotFound
+		}
+		return nil, fmt.Errorf("failed to find resource: %w", err)
+	}
+
+	resource.Collection = collection.Slug
+
+	return resource, nil
 }
 
 func (r *repository) FindResources(ctx context.Context, collection *Collection) ([]Resource, error) {
@@ -126,7 +173,16 @@ func (r *repository) FindResources(ctx context.Context, collection *Collection) 
 		return nil, fmt.Errorf("failed to unmarshal fields: %w", err)
 	}
 
-	return NewSelectQuery(collection.Slug, fields).FindAll(ctx)
+	resources, err := NewSelectQuery(collection.Slug, fields).FindAll(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("failed to find resources: %w", err)
+	}
+
+	for i := range resources {
+		resources[i].Collection = collection.Slug
+	}
+
+	return resources, nil
 }
 
 type FindAllParams struct {
@@ -192,4 +248,49 @@ func (r *repository) FindAllGlobals(ctx context.Context, params *FindAllParams) 
 		collections = append(collections, coll)
 	}
 	return collections, nil
+}
+
+func (r *repository) DeleteResource(ctx context.Context, resource *Resource) error {
+	query := fmt.Sprintf(`DELETE FROM "%s" WHERE slug = $1`, resource.Collection)
+
+	if _, err := config.GetDB(ctx).ExecContext(ctx, query, resource.Slug); err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return ErrNotFound
+		}
+		return fmt.Errorf("failed to delete resource: %w", err)
+	}
+
+	return nil
+}
+
+func (r *repository) UpdateResourceContent(ctx context.Context, collection *Collection, resourceSlug string, content map[string]any) (*Resource, error) {
+	psql := sq.StatementBuilder.PlaceholderFormat(sq.Dollar)
+
+	b := psql.
+		Update(pq.QuoteIdentifier(collection.Slug)).
+		Where(sq.Eq{"slug": resourceSlug}).
+		Set("updated_at", sq.Expr("NOW()"))
+
+	for field, value := range content {
+		// Skip read only columns that should not be updated
+		if slices.Contains(readOnlyColumns, field) {
+			continue
+		}
+
+		b = b.Set(pq.QuoteIdentifier(field), value)
+	}
+
+	query, args, err := b.ToSql()
+	if err != nil {
+		return nil, fmt.Errorf("failed to build update SQL query: %w", err)
+	}
+
+	if _, err := config.GetDB(ctx).ExecContext(ctx, query, args...); err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, ErrNotFound
+		}
+		return nil, fmt.Errorf("failed to update resource content: %w", err)
+	}
+
+	return r.FindResource(ctx, collection, resourceSlug)
 }

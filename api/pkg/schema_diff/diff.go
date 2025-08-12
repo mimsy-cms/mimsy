@@ -10,8 +10,10 @@ func Diff(oldSchema schema_generator.SqlSchema, newSchema schema_generator.SqlSc
 	operations := []migrations.Operation{}
 
 	operations = append(operations, processTableChanges(oldSchema, newSchema)...)
+	operations = append(operations, processConstraintChanges(oldSchema, newSchema)...)
 	operations = append(operations, processDroppedTables(oldSchema, newSchema)...)
 	operations = append(operations, processDroppedColumns(oldSchema, newSchema)...)
+	operations = append(operations, processDroppedConstraints(oldSchema, newSchema)...)
 
 	return operations
 }
@@ -48,9 +50,53 @@ func createTableOperation(table *schema_generator.Table) migrations.Operation {
 		}
 	}
 
+	constraints := make([]migrations.Constraint, 0, len(table.Constraints))
+	for _, constraint := range table.Constraints {
+		tableConstraint := createTableConstraint(constraint)
+		if tableConstraint != nil {
+			constraints = append(constraints, *tableConstraint)
+		}
+	}
+
 	return &migrations.OpCreateTable{
-		Name:    table.Name,
-		Columns: columns,
+		Name:        table.Name,
+		Columns:     columns,
+		Constraints: constraints,
+	}
+}
+
+func createTableConstraint(constraint schema_generator.Constraint) *migrations.Constraint {
+	switch c := constraint.(type) {
+	case *schema_generator.UniqueConstraint:
+		return &migrations.Constraint{
+			Name:    c.Name(),
+			Type:    migrations.ConstraintTypeUnique,
+			Columns: []string{c.Key},
+		}
+	case *schema_generator.PrimaryKeyConstraint:
+		return &migrations.Constraint{
+			Name:    c.Name(),
+			Type:    migrations.ConstraintTypePrimaryKey,
+			Columns: []string{c.Key},
+		}
+	case *schema_generator.CompositePrimaryKeyConstraint:
+		return &migrations.Constraint{
+			Name:    c.Name(),
+			Type:    migrations.ConstraintTypePrimaryKey,
+			Columns: c.Columns,
+		}
+	case *schema_generator.ForeignKeyConstraint:
+		return &migrations.Constraint{
+			Name:    c.Name(),
+			Type:    migrations.ConstraintTypeForeignKey,
+			Columns: []string{c.Column},
+			References: &migrations.TableForeignKeyReference{
+				Table:   c.ReferenceTable,
+				Columns: []string{c.ReferenceColumn},
+			},
+		}
+	default:
+		return nil
 	}
 }
 
@@ -144,4 +190,159 @@ func processDroppedColumns(oldSchema, newSchema schema_generator.SqlSchema) []mi
 	}
 
 	return operations
+}
+
+func processConstraintChanges(oldSchema, newSchema schema_generator.SqlSchema) []migrations.Operation {
+	operations := []migrations.Operation{}
+
+	for _, table := range newSchema.Tables {
+		oldTable, exists := oldSchema.GetTable(table.Name)
+		if !exists {
+			continue
+		}
+
+		operations = append(operations, processTableConstraintChanges(table, oldTable)...)
+	}
+
+	return operations
+}
+
+func processTableConstraintChanges(table, oldTable *schema_generator.Table) []migrations.Operation {
+	operations := []migrations.Operation{}
+
+	for _, constraint := range table.Constraints {
+		if !constraintExists(oldTable.Constraints, constraint) {
+			operation := createConstraintOperation(table.Name, constraint)
+			if operation != nil {
+				operations = append(operations, operation)
+			}
+		}
+	}
+
+	return operations
+}
+
+func constraintExists(constraints []schema_generator.Constraint, targetConstraint schema_generator.Constraint) bool {
+	for _, constraint := range constraints {
+		if constraint.Name() == targetConstraint.Name() {
+			return true
+		}
+	}
+	return false
+}
+
+func createConstraintOperation(tableName string, constraint schema_generator.Constraint) migrations.Operation {
+	switch c := constraint.(type) {
+	case *schema_generator.UniqueConstraint:
+		return &migrations.OpCreateConstraint{
+			Type:    migrations.OpCreateConstraintTypeUnique,
+			Name:    c.Name(),
+			Table:   tableName,
+			Columns: []string{c.Key},
+			Up: map[string]string{
+				c.Key: c.Key,
+			},
+			Down: map[string]string{
+				c.Key: c.Key,
+			},
+		}
+	case *schema_generator.PrimaryKeyConstraint:
+		return &migrations.OpCreateConstraint{
+			Type:    migrations.OpCreateConstraintTypePrimaryKey,
+			Name:    c.Name(),
+			Table:   tableName,
+			Columns: []string{c.Key},
+			Up: map[string]string{
+				c.Key: c.Key,
+			},
+			Down: map[string]string{
+				c.Key: c.Key,
+			},
+		}
+	case *schema_generator.CompositePrimaryKeyConstraint:
+		upDown := make(map[string]string)
+		for _, col := range c.Columns {
+			upDown[col] = col
+		}
+		return &migrations.OpCreateConstraint{
+			Type:    migrations.OpCreateConstraintTypePrimaryKey,
+			Name:    c.Name(),
+			Table:   tableName,
+			Columns: c.Columns,
+			Up:      upDown,
+			Down:    upDown,
+		}
+	case *schema_generator.ForeignKeyConstraint:
+		return &migrations.OpCreateConstraint{
+			Type:    migrations.OpCreateConstraintTypeForeignKey,
+			Name:    c.Name(),
+			Table:   tableName,
+			Columns: []string{c.Column},
+			References: &migrations.TableForeignKeyReference{
+				Table:   c.ReferenceTable,
+				Columns: []string{c.ReferenceColumn},
+			},
+			Up: map[string]string{
+				c.Column: c.Column,
+			},
+			Down: map[string]string{
+				c.Column: c.Column,
+			},
+		}
+	default:
+		return nil
+	}
+}
+
+func processDroppedConstraints(oldSchema, newSchema schema_generator.SqlSchema) []migrations.Operation {
+	operations := []migrations.Operation{}
+
+	for _, oldTable := range oldSchema.Tables {
+		newTable, exists := newSchema.GetTable(oldTable.Name)
+		if !exists {
+			// Skip dropped tables as their constraints are handled in processDroppedTables
+			continue
+		}
+
+		for _, constraint := range oldTable.Constraints {
+			if !constraintExists(newTable.Constraints, constraint) {
+				operation := createDropConstraintOperation(oldTable.Name, constraint)
+				if operation != nil {
+					operations = append(operations, operation)
+				}
+			}
+		}
+	}
+
+	return operations
+}
+
+func createDropConstraintOperation(tableName string, constraint schema_generator.Constraint) migrations.Operation {
+	switch c := constraint.(type) {
+	case *schema_generator.UniqueConstraint:
+		return &migrations.OpDropMultiColumnConstraint{
+			Name:  c.Name(),
+			Table: tableName,
+			Up: map[string]string{
+				c.Key: c.Key,
+			},
+			Down: map[string]string{
+				c.Key: c.Key,
+			},
+		}
+	case *schema_generator.ForeignKeyConstraint:
+		return &migrations.OpDropMultiColumnConstraint{
+			Name:  c.Name(),
+			Table: tableName,
+			Up: map[string]string{
+				c.Column: c.Column,
+			},
+			Down: map[string]string{
+				c.Column: c.Column,
+			},
+		}
+	default:
+		// Primary key constraints cannot be dropped easily, skip for now
+		return nil
+	}
 }
