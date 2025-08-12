@@ -55,7 +55,6 @@ func WithPgURL(url string) OptionFn {
 }
 
 // RunConfig holds the configuration for running migrations.
-// TODO: We should probably replace MigrationsDir with a slice of migrations.Operations. This way we can use the same code for both internal and collections migrations.
 type runConfig struct {
 	// UnappliedMigrations is the list of unapplied migration files.
 	UnappliedMigrations []*migrations.Migration
