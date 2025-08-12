@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"time"
 
+	sq "github.com/Masterminds/squirrel"
 	"github.com/lib/pq"
 	"github.com/mimsy-cms/mimsy/internal/config"
 )
@@ -217,30 +218,32 @@ func (r *repository) ListGlobals(ctx context.Context) ([]Collection, error) {
 }
 
 func (r *repository) UpdateResourceContent(ctx context.Context, collection *Collection, resourceSlug string, content map[string]any) (*Resource, error) {
-	contentJSON, err := json.Marshal(content)
+	psql := sq.StatementBuilder.PlaceholderFormat(sq.Dollar)
+
+	fmt.Println(content)
+
+	b := psql.
+		Update(pq.QuoteIdentifier(collection.Slug)).
+		Where(sq.Eq{"slug": resourceSlug})
+
+	for field, value := range content {
+		b = b.Set(pq.QuoteIdentifier(field), value)
+	}
+
+	query, args, err := b.ToSql()
 	if err != nil {
-		return nil, fmt.Errorf("failed to marshal content: %w", err)
+		return nil, fmt.Errorf("failed to build update query: %w", err)
 	}
 
-	query := fmt.Sprintf(
-		`UPDATE %s SET content = $1, updated_at = NOW() WHERE slug = $2 RETURNING id, slug, content, created_at, updated_at`,
-		pq.QuoteIdentifier(collection.Slug),
-	)
-
-	var resource Resource
-	err = config.GetDB(ctx).QueryRowContext(ctx, query, contentJSON, resourceSlug).Scan(
-		&resource.ID,
-		&resource.Slug,
-		&resource.Content,
-		&resource.CreatedAt,
-		&resource.UpdatedAt,
-	)
-
-	if err == sql.ErrNoRows {
-		return nil, ErrNotFound
-	} else if err != nil {
-		return nil, fmt.Errorf("failed to update resource content: %w", err)
+	var res Resource
+	if err := config.GetDB(ctx).QueryRowContext(ctx, query, args...).Scan(
+		&res.ID, &res.Slug, &res.CreatedAt, &res.UpdatedAt, &res.Content,
+	); err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, ErrNotFound
+		}
+		return nil, err
 	}
 
-	return &resource, nil
+	return &res, nil
 }

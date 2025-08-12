@@ -2,7 +2,6 @@ package collection
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"strings"
 	"time"
@@ -34,7 +33,7 @@ var (
 
 func (q *selectQuery) FindOne(ctx context.Context, slug string) (*Resource, error) {
 	query := fmt.Sprintf(
-		`SELECT id, slug, content, created_at, updated_at FROM %s WHERE slug = $1`,
+		`SELECT id, slug, created_at, updated_at FROM %s WHERE slug = $1`,
 		pq.QuoteIdentifier(q.tableName),
 	)
 
@@ -42,7 +41,6 @@ func (q *selectQuery) FindOne(ctx context.Context, slug string) (*Resource, erro
 	err := config.GetDB(ctx).QueryRowContext(ctx, query, slug).Scan(
 		&resource.ID,
 		&resource.Slug,
-		&resource.Content,
 		&resource.CreatedAt,
 		&resource.UpdatedAt,
 	)
@@ -56,7 +54,7 @@ func (q *selectQuery) FindOne(ctx context.Context, slug string) (*Resource, erro
 
 func (q *selectQuery) FindAll(ctx context.Context) ([]Resource, error) {
 	query := fmt.Sprintf(
-		`SELECT id, slug, content, created_at, updated_at FROM %s ORDER BY created_at DESC`,
+		`SELECT id, slug, created_at, updated_at FROM %s ORDER BY created_at DESC`,
 		pq.QuoteIdentifier(q.tableName),
 	)
 
@@ -72,7 +70,6 @@ func (q *selectQuery) FindAll(ctx context.Context) ([]Resource, error) {
 		if err := rows.Scan(
 			&resource.ID,
 			&resource.Slug,
-			&resource.Content,
 			&resource.CreatedAt,
 			&resource.UpdatedAt,
 		); err != nil {
@@ -109,10 +106,6 @@ func (q *selectQuery) scan(row rowScanner) (*Resource, error) {
 		case "slug":
 			if v, ok := values[i].(string); ok {
 				resource.Slug = v
-			}
-		case "content":
-			if v, ok := values[i].(string); ok {
-				resource.Content = json.RawMessage(v)
 			}
 		case "created_at":
 			if v, ok := values[i].(time.Time); ok {
