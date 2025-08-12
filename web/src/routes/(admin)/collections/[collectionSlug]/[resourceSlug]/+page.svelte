@@ -75,8 +75,6 @@
 
 			const { id, created_at, updated_at, slug, ...schemaContent } = resourceContent;
 
-			console.log(schemaContent);
-
 			const response = await fetch(`/api/v1/collections/${data.definition.slug}/${resourceContent.slug}`, {
 				method: 'PUT',
 				headers: {

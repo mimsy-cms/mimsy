@@ -265,14 +265,24 @@ func (r *repository) DeleteResource(ctx context.Context, resource *Resource) err
 func (r *repository) UpdateResourceContent(ctx context.Context, collection *Collection, resourceSlug string, content map[string]any) (*Resource, error) {
 	psql := sq.StatementBuilder.PlaceholderFormat(sq.Dollar)
 
-	fmt.Println(content)
-
 	b := psql.
 		Update(pq.QuoteIdentifier(collection.Slug)).
 		Where(sq.Eq{"slug": resourceSlug})
 
 	for field, value := range content {
 		b = b.Set(pq.QuoteIdentifier(field), value)
+	}
+
+	query, args, err := b.ToSql()
+	if err != nil {
+		return nil, fmt.Errorf("failed to build update SQL query: %w", err)
+	}
+
+	if _, err := config.GetDB(ctx).ExecContext(ctx, query, args...); err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, ErrNotFound
+		}
+		return nil, fmt.Errorf("failed to update resource content: %w", err)
 	}
 
 	return r.FindResource(ctx, collection, resourceSlug)
