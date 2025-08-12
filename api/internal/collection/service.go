@@ -11,6 +11,7 @@ type Service interface {
 	FindResources(ctx context.Context, collection *Collection) ([]Resource, error)
 	FindAll(ctx context.Context, params *FindAllParams) ([]Collection, error)
 	FindAllGlobals(ctx context.Context, params *FindAllParams) ([]map[string]any, error)
+	DeleteResource(ctx context.Context, resource *Resource) error
 }
 
 func NewService(collectionRepository Repository) *service {
@@ -60,4 +61,8 @@ func (s *service) FindAllGlobals(ctx context.Context, params *FindAllParams) ([]
 	}
 
 	return result, nil
+}
+
+func (s *service) DeleteResource(ctx context.Context, resource *Resource) error {
+	return s.collectionRepository.DeleteResource(ctx, resource)
 }
