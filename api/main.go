@@ -9,6 +9,7 @@ import (
 	"net"
 	"net/http"
 	"os"
+	"strconv"
 
 	_ "github.com/joho/godotenv/autoload"
 	_ "github.com/lib/pq"
@@ -16,10 +17,12 @@ import (
 	"github.com/mimsy-cms/mimsy/internal/auth"
 	"github.com/mimsy-cms/mimsy/internal/collection"
 	"github.com/mimsy-cms/mimsy/internal/config"
+	"github.com/mimsy-cms/mimsy/internal/cron"
 	"github.com/mimsy-cms/mimsy/internal/logger"
 	"github.com/mimsy-cms/mimsy/internal/media"
 	"github.com/mimsy-cms/mimsy/internal/migrations"
 	"github.com/mimsy-cms/mimsy/internal/storage"
+	"github.com/mimsy-cms/mimsy/internal/sync"
 	"github.com/mimsy-cms/mimsy/internal/util"
 )
 
@@ -57,6 +60,19 @@ func main() {
 	authService := auth.NewAuthService(authRepository)
 	authHandler := auth.NewHandler(authService)
 
+	cronService := initCron(db)
+
+	syncRepository := sync.NewSyncStatusRepository(db)
+
+	initSync(db, syncRepository, cronService)
+	syncHandler := sync.NewHandler(syncRepository, cronService)
+
+	// Start the cron scheduler
+	if err := cronService.Start(ctx); err != nil {
+		slog.Error("Failed to start cron service", "error", err)
+		return
+	}
+
 	if err := authService.CreateAdminUser(config.ContextWithDB(ctx, db)); err != nil {
 		fmt.Println("Failed to create admin user:", err)
 		return
@@ -90,6 +106,8 @@ func main() {
 	v1.HandleFunc("GET /media/{id}", mediaHandler.GetById)
 	v1.HandleFunc("DELETE /media/{id}", mediaHandler.Delete)
 	v1.HandleFunc("GET /users", authHandler.GetUsers)
+	v1.HandleFunc("GET /sync/status", syncHandler.Status)
+	v1.HandleFunc("GET /sync/jobs", syncHandler.Jobs)
 
 	handler := util.ApplyMiddlewares(
 		config.WithDB(db),
@@ -152,6 +170,63 @@ func initStorage() storage.Storage {
 	}
 
 	return s
+}
+
+func initCron(db *sql.DB) cron.CronService {
+	cronService, err := cron.NewCronService(db)
+
+	if err != nil {
+		slog.Error("Failed to initialize cron service", "error", err)
+		panic("Error during setup.")
+	}
+
+	return cronService
+}
+
+func initSync(db *sql.DB, syncStatusRepository sync.SyncStatusRepository, cronService cron.CronService) sync.SyncProvider {
+	slog.Info("Initializing sync service")
+
+	var pemKey string
+	if keyPath := os.Getenv("GH_PEM_KEY_FILE"); keyPath != "" {
+		// Read the file, and output that
+		pemKeyTemp, err := os.ReadFile(keyPath)
+		if err != nil {
+			slog.Error("Failed to read GitHub PEM key file", "error", err)
+			panic("Error during setup.")
+		}
+
+		pemKey = string(pemKeyTemp)
+	} else {
+		pemKey = os.Getenv("GH_PEM_KEY")
+		if len(pemKey) == 0 {
+			slog.Error("GitHub PEM key not set")
+			panic("Error during setup.")
+		}
+	}
+
+	appId, err := strconv.ParseInt(os.Getenv("GH_APP_ID"), 10, 64)
+	if err != nil {
+		slog.Error("Failed to parse GitHub App ID", "error", err)
+		panic("Error during setup.")
+	}
+
+	syncService, err := sync.New(
+		syncStatusRepository,
+		string(pemKey),
+		appId,
+		os.Getenv("GH_REPO"),
+	)
+	if err != nil {
+		slog.Error("Failed to initialize sync service", "error", err)
+		panic("Error during setup.")
+	}
+
+	// Register the job
+	syncService.RegisterSyncJobs(cronService)
+
+	slog.Info("Sync service initialized")
+
+	return syncService
 }
 
 func getPgURL() string {

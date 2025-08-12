@@ -59,7 +59,7 @@ func main() {
 	if err != nil {
 		log.Fatalf("Failed to fetch repository contents: %v", err)
 	}
-	fmt.Printf("✓ Successfully fetched repository contents (commit: %s)\n", contents.LatestCommitHash)
+	fmt.Printf("✓ Successfully fetched repository contents (commit: %s)\n", contents.LatestCommit.Sha)
 
 	// Look for README files
 	readmeFiles := findReadmeFiles(contents)
