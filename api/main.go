@@ -13,6 +13,9 @@ import (
 
 	_ "github.com/joho/godotenv/autoload"
 	_ "github.com/lib/pq"
+	pgroll_migrations "github.com/xataio/pgroll/pkg/migrations"
+	"github.com/xataio/pgroll/pkg/roll"
+	"github.com/xataio/pgroll/pkg/state"
 
 	"github.com/mimsy-cms/mimsy/internal/auth"
 	"github.com/mimsy-cms/mimsy/internal/collection"
@@ -36,8 +39,33 @@ func main() {
 		slog.Error("Failed to authenticate storage", "error", err)
 	}
 
+	st, err := state.New(ctx, getPgURL(), "mimsy_internal")
+	if err != nil {
+		slog.Error("Failed to create state", "error", err)
+		return
+	}
+
+	m, err := roll.New(ctx, getPgURL(), "public", st)
+
+	rawMigs, err := m.UnappliedMigrations(ctx, os.DirFS("./migrations"))
+	if err != nil {
+		slog.Error("Failed to get unapplied migrations", "error", err)
+		return
+	}
+
+	unappliedMigrations := make([]*pgroll_migrations.Migration, 0, len(rawMigs))
+	for _, rawMig := range rawMigs {
+		mig, err := pgroll_migrations.ParseMigration(rawMig)
+		if err != nil {
+			slog.Error("Failed to parse migration", "error", err, "migration", rawMig.Name)
+			continue
+		}
+		unappliedMigrations = append(unappliedMigrations, mig)
+	}
+
 	runConfig := migrations.NewRunConfig(
-		migrations.WithMigrationsDir("./migrations"),
+		migrations.WithStateSchema("mimsy_internal"),
+		migrations.WithUnappliedMigrations(unappliedMigrations),
 		migrations.WithPgURL(getPgURL()),
 	)
 

@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"os"
 
 	migrations_interface "github.com/mimsy-cms/mimsy/internal/interfaces/migrations"
 	"github.com/xataio/pgroll/pkg/backfill"
@@ -17,8 +16,7 @@ type OptionFn func(*runConfig)
 
 func NewRunConfig(opts ...OptionFn) *runConfig {
 	config := &runConfig{
-		Schema:      "public",
-		StateSchema: "pgroll",
+		Schema: "public",
 	}
 
 	for _, opt := range opts {
@@ -28,10 +26,24 @@ func NewRunConfig(opts ...OptionFn) *runConfig {
 	return config
 }
 
-// WithSchema sets the schema where migrations will be applied.
-func WithMigrationsDir(dir string) OptionFn {
+// WithStateSchema sets the schema where migration state will be stored.
+func WithStateSchema(schema string) OptionFn {
 	return func(c *runConfig) {
-		c.MigrationsDir = dir
+		c.StateSchema = schema
+	}
+}
+
+// WithSchema sets the schema where migrations will be applied.
+func WithSchema(schema string) OptionFn {
+	return func(c *runConfig) {
+		c.Schema = schema
+	}
+}
+
+// WithUnappliedMigrations sets the list of unapplied migrations.
+func WithUnappliedMigrations(migrations []*migrations.Migration) OptionFn {
+	return func(c *runConfig) {
+		c.UnappliedMigrations = migrations
 	}
 }
 
@@ -44,8 +56,8 @@ func WithPgURL(url string) OptionFn {
 
 // RunConfig holds the configuration for running migrations.
 type runConfig struct {
-	// MigrationsDir is the directory containing migration files.
-	MigrationsDir string
+	// UnappliedMigrations is the list of unapplied migration files.
+	UnappliedMigrations []*migrations.Migration
 	// PgURL is the PostgreSQL connection URL.
 	PgURL string
 	// Schema is the name of the schema where migrations will be applied.
@@ -122,23 +134,9 @@ func Run(ctx context.Context, config *runConfig) (int, error) {
 		return 0, fmt.Errorf("migration %q is active", name)
 	}
 
-	rawMigs, err := m.UnappliedMigrations(ctx, os.DirFS(config.MigrationsDir))
-	if err != nil {
-		return 0, err
-	}
-
-	migs := make([]*migrations.Migration, 0, len(rawMigs))
-	for _, rawMig := range rawMigs {
-		mig, err := migrations.ParseMigration(rawMig)
-		if err != nil {
-			return 0, err
-		}
-		migs = append(migs, mig)
-	}
-
 	backfillConfig := backfill.NewConfig()
 
-	for _, mig := range migs {
+	for _, mig := range config.UnappliedMigrations {
 		if err := m.Start(ctx, mig, backfillConfig); err != nil {
 			return 0, err
 		}
@@ -147,7 +145,8 @@ func Run(ctx context.Context, config *runConfig) (int, error) {
 			return 0, err
 		}
 	}
-	return len(migs), nil
+
+	return len(config.UnappliedMigrations), nil
 }
 
 // migratorAdapter adapts *roll.Roll to migrations_interface.Migrator

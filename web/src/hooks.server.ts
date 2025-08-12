@@ -14,8 +14,8 @@ export const handle: Handle = async ({ event, resolve }) => {
 		if (res.ok) {
 			const user = await res.json();
 
-			if (user.must_change_password) {
-				throw redirect(303, '/password');
+			if (user.must_change_password && event.url.pathname !== '/password') {
+				redirect(303, '/password');
 			}
 
 			event.locals.user = user;
