@@ -403,3 +403,271 @@ func TestDiffColumnNullableChange(t *testing.T) {
 		t.Errorf("expected operation to be OpAlterColumn, got %T", diff[0])
 	}
 }
+
+func TestDiffConstraintAdded(t *testing.T) {
+	oldSchema := schema_generator.SqlSchema{
+		Tables: []*schema_generator.Table{
+			{
+				Name: "users",
+				Columns: []schema_generator.Column{
+					{Name: "id", Type: "bigint", IsPrimaryKey: true, IsNotNull: true},
+					{Name: "email", Type: "varchar(100)", IsNotNull: true},
+				},
+				Constraints: []schema_generator.Constraint{
+					&schema_generator.PrimaryKeyConstraint{Table: "users", Key: "id"},
+				},
+			},
+		},
+	}
+
+	newSchema := schema_generator.SqlSchema{
+		Tables: []*schema_generator.Table{
+			{
+				Name: "users",
+				Columns: []schema_generator.Column{
+					{Name: "id", Type: "bigint", IsPrimaryKey: true, IsNotNull: true},
+					{Name: "email", Type: "varchar(100)", IsNotNull: true},
+				},
+				Constraints: []schema_generator.Constraint{
+					&schema_generator.PrimaryKeyConstraint{Table: "users", Key: "id"},
+					&schema_generator.UniqueConstraint{Table: "users", Key: "email"},
+				},
+			},
+		},
+	}
+
+	diff := schema_diff.Diff(oldSchema, newSchema)
+	if len(diff) != 1 {
+		t.Errorf("expected 1 operation (add constraint), got %d", len(diff))
+	}
+
+	if op, ok := diff[0].(*migrations.OpCreateConstraint); ok {
+		if op.Table != "users" || op.Type != migrations.OpCreateConstraintTypeUnique {
+			t.Errorf("expected create unique constraint operation for 'email' in 'users', got %s.%s", op.Table, op.Type)
+		}
+	} else {
+		t.Errorf("expected operation to be OpCreateConstraint, got %T", diff[0])
+	}
+}
+
+func TestDiffConstraintDropped(t *testing.T) {
+	oldSchema := schema_generator.SqlSchema{
+		Tables: []*schema_generator.Table{
+			{
+				Name: "users",
+				Columns: []schema_generator.Column{
+					{Name: "id", Type: "bigint", IsPrimaryKey: true, IsNotNull: true},
+					{Name: "email", Type: "varchar(100)", IsNotNull: true},
+				},
+				Constraints: []schema_generator.Constraint{
+					&schema_generator.PrimaryKeyConstraint{Table: "users", Key: "id"},
+					&schema_generator.UniqueConstraint{Table: "users", Key: "email"},
+				},
+			},
+		},
+	}
+
+	newSchema := schema_generator.SqlSchema{
+		Tables: []*schema_generator.Table{
+			{
+				Name: "users",
+				Columns: []schema_generator.Column{
+					{Name: "id", Type: "bigint", IsPrimaryKey: true, IsNotNull: true},
+					{Name: "email", Type: "varchar(100)", IsNotNull: true},
+				},
+				Constraints: []schema_generator.Constraint{
+					&schema_generator.PrimaryKeyConstraint{Table: "users", Key: "id"},
+				},
+			},
+		},
+	}
+
+	diff := schema_diff.Diff(oldSchema, newSchema)
+	if len(diff) != 1 {
+		t.Errorf("expected 1 operation (drop constraint), got %d", len(diff))
+	}
+
+	if op, ok := diff[0].(*migrations.OpDropMultiColumnConstraint); ok {
+		if op.Table != "users" {
+			t.Errorf("expected drop unique constraint operation for 'email' in 'users', got %s.%s", op.Table, op.Name)
+		}
+	} else {
+		t.Errorf("expected operation to be OpDropMultiColumnConstraint, got %T", diff[0])
+	}
+}
+
+func TestDiffForeignKeyConstraintAdded(t *testing.T) {
+	oldSchema := schema_generator.SqlSchema{
+		Tables: []*schema_generator.Table{
+			{
+				Name: "posts",
+				Columns: []schema_generator.Column{
+					{Name: "id", Type: "bigint", IsPrimaryKey: true, IsNotNull: true},
+					{Name: "user_id", Type: "bigint", IsNotNull: true},
+				},
+				Constraints: []schema_generator.Constraint{
+					&schema_generator.PrimaryKeyConstraint{Table: "posts", Key: "id"},
+				},
+			},
+		},
+	}
+
+	newSchema := schema_generator.SqlSchema{
+		Tables: []*schema_generator.Table{
+			{
+				Name: "posts",
+				Columns: []schema_generator.Column{
+					{Name: "id", Type: "bigint", IsPrimaryKey: true, IsNotNull: true},
+					{Name: "user_id", Type: "bigint", IsNotNull: true},
+				},
+				Constraints: []schema_generator.Constraint{
+					&schema_generator.PrimaryKeyConstraint{Table: "posts", Key: "id"},
+					&schema_generator.ForeignKeyConstraint{
+						Table:           "posts",
+						Column:          "user_id",
+						ReferenceTable:  "users",
+						ReferenceColumn: "id",
+					},
+				},
+			},
+		},
+	}
+
+	diff := schema_diff.Diff(oldSchema, newSchema)
+	if len(diff) != 1 {
+		t.Errorf("expected 1 operation (add foreign key constraint), got %d", len(diff))
+	}
+
+	if op, ok := diff[0].(*migrations.OpCreateConstraint); ok {
+		if op.Table != "posts" || op.Type != migrations.OpCreateConstraintTypeForeignKey {
+			t.Errorf("expected create foreign key constraint operation for 'user_id' in 'posts', got %s.%s", op.Table, op.Type)
+		}
+		if op.References == nil || op.References.Table != "users" || len(op.References.Columns) != 1 || op.References.Columns[0] != "id" {
+			t.Errorf("expected foreign key to reference 'users.id', got %v", op.References)
+		}
+	} else {
+		t.Errorf("expected operation to be OpCreateConstraint, got %T", diff[0])
+	}
+}
+
+func TestDiffCompositePrimaryKeyConstraintAdded(t *testing.T) {
+	oldSchema := schema_generator.SqlSchema{
+		Tables: []*schema_generator.Table{
+			{
+				Name: "user_posts",
+				Columns: []schema_generator.Column{
+					{Name: "user_id", Type: "bigint", IsNotNull: true},
+					{Name: "post_id", Type: "bigint", IsNotNull: true},
+				},
+				Constraints: []schema_generator.Constraint{},
+			},
+		},
+	}
+
+	newSchema := schema_generator.SqlSchema{
+		Tables: []*schema_generator.Table{
+			{
+				Name: "user_posts",
+				Columns: []schema_generator.Column{
+					{Name: "user_id", Type: "bigint", IsNotNull: true},
+					{Name: "post_id", Type: "bigint", IsNotNull: true},
+				},
+				Constraints: []schema_generator.Constraint{
+					&schema_generator.CompositePrimaryKeyConstraint{
+						Table:   "user_posts",
+						Columns: []string{"user_id", "post_id"},
+					},
+				},
+			},
+		},
+	}
+
+	diff := schema_diff.Diff(oldSchema, newSchema)
+	if len(diff) != 1 {
+		t.Errorf("expected 1 operation (add composite primary key constraint), got %d", len(diff))
+	}
+
+	if op, ok := diff[0].(*migrations.OpCreateConstraint); ok {
+		if op.Table != "user_posts" || op.Type != migrations.OpCreateConstraintTypePrimaryKey {
+			t.Errorf("expected create primary key constraint operation for 'user_posts', got %s.%s", op.Table, op.Type)
+		}
+		if len(op.Columns) != 2 || op.Columns[0] != "user_id" || op.Columns[1] != "post_id" {
+			t.Errorf("expected primary key columns to be ['user_id', 'post_id'], got %v", op.Columns)
+		}
+	} else {
+		t.Errorf("expected operation to be OpCreateConstraint, got %T", diff[0])
+	}
+}
+
+func TestDiffCreateTableWithConstraints(t *testing.T) {
+	oldSchema := schema_generator.SqlSchema{
+		Tables: []*schema_generator.Table{},
+	}
+
+	newSchema := schema_generator.SqlSchema{
+		Tables: []*schema_generator.Table{
+			{
+				Name: "posts",
+				Columns: []schema_generator.Column{
+					{Name: "id", Type: "bigint", IsPrimaryKey: true, IsNotNull: true},
+					{Name: "title", Type: "varchar(255)", IsNotNull: true},
+					{Name: "user_id", Type: "bigint", IsNotNull: true},
+				},
+				Constraints: []schema_generator.Constraint{
+					&schema_generator.PrimaryKeyConstraint{Table: "posts", Key: "id"},
+					&schema_generator.UniqueConstraint{Table: "posts", Key: "title"},
+					&schema_generator.ForeignKeyConstraint{
+						Table:           "posts",
+						Column:          "user_id",
+						ReferenceTable:  "users",
+						ReferenceColumn: "id",
+					},
+				},
+			},
+		},
+	}
+
+	diff := schema_diff.Diff(oldSchema, newSchema)
+	if len(diff) != 1 {
+		t.Errorf("expected 1 operation (create table), got %d", len(diff))
+	}
+
+	if op, ok := diff[0].(*migrations.OpCreateTable); ok {
+		if len(op.Constraints) != 3 {
+			t.Errorf("expected 3 constraints on new table, got %d", len(op.Constraints))
+		}
+
+		foundPK := false
+		foundUnique := false
+		foundFK := false
+		for _, constraint := range op.Constraints {
+			switch constraint.Type {
+			case migrations.ConstraintTypePrimaryKey:
+				if len(constraint.Columns) == 1 && constraint.Columns[0] == "id" {
+					foundPK = true
+				}
+			case migrations.ConstraintTypeUnique:
+				if len(constraint.Columns) == 1 && constraint.Columns[0] == "title" {
+					foundUnique = true
+				}
+			case migrations.ConstraintTypeForeignKey:
+				if len(constraint.Columns) == 1 && constraint.Columns[0] == "user_id" &&
+					constraint.References != nil && constraint.References.Table == "users" {
+					foundFK = true
+				}
+			}
+		}
+
+		if !foundPK {
+			t.Errorf("expected primary key constraint not found")
+		}
+		if !foundUnique {
+			t.Errorf("expected unique constraint not found")
+		}
+		if !foundFK {
+			t.Errorf("expected foreign key constraint not found")
+		}
+	} else {
+		t.Errorf("expected operation to be OpCreateTable, got %T", diff[0])
+	}
+}
