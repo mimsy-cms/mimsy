@@ -3,8 +3,8 @@ package collection
 import (
 	"context"
 	"fmt"
-	"strings"
 
+	sq "github.com/Masterminds/squirrel"
 	"github.com/lib/pq"
 	"github.com/mimsy-cms/mimsy/internal/config"
 )
@@ -30,10 +30,13 @@ var (
 	defaultColumns = []string{"id", "slug"}
 )
 
-func (q *selectQuery) FindOne(ctx context.Context) (*Resource, error) {
-	query := q.buildSelectQuery(q.tableName)
+func (q *selectQuery) FindOne(ctx context.Context, slug string) (*Resource, error) {
+	query, args, err := q.buildSelectQuery(q.tableName, slug)
+	if err != nil {
+		return nil, fmt.Errorf("failed to build select SQL query: %w", err)
+	}
 
-	row := config.GetDB(ctx).QueryRowContext(ctx, query)
+	row := config.GetDB(ctx).QueryRowContext(ctx, query, args...)
 	if row.Err() != nil {
 		return nil, fmt.Errorf("failed to execute query: %w", row.Err())
 	}
@@ -46,9 +49,12 @@ func (q *selectQuery) FindOne(ctx context.Context) (*Resource, error) {
 }
 
 func (q *selectQuery) FindAll(ctx context.Context) ([]Resource, error) {
-	query := q.buildSelectQuery(q.tableName)
+	query, args, err := q.buildSelectQuery(q.tableName)
+	if err != nil {
+		return nil, fmt.Errorf("failed to build select SQL query: %w", err)
+	}
 
-	rows, err := config.GetDB(ctx).QueryContext(ctx, query)
+	rows, err := config.GetDB(ctx).QueryContext(ctx, query, args...)
 	if err != nil {
 		return nil, fmt.Errorf("failed to execute query: %w", err)
 	}
@@ -79,10 +85,13 @@ func (q *selectQuery) scan(row rowScanner) (*Resource, error) {
 		return nil, fmt.Errorf("failed to scan row: %w", err)
 	}
 
-	resource := Resource{}
-	for i := range values {
-		resource[q.queryFields[i]] = values[i]
+	resource := Resource{Fields: map[string]any{}}
+	for i := 2; i < len(values); i++ {
+		resource.Fields[q.queryFields[i]] = values[i]
 	}
+
+	resource.Id = values[0].(int64)
+	resource.Slug = values[1].(string)
 
 	return &resource, nil
 }
@@ -101,17 +110,18 @@ func transformQueryFields(fields map[string]Field) []string {
 	return queryFields
 }
 
-func (q *selectQuery) buildSelectQuery(tableName string) string {
+func (q *selectQuery) buildSelectQuery(tableName string, slug ...string) (string, []any, error) {
 	quotedQueryFields := make([]string, len(q.queryFields))
 	for i, field := range q.queryFields {
 		quotedQueryFields[i] = pq.QuoteIdentifier(field)
 	}
 
-	query := fmt.Sprintf(
-		`SELECT %s FROM %s`,
-		strings.Join(quotedQueryFields, ", "),
-		pq.QuoteIdentifier(tableName),
-	)
+	psql := sq.StatementBuilder.PlaceholderFormat(sq.Dollar)
+	b := psql.Select(quotedQueryFields...).From(pq.QuoteIdentifier(tableName))
 
-	return query
+	if len(slug) > 0 {
+		b = b.Where(sq.Eq{"slug": slug[0]})
+	}
+
+	return b.ToSql()
 }

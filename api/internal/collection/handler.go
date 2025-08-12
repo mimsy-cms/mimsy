@@ -134,3 +134,38 @@ func (h *Handler) FindAllGlobals(w http.ResponseWriter, r *http.Request) {
 
 	util.JSON(w, http.StatusOK, globals)
 }
+
+func (h *Handler) DeleteResource(w http.ResponseWriter, r *http.Request) {
+	slug := r.PathValue("slug")
+	resourceSlug := r.PathValue("resourceSlug")
+
+	collection, err := h.Service.FindBySlug(r.Context(), slug)
+	if err != nil {
+		slog.Error("Failed to get collection", "slug", slug, "error", err)
+		if err == ErrNotFound {
+			http.Error(w, "Collection not found", http.StatusNotFound)
+		} else {
+			http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		}
+		return
+	}
+
+	resource, err := h.Service.FindResource(r.Context(), collection, resourceSlug)
+	if err != nil {
+		slog.Error("Failed to get resource", "slug", slug, "resourceSlug", resourceSlug, "error", err)
+		if err == ErrNotFound {
+			http.Error(w, "Resource not found", http.StatusNotFound)
+		} else {
+			http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		}
+		return
+	}
+
+	if err := h.Service.DeleteResource(r.Context(), resource); err != nil {
+		slog.Error("Failed to delete resource", "slug", slug, "resourceSlug", resourceSlug, "error", err)
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		return
+	}
+
+	w.WriteHeader(http.StatusNoContent)
+}
