@@ -8,6 +8,7 @@ import (
 	"io"
 	"net/http"
 	"strings"
+	"time"
 
 	"github.com/google/go-github/v74/github"
 )
@@ -74,11 +75,17 @@ func downloadZipArchive(ctx context.Context, client *github.Client, owner, repo 
 	return zipReader, nil
 }
 
-func fetchLatestCommit(ctx context.Context, client *github.Client, owner, repo string) (string, error) {
+type Commit struct {
+	Sha     string    `json:"sha"`
+	Message string    `json:"message"`
+	Date    time.Time `json:"date"`
+}
+
+func fetchLatestCommit(ctx context.Context, client *github.Client, owner, repo string) (*Commit, error) {
 	// Get the default branch first
 	repository, _, err := client.Repositories.Get(ctx, owner, repo)
 	if err != nil {
-		return "", fmt.Errorf("failed to get repository info: %w", err)
+		return nil, fmt.Errorf("failed to get repository info: %w", err)
 	}
 
 	defaultBranch := repository.GetDefaultBranch()
@@ -92,14 +99,20 @@ func fetchLatestCommit(ctx context.Context, client *github.Client, owner, repo s
 		ListOptions: github.ListOptions{PerPage: 1},
 	})
 	if err != nil {
-		return "", fmt.Errorf("failed to list commits: %w", err)
+		return nil, fmt.Errorf("failed to list commits: %w", err)
 	}
 
 	if len(commits) == 0 {
-		return "", fmt.Errorf("no commits found in repository")
+		return nil, fmt.Errorf("no commits found in repository")
 	}
 
-	return commits[0].GetSHA(), nil
+	commit := &Commit{
+		Sha:     commits[0].GetSHA(),
+		Message: commits[0].GetCommit().GetMessage(),
+		Date:    commits[0].GetCommit().GetAuthor().GetDate().UTC(),
+	}
+
+	return commit, nil
 }
 
 func createInstallationClient(_ context.Context, token string) *github.Client {
@@ -146,4 +159,29 @@ func CreateCommitStatus(ctx context.Context, client *github.Client, repository, 
 	}
 
 	return nil
+}
+
+// getFileContent retrieves the content of a specific file from the repository at the given ref and path
+func getFileContent(ctx context.Context, client *github.Client, owner, repo, ref, path string) ([]byte, error) {
+	opts := &github.RepositoryContentGetOptions{}
+	if ref != "" {
+		opts.Ref = ref
+	}
+
+	fileContent, _, _, err := client.Repositories.GetContents(ctx, owner, repo, path, opts)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get file content: %w", err)
+	}
+
+	if fileContent == nil {
+		return nil, fmt.Errorf("file not found: %s", path)
+	}
+
+	// GetContent already handles base64 decoding automatically
+	content, err := fileContent.GetContent()
+	if err != nil {
+		return nil, fmt.Errorf("failed to get file content: %w", err)
+	}
+
+	return []byte(content), nil
 }
