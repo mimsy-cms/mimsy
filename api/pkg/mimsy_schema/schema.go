@@ -4,6 +4,11 @@ import (
 	"time"
 )
 
+type MimsyConfig struct {
+	SchemaPath string `json:"manifestPath"`
+	BasePath   string `json:"basePath"`
+}
+
 type Schema struct {
 	Collections []Collection `json:"collections"`
 	GeneratedAt time.Time    `json:"generatedAt"`
