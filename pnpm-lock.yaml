@@ -8,7 +8,7 @@ importers:
 
   cli:
     dependencies:
-      '@mimsy/sdk':
+      '@mimsy-cms/sdk':
         specifier: workspace:*
         version: link:../sdk
       commander:
@@ -28,6 +28,9 @@ importers:
         specifier: ^24.0.15
         version: 24.1.0
       '@vitest/coverage-istanbul':
+        specifier: 2.1.9
+        version: 2.1.9(vitest@2.1.9(@types/node@24.1.0)(lightningcss@1.30.1))
+      '@vitest/coverage-v8':
         specifier: 2.1.9
         version: 2.1.9(vitest@2.1.9(@types/node@24.1.0)(lightningcss@1.30.1))
       nodemon:
