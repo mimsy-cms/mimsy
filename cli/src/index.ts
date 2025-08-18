@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 import { Command } from "commander";
 import { updateCommand } from "./commands/update";
+import { initCommand } from "./commands/init";
 
 export function createProgram(): Command {
   const program = new Command();
@@ -10,6 +11,7 @@ export function createProgram(): Command {
     .description("A CLI tool for mimsy, the simple SvelteKit CMS")
     .version("1.0.0");
 
+  initCommand(program);
   updateCommand(program);
 
   return program;

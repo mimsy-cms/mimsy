@@ -36,11 +36,13 @@ describe("update command", () => {
       expect(command.description()).toBe(
         "Update the mimsy.schema.json file in the root of the package"
       );
-      
+
       const options = command.options;
-      const clearOption = options.find(opt => opt.long === "--clear");
+      const clearOption = options.find((opt) => opt.long === "--clear");
       expect(clearOption).toBeDefined();
-      expect(clearOption?.description).toBe("Clear the registry before importing collections");
+      expect(clearOption?.description).toBe(
+        "Clear the registry before importing collections"
+      );
     });
   });
 
@@ -156,9 +158,7 @@ describe("update command", () => {
         "utf8"
       );
 
-      expect(consoleSpy).toHaveBeenCalledWith(
-        "📊 Collections exported: 2"
-      );
+      expect(consoleSpy).toHaveBeenCalledWith("📊 Collections exported: 2");
 
       Module.prototype.require = originalRequire;
     });
@@ -279,15 +279,11 @@ describe("update command", () => {
       expect(consoleSpy).toHaveBeenCalledWith(
         "✅ Collections imported successfully"
       );
-      expect(consoleSpy).toHaveBeenCalledWith(
-        "✅ Schema updated successfully"
-      );
+      expect(consoleSpy).toHaveBeenCalledWith("✅ Schema updated successfully");
       expect(consoleSpy).toHaveBeenCalledWith(
         expect.stringContaining("📁 Updated:")
       );
-      expect(consoleSpy).toHaveBeenCalledWith(
-        "📊 Collections exported: 1"
-      );
+      expect(consoleSpy).toHaveBeenCalledWith("📊 Collections exported: 1");
 
       Module.prototype.require = originalRequire;
     });
