@@ -21,4 +21,4 @@ COPY --from=prod-deps /app/web/node_modules /app/web/node_modules
 COPY --from=builder /app/web/build /app/web/build
 EXPOSE 3000
 
-CMD ["node", "/app/build/index.js"]
+CMD ["node", "/app/web/build/index.js"]
