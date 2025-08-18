@@ -63,6 +63,9 @@ importers:
 
   landing:
     dependencies:
+      '@mimsy-cms/cli':
+        specifier: ^1.0.3
+        version: 1.0.3(@types/node@24.1.0)(esbuild@0.25.8)
       prismjs:
         specifier: ^1.30.0
         version: 1.30.0
@@ -988,6 +991,13 @@ packages:
     resolution: {integrity: sha512-dyUxkXzepagLUzL8jHQNdeH286nC66ClLACsg+Neu/bjkRJWPWMzkT+H0DKlE70QdkicGCfs1ZGmXCc351hmZA==}
     peerDependencies:
       svelte: ^5
+
+  '@mimsy-cms/cli@1.0.3':
+    resolution: {integrity: sha512-KbfUIJNasX7ib8DLv6MeaRQ6usnY4hd2ecPYw3+kcySMvgsiJJKOW/6jMdxeGwQjOsvZCm01VowxIPDaEcNGfg==}
+    hasBin: true
+
+  '@mimsy-cms/sdk@1.0.1':
+    resolution: {integrity: sha512-8+KukOB7f0aiTdIFARBaaQheKG9I1CnVDLDUiRBRrcsVfCHFbci/evM3m9m/AYQ6i8/b9kwsDIzHxL/HBvcyiw==}
 
   '@nodelib/fs.scandir@2.1.5':
     resolution: {integrity: sha512-vq24Bq3ym5HEQm2NKCr3yXDwjc7vTsEThRDnkp2DK9p1uqLR+DHurm/NOTo0KG7HYHU7eppKZj3MyqYuMBf62g==}
@@ -4185,6 +4195,19 @@ snapshots:
   '@lucide/svelte@0.525.0(svelte@5.36.13)':
     dependencies:
       svelte: 5.36.13
+
+  '@mimsy-cms/cli@1.0.3(@types/node@24.1.0)(esbuild@0.25.8)':
+    dependencies:
+      '@mimsy-cms/sdk': 1.0.1
+      commander: 14.0.0
+      esbuild-register: 3.6.0(esbuild@0.25.8)
+      inquirer: 12.9.0(@types/node@24.1.0)
+    transitivePeerDependencies:
+      - '@types/node'
+      - esbuild
+      - supports-color
+
+  '@mimsy-cms/sdk@1.0.1': {}
 
   '@nodelib/fs.scandir@2.1.5':
     dependencies:
