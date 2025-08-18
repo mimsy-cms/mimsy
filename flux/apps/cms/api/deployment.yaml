@@ -43,6 +43,10 @@ spec:
                   key: password
             - name: STORAGE
               value: swift
+            - name: GH_REPO
+              value: mimsy-cms/mimsy
+            - name: GH_APP_ID
+              value: "1737622"
           ports:
             - name: http
               containerPort: 3000
