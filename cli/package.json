@@ -1,6 +1,7 @@
 {
-  "name": "@mimsy/cli",
-  "version": "1.0.0",
+  "name": "@mimsy-cms/cli",
+  "private": false,
+  "version": "1.0.3",
   "description": "",
   "main": "dist/index.js",
   "bin": {
@@ -27,6 +28,7 @@
     "@types/inquirer": "^9.0.9",
     "@types/node": "^24.0.15",
     "@vitest/coverage-istanbul": "2.1.9",
+    "@vitest/coverage-v8": "2.1.9",
     "nodemon": "^3.1.10",
     "rimraf": "^6.0.1",
     "tsconfig-paths": "^4.2.0",
@@ -38,7 +40,7 @@
     "vitest": "^2.1.4"
   },
   "dependencies": {
-    "@mimsy/sdk": "workspace:*",
+    "@mimsy-cms/sdk": "workspace:*",
     "commander": "^14.0.0",
     "esbuild-register": "^3.6.0",
     "inquirer": "^12.9.0"

@@ -1,7 +1,7 @@
 import { Command } from "commander";
 import { writeFileSync } from "fs";
 import { resolve } from "path";
-import { exportSchema, clearRegistry } from "@mimsy/sdk";
+import { exportSchema, clearRegistry } from "@mimsy-cms/sdk";
 
 export interface ExportSchemaOptions {
   output: string;
@@ -10,7 +10,9 @@ export interface ExportSchemaOptions {
   clear: boolean;
 }
 
-export async function exportSchemaAction(options: ExportSchemaOptions): Promise<void> {
+export async function exportSchemaAction(
+  options: ExportSchemaOptions,
+): Promise<void> {
   try {
     // Clear registry if requested
     if (options.clear) {

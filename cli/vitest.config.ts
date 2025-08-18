@@ -12,18 +12,21 @@ export default defineConfig({
     include: ["tests/**/*.test.ts"],
     env: loadEnv("test", process.cwd(), ""),
     coverage: {
-      provider: "istanbul",
+      provider: "v8",
       reporter: ["text", "json", "html"],
       reportsDirectory: "coverage/unit",
       include: ["src/**/*.ts"],
     },
-    setupFiles: ['./tests/setup.ts'],
+    setupFiles: ["./tests/setup.ts"],
   },
   resolve: {
     alias: {
       $src: path.resolve(__dirname, "./src"),
       $test: path.resolve(__dirname, "./test"),
-      'esbuild-register': path.resolve(__dirname, './tests/__mocks__/esbuild-register.ts'),
+      "esbuild-register": path.resolve(
+        __dirname,
+        "./tests/__mocks__/esbuild-register.ts",
+      ),
     },
   },
   plugins: [swc.vite({ module: { type: "es6" } })],
