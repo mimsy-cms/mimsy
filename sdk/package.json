@@ -1,8 +1,8 @@
 {
   "name": "@mimsy-cms/sdk",
-  "private": false,
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "",
+  "private": false,
   "main": "dist/index.js",
   "module": "lib/index.js",
   "types": "dist/index.d.ts",
