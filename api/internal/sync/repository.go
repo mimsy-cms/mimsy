@@ -48,7 +48,7 @@ func (r *syncStatusRepository) GetStatus(repo string) (*SyncStatus, error) {
 		LIMIT 1`
 
 	var status SyncStatus
-	var appliedMigration, manifest sql.NullString
+	var appliedMigration, manifest, errorMessage sql.NullString
 	var appliedAt sql.NullTime
 
 	err := r.db.QueryRow(query, repo).Scan(
@@ -59,7 +59,7 @@ func (r *syncStatusRepository) GetStatus(repo string) (*SyncStatus, error) {
 		&appliedMigration,
 		&appliedAt,
 		&status.IsActive,
-		&status.ErrorMessage,
+		&errorMessage,
 		&manifest,
 	)
 
@@ -82,6 +82,10 @@ func (r *syncStatusRepository) GetStatus(repo string) (*SyncStatus, error) {
 		status.Manifest = manifest.String
 	}
 
+	if errorMessage.Valid {
+		status.ErrorMessage = errorMessage.String
+	}
+
 	return &status, nil
 }
 
@@ -95,7 +99,7 @@ func (r *syncStatusRepository) GetLastSyncedCommit(repo string) (*SyncStatus, er
 		LIMIT 1`
 
 	var status SyncStatus
-	var appliedMigration, manifest sql.NullString
+	var appliedMigration, manifest, errorMessage sql.NullString
 	var appliedAt sql.NullTime
 
 	err := r.db.QueryRow(query, repo).Scan(
@@ -106,7 +110,7 @@ func (r *syncStatusRepository) GetLastSyncedCommit(repo string) (*SyncStatus, er
 		&appliedMigration,
 		&appliedAt,
 		&status.IsActive,
-		&status.ErrorMessage,
+		&errorMessage,
 		&manifest,
 	)
 
@@ -127,6 +131,10 @@ func (r *syncStatusRepository) GetLastSyncedCommit(repo string) (*SyncStatus, er
 
 	if manifest.Valid {
 		status.Manifest = manifest.String
+	}
+
+	if errorMessage.Valid {
+		status.ErrorMessage = errorMessage.String
 	}
 
 	return &status, nil
@@ -208,7 +216,7 @@ func (r *syncStatusRepository) GetRecentStatuses(limit int) ([]*SyncStatus, erro
 	var statuses []*SyncStatus
 	for rows.Next() {
 		var status SyncStatus
-		var appliedMigration, manifest sql.NullString
+		var appliedMigration, manifest, errorMessage sql.NullString
 		var appliedAt sql.NullTime
 
 		err := rows.Scan(
@@ -219,7 +227,7 @@ func (r *syncStatusRepository) GetRecentStatuses(limit int) ([]*SyncStatus, erro
 			&appliedMigration,
 			&appliedAt,
 			&status.IsActive,
-			&status.ErrorMessage,
+			&errorMessage,
 			&manifest,
 		)
 
@@ -237,6 +245,10 @@ func (r *syncStatusRepository) GetRecentStatuses(limit int) ([]*SyncStatus, erro
 
 		if manifest.Valid {
 			status.Manifest = manifest.String
+		}
+
+		if errorMessage.Valid {
+			status.ErrorMessage = errorMessage.String
 		}
 
 		statuses = append(statuses, &status)
