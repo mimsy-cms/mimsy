@@ -38,6 +38,8 @@ spec:
                 secretKeyRef:
                   name: mimsy
                   key: password
+            - name: STORAGE
+              value: swift
           ports:
             - name: http
               containerPort: 3000
