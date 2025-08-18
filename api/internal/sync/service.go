@@ -104,7 +104,7 @@ func (s *syncProvider) SyncRepository(ctx context.Context) error {
 	}
 
 	// Get the manifest file from the repository contents
-	manifest, err := s.githubClient.GetFileContent(ctx, s.repositoryName, contents.Sha, s.pathToProject+"mimsy.schema.json")
+	manifest, err := s.githubClient.GetFileContent(ctx, s.repositoryName, contents.Sha, s.pathToProject+"mimsy.config.json")
 	if err != nil {
 		// Mark the error to the sync status repository
 		if err := s.syncStatusRepository.MarkError(s.repositoryName, contents.Sha, err); err != nil {
@@ -114,13 +114,33 @@ func (s *syncProvider) SyncRepository(ctx context.Context) error {
 	}
 
 	// With that manifest, unmarshall to the Schema:
-	var schema mimsy_schema.Schema
-	if err := json.Unmarshal(manifest, &schema); err != nil {
-		return fmt.Errorf("failed to unmarshal manifest file for repository %s: %w", s.repositoryName, err)
+	var config mimsy_schema.MimsyConfig
+	if err := json.Unmarshal(manifest, &config); err != nil {
+		return fmt.Errorf("failed to unmarshal config file for repository %s: %w", s.repositoryName, err)
+	}
+
+	var path string
+	if config.SchemaPath != "" {
+		path = config.SchemaPath
+	} else if config.BasePath != "" {
+		path = config.BasePath + "/mimsy.schema.json"
+	} else {
+		path = s.pathToProject + "mimsy.schema.json"
+	}
+
+	// We need to fetch the schema from the repository contents
+	schema, err := s.githubClient.GetFileContent(ctx, s.repositoryName, contents.Sha, path)
+	if err != nil {
+		return fmt.Errorf("failed to fetch schema for repository %s: %w", s.repositoryName, err)
+	}
+
+	var schemaStruct mimsy_schema.Schema
+	if err := json.Unmarshal(schema, &schemaStruct); err != nil {
+		return fmt.Errorf("failed to unmarshal schema file for repository %s: %w", s.repositoryName, err)
 	}
 
 	// once unmarshalled, set the manifest to the sync status repository
-	if err := s.syncStatusRepository.SetManifest(s.repositoryName, contents.Sha, schema); err != nil {
+	if err := s.syncStatusRepository.SetManifest(s.repositoryName, contents.Sha, schemaStruct); err != nil {
 		return fmt.Errorf("failed to set manifest for repository %s: %w", s.repositoryName, err)
 	}
 
