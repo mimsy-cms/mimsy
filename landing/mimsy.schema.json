@@ -1,60 +1,60 @@
 {
-  "collections": [
-    {
-      "name": "tags",
-      "schema": {
-        "name": {
-          "type": "string",
-          "options": {
-            "description": "The name of the tag",
-            "constraints": { "minLength": 2, "maxLength": 50 }
-          }
-        },
-        "color": {
-          "type": "string",
-          "options": {
-            "description": "The color of the tag, in **hexadecimal** format",
-            "constraints": { "minLength": 6, "maxLength": 6 }
-          }
-        }
-      }
-    },
-    {
-      "name": "posts",
-      "schema": {
-        "title": {
-          "type": "string",
-          "options": {
-            "description": "The title of the post",
-            "constraints": { "minLength": 5, "maxLength": 100 }
-          }
-        },
-        "author": {
-          "type": "relation",
-          "relatesTo": "User",
-          "options": {
-            "description": "The author of the post",
-            "constraints": { "required": true }
-          }
-        },
-        "tags": {
-          "type": "relation",
-          "relatesTo": "tags",
-          "options": {
-            "description": "The tags associated with the post",
-            "constraints": { "required": true }
-          }
-        },
-        "coverImage": {
-          "type": "relation",
-          "relatesTo": "Media",
-          "options": {
-            "description": "The cover image of the post",
-            "constraints": { "required": true }
-          }
-        }
-      }
-    }
-  ],
-  "generatedAt": "2025-08-11T07:55:00.170Z"
+	"collections": [
+		{
+			"name": "tags",
+			"schema": {
+				"name": {
+					"type": "string",
+					"options": {
+						"description": "The name of the tag",
+						"constraints": { "minLength": 2, "maxLength": 50 }
+					}
+				},
+				"color": {
+					"type": "string",
+					"options": {
+						"description": "The color of the tag, in **hexadecimal** format",
+						"constraints": { "minLength": 6, "maxLength": 6 }
+					}
+				}
+			}
+		},
+		{
+			"name": "posts",
+			"schema": {
+				"title": {
+					"type": "string",
+					"options": {
+						"description": "The title of the post",
+						"constraints": { "minLength": 5, "maxLength": 100 }
+					}
+				},
+				"author": {
+					"type": "relation",
+					"relatesTo": "<builtins.user>",
+					"options": {
+						"description": "The author of the post",
+						"constraints": { "required": true }
+					}
+				},
+				"tags": {
+					"type": "relation",
+					"relatesTo": "tags",
+					"options": {
+						"description": "The tags associated with the post",
+						"constraints": { "required": true }
+					}
+				},
+				"coverImage": {
+					"type": "relation",
+					"relatesTo": "<builtins.media>",
+					"options": {
+						"description": "The cover image of the post",
+						"constraints": { "required": true }
+					}
+				}
+			}
+		}
+	],
+	"generatedAt": "2025-08-11T07:55:00.170Z"
 }

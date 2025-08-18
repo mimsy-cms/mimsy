@@ -187,13 +187,24 @@ func (s *schemaGenerator) HandleManyToManyField(name string, element mimsy_schem
 		return nil, err
 	}
 
+	referenceTableName, err := GetSimpleTableName(element.RelatesTo)
+
 	joinTableIdentifier := joinTableName
-	idColumnName := fmt.Sprintf("%s_id", name)
-	referenceTable := element.RelatesTo
+	idColumnName := fmt.Sprintf("%s_id", referenceTableName)
+	referenceTable, err := GetPrefixedTableName(element.RelatesTo)
+
+	if err != nil {
+		return nil, err
+	}
 
 	rowId := fmt.Sprintf("%s_id", table.Name)
-	relatesToId := fmt.Sprintf("%s_id", element.RelatesTo)
-	relatesToSlug := fmt.Sprintf("%s_slug", element.RelatesTo)
+	relatesToId := fmt.Sprintf("%s_id", referenceTableName)
+	relatesToSlug := fmt.Sprintf("%s_slug", referenceTableName)
+
+	baseTableName, err := GetPrefixedTableName(table.Name)
+	if err != nil {
+		return nil, err
+	}
 
 	joinTable := Table{
 		Name: joinTableIdentifier,
@@ -212,7 +223,7 @@ func (s *schemaGenerator) HandleManyToManyField(name string, element mimsy_schem
 				Name:        relatesToSlug,
 				Type:        "varchar",
 				IsNotNull:   true,
-				GeneratedAs: fmt.Sprintf("SELECT slug FROM %s WHERE id = %s", pq.QuoteIdentifier(referenceTable), pq.QuoteIdentifier(idColumnName)),
+				GeneratedAs: fmt.Sprintf("SELECT slug FROM %s WHERE id = %s", referenceTable, pq.QuoteIdentifier(idColumnName)),
 			},
 		},
 		Constraints: []Constraint{
@@ -223,7 +234,7 @@ func (s *schemaGenerator) HandleManyToManyField(name string, element mimsy_schem
 			&ForeignKeyConstraint{
 				Table:           joinTableIdentifier,
 				Column:          rowId,
-				ReferenceTable:  table.Name,
+				ReferenceTable:  baseTableName,
 				ReferenceColumn: "id",
 			},
 			&ForeignKeyConstraint{
@@ -245,7 +256,11 @@ func (s *schemaGenerator) HandleManyToManyField(name string, element mimsy_schem
 func (s *schemaGenerator) HandleManyToOneField(name string, element mimsy_schema.SchemaElement, table *Table) (*SqlSchema, error) {
 	// Add a new column and constraint
 	idColumnName := fmt.Sprintf("%s_id", name)
-	referenceTable := element.RelatesTo
+	referenceTable, err := GetPrefixedTableName(element.RelatesTo)
+
+	if err != nil {
+		return nil, err
+	}
 
 	idColumn := Column{
 		Name:      idColumnName,
@@ -256,7 +271,7 @@ func (s *schemaGenerator) HandleManyToOneField(name string, element mimsy_schema
 	slugColumn := Column{
 		Name:        fmt.Sprintf("%s_slug", name),
 		Type:        "varchar",
-		GeneratedAs: fmt.Sprintf("SELECT slug FROM %s WHERE id = %s", pq.QuoteIdentifier(referenceTable), pq.QuoteIdentifier(idColumnName)),
+		GeneratedAs: fmt.Sprintf("SELECT slug FROM %s WHERE id = %s", referenceTable, pq.QuoteIdentifier(idColumnName)),
 	}
 
 	table.Columns = append(table.Columns, idColumn, slugColumn)
