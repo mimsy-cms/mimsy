@@ -1,4 +1,4 @@
-import { collection, fields, builtins, type Collection } from "@mimsy/sdk";
+import { collection, fields, builtins, type Collection } from "@mimsy-cms/sdk";
 
 export const Tags: Collection<any> = collection("tags", {
   name: fields.shortString({

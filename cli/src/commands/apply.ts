@@ -1,5 +1,5 @@
 import { Command } from "commander";
-import { exportSchema, clearRegistry } from "@mimsy/sdk";
+import { exportSchema, clearRegistry } from "@mimsy-cms/sdk";
 import { writeFileSync, mkdirSync, existsSync } from "fs";
 import { resolve, join } from "path";
 import inquirer from "inquirer";
