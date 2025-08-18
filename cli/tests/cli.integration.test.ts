@@ -22,7 +22,7 @@ describe("CLI integration tests", () => {
   it("should have correct program metadata", () => {
     expect(program.name()).toBe("msy");
     expect(program.description()).toBe(
-      "A CLI tool for mimsy, the simple SvelteKit CMS",
+      "A CLI tool for mimsy, the simple SvelteKit CMS"
     );
     expect(program.version()).toBe("1.0.0");
   });
@@ -30,7 +30,8 @@ describe("CLI integration tests", () => {
   it("should have all commands registered", () => {
     const commandNames = program.commands.map((cmd) => cmd.name());
     expect(commandNames).toContain("update");
-    expect(commandNames).toHaveLength(1);
+    expect(commandNames).toContain("init");
+    expect(commandNames).toHaveLength(2);
   });
 
   it("should show error when collections file is missing", async () => {
@@ -44,7 +45,7 @@ describe("CLI integration tests", () => {
     }
 
     expect(errorSpy).toHaveBeenCalledWith(
-      expect.stringContaining("No collections file found"),
+      expect.stringContaining("No collections file found")
     );
   });
 
