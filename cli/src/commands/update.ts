@@ -2,6 +2,7 @@ import { Command } from "commander";
 import { exportSchema, clearRegistry } from "@mimsy-cms/sdk";
 import { writeFileSync, existsSync } from "fs";
 import { resolve } from "path";
+import { version } from "../version";
 
 export interface UpdateOptions {
   clear: boolean;
@@ -44,7 +45,7 @@ export async function updateAction(options: UpdateOptions): Promise<void> {
 
     const header = [
       `// Updated at: ${new Date().toISOString()}`,
-      `// Version: @mimsy/cli@1.0.0`,
+      `// Version: @mimsy-cms/cli@${version}`,
       "",
     ].join("\n");
 
