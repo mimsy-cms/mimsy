@@ -14,7 +14,7 @@ patches:
   - patch: |
       - op: replace
         path: /spec/path
-        value: ./flux/clusters/sofliar/overrides/web
+        value: ./flux/clusters/sofliar/overrides/cms
     target:
       kind: Kustomization
-      name: "web"
+      name: "cms"
