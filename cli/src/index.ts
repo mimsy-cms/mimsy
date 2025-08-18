@@ -2,6 +2,7 @@
 import { Command } from "commander";
 import { updateCommand } from "./commands/update";
 import { initCommand } from "./commands/init";
+import { version } from "./version";
 
 export function createProgram(): Command {
   const program = new Command();
@@ -9,7 +10,7 @@ export function createProgram(): Command {
   program
     .name("msy")
     .description("A CLI tool for mimsy, the simple SvelteKit CMS")
-    .version("1.0.0");
+    .version(version);
 
   initCommand(program);
   updateCommand(program);

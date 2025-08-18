@@ -5,6 +5,7 @@ import fs from "fs";
 import path from "path";
 import * as sdk from "@mimsy-cms/sdk";
 import Module from "module";
+import { version } from "$src/version";
 
 vi.mock("fs");
 vi.mock("@mimsy-cms/sdk");
@@ -34,14 +35,14 @@ describe("update command", () => {
 
       expect(command.name()).toBe("update");
       expect(command.description()).toBe(
-        "Update the mimsy.schema.json file in the root of the package"
+        "Update the mimsy.schema.json file in the root of the package",
       );
 
       const options = command.options;
       const clearOption = options.find((opt) => opt.long === "--clear");
       expect(clearOption).toBeDefined();
       expect(clearOption?.description).toBe(
-        "Clear the registry before importing collections"
+        "Clear the registry before importing collections",
       );
     });
   });
@@ -71,7 +72,7 @@ describe("update command", () => {
       expect(mockClearRegistry).toHaveBeenCalled();
       expect(mockWriteFileSync).toHaveBeenCalled();
       expect(consoleSpy).toHaveBeenCalledWith(
-        expect.stringContaining("✅ Schema updated successfully")
+        expect.stringContaining("✅ Schema updated successfully"),
       );
 
       Module.prototype.require = originalRequire;
@@ -110,14 +111,14 @@ describe("update command", () => {
       mockExistsSync.mockReturnValue(false);
 
       await expect(updateAction({ clear: false })).rejects.toThrow(
-        "process.exit(1)"
+        "process.exit(1)",
       );
 
       expect(consoleErrorSpy).toHaveBeenCalledWith(
-        "❌ Error: No collections file found at src/lib/collections.ts"
+        "❌ Error: No collections file found at src/lib/collections.ts",
       );
       expect(consoleErrorSpy).toHaveBeenCalledWith(
-        "   Please ensure you have a collections file before updating schema."
+        "   Please ensure you have a collections file before updating schema.",
       );
     });
 
@@ -149,13 +150,13 @@ describe("update command", () => {
       expect(mockWriteFileSync).toHaveBeenCalledWith(
         expect.stringContaining("mimsy.schema.json"),
         expect.stringContaining("// Updated at:"),
-        "utf8"
+        "utf8",
       );
 
       expect(mockWriteFileSync).toHaveBeenCalledWith(
         expect.anything(),
-        expect.stringContaining("// Version: @mimsy/cli@1.0.0"),
-        "utf8"
+        expect.stringContaining(`// Version: @mimsy-cms/cli@${version}`),
+        "utf8",
       );
 
       expect(consoleSpy).toHaveBeenCalledWith("📊 Collections exported: 2");
@@ -180,12 +181,12 @@ describe("update command", () => {
       mockExistsSync.mockReturnValue(true);
 
       await expect(updateAction({ clear: false })).rejects.toThrow(
-        "process.exit(1)"
+        "process.exit(1)",
       );
 
       expect(consoleErrorSpy).toHaveBeenCalledWith(
         "❌ Failed to import collections:",
-        "Import failed: Invalid syntax"
+        "Import failed: Invalid syntax",
       );
 
       Module.prototype.require = originalRequire;
@@ -209,12 +210,12 @@ describe("update command", () => {
       });
 
       await expect(updateAction({ clear: false })).rejects.toThrow(
-        "process.exit(1)"
+        "process.exit(1)",
       );
 
       expect(consoleErrorSpy).toHaveBeenCalledWith(
         "❌ Failed to update schema:",
-        "Schema export failed"
+        "Schema export failed",
       );
 
       Module.prototype.require = originalRequire;
@@ -242,12 +243,12 @@ describe("update command", () => {
       });
 
       await expect(updateAction({ clear: false })).rejects.toThrow(
-        "process.exit(1)"
+        "process.exit(1)",
       );
 
       expect(consoleErrorSpy).toHaveBeenCalledWith(
         "❌ Failed to update schema:",
-        "Permission denied"
+        "Permission denied",
       );
 
       Module.prototype.require = originalRequire;
@@ -274,14 +275,14 @@ describe("update command", () => {
       await updateAction({ clear: false });
 
       expect(consoleSpy).toHaveBeenCalledWith(
-        expect.stringContaining("📥 Importing collections from:")
+        expect.stringContaining("📥 Importing collections from:"),
       );
       expect(consoleSpy).toHaveBeenCalledWith(
-        "✅ Collections imported successfully"
+        "✅ Collections imported successfully",
       );
       expect(consoleSpy).toHaveBeenCalledWith("✅ Schema updated successfully");
       expect(consoleSpy).toHaveBeenCalledWith(
-        expect.stringContaining("📁 Updated:")
+        expect.stringContaining("📁 Updated:"),
       );
       expect(consoleSpy).toHaveBeenCalledWith("📊 Collections exported: 1");
 

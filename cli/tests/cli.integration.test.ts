@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { createProgram } from "../src/index";
+import { version } from "../src/version";
 import { Command } from "commander";
 
 describe("CLI integration tests", () => {
@@ -24,7 +25,7 @@ describe("CLI integration tests", () => {
     expect(program.description()).toBe(
       "A CLI tool for mimsy, the simple SvelteKit CMS"
     );
-    expect(program.version()).toBe("1.0.0");
+    expect(program.version()).toBe(version);
   });
 
   it("should have all commands registered", () => {
@@ -81,7 +82,7 @@ describe("CLI integration tests", () => {
       // Expected to throw due to exitOverride
     }
 
-    expect(writeSpy).toHaveBeenCalledWith(expect.stringContaining("1.0.0"));
+    expect(writeSpy).toHaveBeenCalledWith(expect.stringContaining(version));
   });
 
   it("should handle unknown commands gracefully", () => {
