@@ -152,7 +152,7 @@ jobs:
       - name: Build and push docker
         uses: docker/build-push-action@v6
         with:
-          context: landing
+          file: docker/landing.Dockerfile
           push: ${{ github.event_name != 'pull_request' }}
           tags: ${{ steps.metadata.outputs.tags }}
           labels: ${{ steps.metadata.outputs.labels }}
@@ -189,7 +189,7 @@ jobs:
       - name: Build and push docker
         uses: docker/build-push-action@v6
         with:
-          context: web
+          file: docker/web.Dockerfile
           push: ${{ github.event_name != 'pull_request' }}
           tags: ${{ steps.metadata.outputs.tags }}
           labels: ${{ steps.metadata.outputs.labels }}
@@ -226,7 +226,7 @@ jobs:
       - name: Build and push docker
         uses: docker/build-push-action@v6
         with:
-          context: api
+          file: docker/api.Dockerfile
           push: ${{ github.event_name != 'pull_request' }}
           tags: ${{ steps.metadata.outputs.tags }}
           labels: ${{ steps.metadata.outputs.labels }}
