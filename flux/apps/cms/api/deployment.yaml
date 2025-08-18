@@ -22,7 +22,7 @@ spec:
         - name: api
           image: ghcr.io/mimsy-cms/api:20250818-113322-fdb7cb7 # {"$imagepolicy": "mimsy:api"}
           envFrom:
-            - configMapRef:
+            - secretRef:
                 name: api-secrets
           env:
             - name: POSTGRES_HOST
