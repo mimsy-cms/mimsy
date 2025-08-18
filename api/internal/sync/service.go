@@ -32,6 +32,7 @@ type syncProvider struct {
 	repositoryName       string
 	pathToProject        string
 	syncStatusRepository SyncStatusRepository
+	migrator             Migrator
 }
 
 func New(syncStatusRepository SyncStatusRepository, pemKey string, appId int64, repositoryName string) (SyncProvider, error) {
@@ -45,6 +46,7 @@ func New(syncStatusRepository SyncStatusRepository, pemKey string, appId int64, 
 		repositoryName:       repositoryName,
 		pathToProject:        "",
 		syncStatusRepository: syncStatusRepository,
+		migrator:             *NewMigrator(),
 	}, nil
 }
 
@@ -93,13 +95,13 @@ func (s *syncProvider) SyncRepository(ctx context.Context) error {
 		return fmt.Errorf("failed to get last synced commit for repository %s: %w", s.repositoryName, err)
 	}
 
-	if dbCommit != nil && contents.Sha == dbCommit.Commit {
+	if dbCommit != nil && contents.Sha == dbCommit.Commit && dbCommit.IsActive == true {
 		slog.Info("Repository is up to date, queueing next sync", "repository", s.repositoryName)
 		return nil
 	}
 
 	// Create the sync status
-	if err := s.syncStatusRepository.CreateStatus(s.repositoryName, contents.Sha, contents.Message, contents.Date); err != nil {
+	if err := s.syncStatusRepository.CreateIfNotExists(s.repositoryName, contents.Sha, contents.Message, contents.Date); err != nil {
 		return fmt.Errorf("failed to create sync status for repository %s: %w", s.repositoryName, err)
 	}
 
@@ -144,6 +146,23 @@ func (s *syncProvider) SyncRepository(ctx context.Context) error {
 		return fmt.Errorf("failed to set manifest for repository %s: %w", s.repositoryName, err)
 	}
 
+	// Get the last active migration
+	activeMigration, err := s.syncStatusRepository.GetActiveMigration(s.repositoryName)
+	if err != nil {
+		return fmt.Errorf("failed to get last active migration for repository %s: %w", s.repositoryName, err)
+	}
+
+	// Run the migration
+	if err := s.migrator.Migrate(ctx, activeMigration, &schemaStruct, contents.Message, contents.Sha); err != nil {
+		return fmt.Errorf("failed to run migration for repository %s: %w", s.repositoryName, err)
+	}
+
+	// Mark the migration as active
+	if err := s.syncStatusRepository.MarkAsActive(s.repositoryName, contents.Sha); err != nil {
+		return fmt.Errorf("failed to mark migration as active for repository %s: %w", s.repositoryName, err)
+	}
+
+	// Generate the diff between the schema and the active migration
 	slog.Info("Completed sync for repository", "repository", s.repositoryName)
 	return nil
 }

@@ -21,8 +21,8 @@ export type MediaValue = BuiltInValue & {
 };
 
 export const User: BuiltIn<UserValue> = {
-  name: "User",
+  name: "<builtins.user>",
 };
 export const Media: BuiltIn<MediaValue> = {
-  name: "Media",
+  name: "<builtins.media>",
 };

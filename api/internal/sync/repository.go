@@ -26,9 +26,11 @@ type SyncStatusRepository interface {
 	GetLastSyncedCommit(repo string) (*SyncStatus, error)
 	GetRecentStatuses(limit int) ([]*SyncStatus, error)
 	MarkError(repo string, commitSha string, err error) error
-	CreateStatus(repo string, commitSha string, commitMessage string, commitDate time.Time) error
+	CreateIfNotExists(repo string, commitSha string, commitMessage string, commitDate time.Time) error
 	SetManifest(repo string, commitSha string, manifest mimsy_schema.Schema) error
 	SetAppliedMigration(repo string, commitSha string, migration []byte) error
+	GetActiveMigration(repo string) (*SyncStatus, error)
+	MarkAsActive(repo string, commitSha string) error
 }
 
 type syncStatusRepository struct {
@@ -39,19 +41,15 @@ func NewSyncStatusRepository(db *sql.DB) SyncStatusRepository {
 	return &syncStatusRepository{db: db}
 }
 
-func (r *syncStatusRepository) GetStatus(repo string) (*SyncStatus, error) {
-	query := `
-		SELECT repo, commit, commit_message, commit_date, applied_migration,
-		       applied_at, is_active, error_message, manifest
-		FROM sync_status
-		WHERE repo = $1 AND is_active = true
-		LIMIT 1`
-
+// scanSyncStatus is a helper function to scan database rows into SyncStatus struct
+func scanSyncStatus(scanner interface {
+	Scan(dest ...interface{}) error
+}) (*SyncStatus, error) {
 	var status SyncStatus
 	var appliedMigration, manifest, errorMessage sql.NullString
 	var appliedAt sql.NullTime
 
-	err := r.db.QueryRow(query, repo).Scan(
+	err := scanner.Scan(
 		&status.Repo,
 		&status.Commit,
 		&status.CommitMessage,
@@ -64,10 +62,7 @@ func (r *syncStatusRepository) GetStatus(repo string) (*SyncStatus, error) {
 	)
 
 	if err != nil {
-		if err == sql.ErrNoRows {
-			return nil, nil
-		}
-		return nil, fmt.Errorf("failed to get sync status: %w", err)
+		return nil, err
 	}
 
 	if appliedMigration.Valid {
@@ -87,6 +82,26 @@ func (r *syncStatusRepository) GetStatus(repo string) (*SyncStatus, error) {
 	}
 
 	return &status, nil
+}
+
+func (r *syncStatusRepository) GetStatus(repo string) (*SyncStatus, error) {
+	query := `
+		SELECT repo, commit, commit_message, commit_date, applied_migration,
+		       applied_at, is_active, error_message, manifest
+		FROM sync_status
+		WHERE repo = $1 AND is_active = true
+		LIMIT 1`
+
+	row := r.db.QueryRow(query, repo)
+	status, err := scanSyncStatus(row)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return nil, nil
+		}
+		return nil, fmt.Errorf("failed to get sync status: %w", err)
+	}
+
+	return status, nil
 }
 
 func (r *syncStatusRepository) GetLastSyncedCommit(repo string) (*SyncStatus, error) {
@@ -98,22 +113,8 @@ func (r *syncStatusRepository) GetLastSyncedCommit(repo string) (*SyncStatus, er
 		ORDER BY applied_at DESC
 		LIMIT 1`
 
-	var status SyncStatus
-	var appliedMigration, manifest, errorMessage sql.NullString
-	var appliedAt sql.NullTime
-
-	err := r.db.QueryRow(query, repo).Scan(
-		&status.Repo,
-		&status.Commit,
-		&status.CommitMessage,
-		&status.CommitDate,
-		&appliedMigration,
-		&appliedAt,
-		&status.IsActive,
-		&errorMessage,
-		&manifest,
-	)
-
+	row := r.db.QueryRow(query, repo)
+	status, err := scanSyncStatus(row)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			return nil, nil
@@ -121,23 +122,7 @@ func (r *syncStatusRepository) GetLastSyncedCommit(repo string) (*SyncStatus, er
 		return nil, fmt.Errorf("failed to get last synced commit: %w", err)
 	}
 
-	if appliedMigration.Valid {
-		status.AppliedMigration = appliedMigration.String
-	}
-
-	if appliedAt.Valid {
-		status.AppliedAt = appliedAt.Time
-	}
-
-	if manifest.Valid {
-		status.Manifest = manifest.String
-	}
-
-	if errorMessage.Valid {
-		status.ErrorMessage = errorMessage.String
-	}
-
-	return &status, nil
+	return status, nil
 }
 
 func (r *syncStatusRepository) MarkError(repo string, commitSha string, err error) error {
@@ -154,12 +139,24 @@ func (r *syncStatusRepository) MarkError(repo string, commitSha string, err erro
 	return nil
 }
 
-func (r *syncStatusRepository) CreateStatus(repo string, commitSha string, commitMessage string, commitDate time.Time) error {
+func (r *syncStatusRepository) CreateIfNotExists(repo string, commitSha string, commitMessage string, commitDate time.Time) error {
 	tx, err := r.db.Begin()
 	if err != nil {
 		return fmt.Errorf("failed to begin transaction: %w", err)
 	}
 	defer tx.Rollback()
+
+	// Check if the (repo, commitSha) pair already exists
+	var count int
+	err = tx.QueryRow("SELECT COUNT(*) FROM sync_status WHERE repo = $1 AND commit = $2", repo, commitSha).Scan(&count)
+	if err != nil {
+		return fmt.Errorf("failed to check existing status: %w", err)
+	}
+
+	// If it already exists, do nothing
+	if count > 0 {
+		return tx.Commit()
+	}
 
 	// Deactivate previous active status
 	_, err = tx.Exec("UPDATE sync_status SET is_active = false WHERE repo = $1", repo)
@@ -167,10 +164,10 @@ func (r *syncStatusRepository) CreateStatus(repo string, commitSha string, commi
 		return fmt.Errorf("failed to deactivate previous status: %w", err)
 	}
 
-	// Create new active status
+	// Create new status
 	query := `
 		INSERT INTO sync_status (repo, commit, commit_message, commit_date, is_active)
-		VALUES ($1, $2, $3, $4, true)`
+		VALUES ($1, $2, $3, $4, false)`
 
 	_, err = tx.Exec(query, repo, commitSha, commitMessage, commitDate)
 	if err != nil {
@@ -215,43 +212,12 @@ func (r *syncStatusRepository) GetRecentStatuses(limit int) ([]*SyncStatus, erro
 
 	var statuses []*SyncStatus
 	for rows.Next() {
-		var status SyncStatus
-		var appliedMigration, manifest, errorMessage sql.NullString
-		var appliedAt sql.NullTime
-
-		err := rows.Scan(
-			&status.Repo,
-			&status.Commit,
-			&status.CommitMessage,
-			&status.CommitDate,
-			&appliedMigration,
-			&appliedAt,
-			&status.IsActive,
-			&errorMessage,
-			&manifest,
-		)
-
+		status, err := scanSyncStatus(rows)
 		if err != nil {
 			return nil, fmt.Errorf("failed to scan status row: %w", err)
 		}
 
-		if appliedMigration.Valid {
-			status.AppliedMigration = appliedMigration.String
-		}
-
-		if appliedAt.Valid {
-			status.AppliedAt = appliedAt.Time
-		}
-
-		if manifest.Valid {
-			status.Manifest = manifest.String
-		}
-
-		if errorMessage.Valid {
-			status.ErrorMessage = errorMessage.String
-		}
-
-		statuses = append(statuses, &status)
+		statuses = append(statuses, status)
 	}
 
 	if err := rows.Err(); err != nil {
@@ -270,6 +236,43 @@ func (r *syncStatusRepository) SetAppliedMigration(repo string, commitSha string
 	_, err := r.db.Exec(query, migration, repo, commitSha)
 	if err != nil {
 		return fmt.Errorf("failed to set applied migration: %w", err)
+	}
+
+	return nil
+}
+
+func (r *syncStatusRepository) GetActiveMigration(repo string) (*SyncStatus, error) {
+	query := `
+		SELECT repo, commit, commit_message, commit_date, applied_migration,
+									applied_at, is_active, error_message, manifest
+		FROM sync_status
+		WHERE repo = $1 AND is_active = true
+		LIMIT 1`
+
+	row := r.db.QueryRow(query, repo)
+	status, err := scanSyncStatus(row)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return nil, nil
+		}
+		return nil, fmt.Errorf("failed to get active migration: %w", err)
+	}
+
+	return status, nil
+}
+
+func (s *syncStatusRepository) MarkAsActive(repo string, commitSha string) error {
+	query := `
+		UPDATE sync_status
+		SET is_active = CASE
+			WHEN commit = $2 THEN true
+			ELSE false
+		END
+		WHERE repo = $1`
+
+	_, err := s.db.Exec(query, repo, commitSha)
+	if err != nil {
+		return fmt.Errorf("failed to mark as active: %w", err)
 	}
 
 	return nil

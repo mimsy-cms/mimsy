@@ -64,14 +64,14 @@ type ForeignKeyConstraint struct {
 }
 
 func (f *ForeignKeyConstraint) Name() string {
-	return fmt.Sprintf("fk__%s__%s__%s", f.Table, f.Column, f.ReferenceTable)
+	return fmt.Sprintf("fk__%s__%s__%s", f.Table, f.Column, RemoveSchemaFromReference(f.ReferenceTable))
 }
 
 func (f *ForeignKeyConstraint) ToSql() string {
 	return fmt.Sprintf("CONSTRAINT %s FOREIGN KEY (%s) REFERENCES %s (%s)",
 		f.Name(),
 		pq.QuoteIdentifier(f.Column),
-		pq.QuoteIdentifier(f.ReferenceTable),
+		f.ReferenceTable,
 		pq.QuoteIdentifier(f.ReferenceColumn),
 	)
 }

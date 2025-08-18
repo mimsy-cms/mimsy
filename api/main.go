@@ -12,6 +12,7 @@ import (
 	"strconv"
 
 	_ "github.com/joho/godotenv/autoload"
+	"github.com/lib/pq"
 	_ "github.com/lib/pq"
 	pgroll_migrations "github.com/xataio/pgroll/pkg/migrations"
 	"github.com/xataio/pgroll/pkg/roll"
@@ -40,13 +41,19 @@ func main() {
 		return
 	}
 
-	m, err := initRoll(ctx)
+	internalRoll, err := initRoll(ctx, "mimsy_internal", "mimsy_internal_roll")
 	if err != nil {
 		slog.Error("Failed to initialize roll", "error", err)
 		return
 	}
 
-	migrationsCount, err := runMigrations(ctx, m)
+	_, err = initRoll(ctx, "mimsy_collections", "mimsy_collections_roll")
+	if err != nil {
+		slog.Error("Failed to initialize roll", "error", err)
+		return
+	}
+
+	migrationsCount, err := runMigrations(ctx, internalRoll)
 	if err != nil {
 		slog.Error("Failed to run migrations", "error", err)
 		return
@@ -54,7 +61,7 @@ func main() {
 
 	slog.Info("Successfully ran migrations", "count", migrationsCount)
 
-	db, err := sql.Open("postgres", getPgURL())
+	db, err := sql.Open("postgres", getPgURL()+"&search_path=mimsy_internal,mimsy_collections")
 	if err != nil {
 		fmt.Println("Failed to connect to database:", err)
 		return
@@ -245,10 +252,23 @@ func initSync(syncStatusRepository sync.SyncStatusRepository, cronService cron.C
 // The roll cli commands that it replaces are:
 // - pgroll init --postgres-url "<postgres-url>" --schema mimsy --pgroll-schema mimsy_internal
 // - pgroll init --postgres-url "<postgres-url>" --schema mimsy --pgroll-schema mimsy_collections
-func initRoll(ctx context.Context) (*roll.Roll, error) {
-	internalState, err := state.New(ctx, getPgURL(), "mimsy_internal")
+func initRoll(ctx context.Context, schema string, pgrollSchema string) (*roll.Roll, error) {
+	internalState, err := state.New(ctx, getPgURL(), pgrollSchema)
 	if err != nil {
 		slog.Error("Failed to create internal state", "error", err)
+		return nil, err
+	}
+
+	db, err := sql.Open("postgres", getPgURL())
+	if err != nil {
+		slog.Error("Failed to open database connection", "error", err)
+		return nil, err
+	}
+	defer db.Close()
+
+	_, err = db.Exec(fmt.Sprintf("CREATE SCHEMA IF NOT EXISTS %s", pq.QuoteIdentifier(schema)))
+	if err != nil {
+		slog.Error("Failed to create schema", "error", err)
 		return nil, err
 	}
 
@@ -256,25 +276,11 @@ func initRoll(ctx context.Context) (*roll.Roll, error) {
 		slog.Info("Initializing internal state")
 	}
 
-	collectionState, err := state.New(ctx, getPgURL(), "mimsy_collections")
-	if err != nil {
-		slog.Error("Failed to create collection state", "error", err)
-		return nil, err
-	}
-
-	if isInitialized, _ := internalState.IsInitialized(ctx); !isInitialized {
-		slog.Info("Initializing collections state")
-	}
-
 	if err := internalState.Init(ctx); err != nil {
 		slog.Error("Failed to initialize state", "error", err)
 	}
 
-	if err := collectionState.Init(ctx); err != nil {
-		slog.Error("Failed to initialize collection state", "error", err)
-	}
-
-	return roll.New(ctx, getPgURL(), "public", internalState)
+	return roll.New(ctx, getPgURL(), schema, internalState)
 }
 
 func runMigrations(ctx context.Context, m *roll.Roll) (int, error) {
@@ -293,7 +299,8 @@ func runMigrations(ctx context.Context, m *roll.Roll) (int, error) {
 	}
 
 	runConfig := migrations.NewRunConfig(
-		migrations.WithStateSchema("mimsy_internal"),
+		migrations.WithStateSchema("mimsy_internal_roll"),
+		migrations.WithSchema("mimsy_internal"),
 		migrations.WithUnappliedMigrations(unappliedMigrations),
 		migrations.WithPgURL(getPgURL()),
 	)
