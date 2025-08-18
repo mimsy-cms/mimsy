@@ -50,6 +50,7 @@
 		]
 	},
 	"dependencies": {
+		"@mimsy-cms/cli": "^1.0.3",
 		"prismjs": "^1.30.0"
 	}
 }
