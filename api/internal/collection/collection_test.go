@@ -14,6 +14,7 @@ import (
 	"github.com/mimsy-cms/mimsy/internal/auth"
 	"github.com/mimsy-cms/mimsy/internal/collection"
 	mocks "github.com/mimsy-cms/mimsy/internal/mocks/collection"
+	"github.com/mimsy-cms/mimsy/pkg/mimsy_schema"
 )
 
 // =================================================================================================
@@ -34,14 +35,18 @@ func executeRequest(handler http.Handler, req *http.Request, t *testing.T) *http
 }
 
 func createMockCollection() *collection.Collection {
-	fields := map[string]interface{}{
-		"title": map[string]interface{}{
-			"type":  "text",
-			"label": "Title",
+	fields := mimsy_schema.CollectionFields{
+		"title": mimsy_schema.SchemaElement{
+			Type: "text",
+			Options: &mimsy_schema.SchemaElementOptions{
+				Description: "Title",
+			},
 		},
-		"content": map[string]interface{}{
-			"type":  "textarea",
-			"label": "Content",
+		"content": mimsy_schema.SchemaElement{
+			Type: "textarea",
+			Options: &mimsy_schema.SchemaElementOptions{
+				Description: "Content",
+			},
 		},
 	}
 

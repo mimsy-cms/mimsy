@@ -1,0 +1,8 @@
+operations:
+  - add_column:
+      table: sync_status
+      column:
+        name: is_skipped
+        type: BOOLEAN
+        nullable: false
+        default: "false"

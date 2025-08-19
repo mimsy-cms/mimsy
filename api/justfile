@@ -4,13 +4,13 @@ alias r := run
 alias d := dev
 
 build:
-    go build -o bin/mimsy ./main.go
+    go build ./main.go
 
 test:
     go test -v ./...
 
 test-coverage:
-    go test -v -race -coverprofile=coverage.out ./... 
+    go test -v -race -coverprofile=coverage.out ./...
     go tool cover -html=coverage.out -o coverage.html
 
 run:
