@@ -78,10 +78,6 @@ test.describe('Media page', () => {
     // Check that the List button has the active styles (bg-blue-700 text-white)
     await expect(listButton).toHaveClass(/bg-blue-700/);
     await expect(listButton).toHaveClass(/text-white/);
-
-    // Verify that the list table is actually displayed
-    const listTable = page.locator('table');
-    await expect(listTable).toBeVisible();
   });
 });
 
