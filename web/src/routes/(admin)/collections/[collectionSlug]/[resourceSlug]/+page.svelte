@@ -91,23 +91,14 @@
 				schemaContent.updated_by = currentUser.id;
 			}
 
-			// Log the initial schema content
-			console.log('Initial schemaContent:', schemaContent);
-
 			// Process rich text fields to ensure they're in the right format
 			Object.keys(data.definition.fields).forEach(fieldName => {
 				const field = data.definition.fields[fieldName];
 				if (field.type === 'richtext' && schemaContent[fieldName] !== undefined) {
-					console.log(`Processing richtext field ${fieldName}:`, schemaContent[fieldName]);
-					
 					// Rich text should already be in the correct format from the editor
 					// No need to transform it here since the editor handles the JSON structure
-					console.log(`Richtext field ${fieldName} ready for sending:`, schemaContent[fieldName]);
 				}
 			});
-
-			// Log the final content being sent
-			console.log('Final schemaContent being sent:', schemaContent);
 
 			const response = await fetch(
 				`/api/v1/collections/${data.definition.slug}/${resourceContent.slug}`,
@@ -120,18 +111,12 @@
 				}
 			);
 
-			// Log the response
-			console.log('Response status:', response.status);
-			console.log('Response headers:', response.headers);
-
 			if (!response.ok) {
 				const errorText = await response.text();
-				console.log('Response error text:', errorText);
 				throw new Error(`Failed to save resource: ${response.statusText}`);
 			}
 
 			const updatedResource = await response.json();
-			console.log('Updated resource received:', updatedResource);
 
 			resourceContent = {
 				...resourceContent,

@@ -263,12 +263,6 @@ func (r *repository) UpdateResourceContent(ctx context.Context, collection *Coll
 		return nil, fmt.Errorf("failed to unmarshal collection fields: %w", err)
 	}
 
-	// Log the incoming content for debugging
-	slog.Info("UpdateResourceContent called",
-		"collection", collection.Slug,
-		"resourceSlug", resourceSlug,
-		"content", content)
-
 	psql := sq.StatementBuilder.PlaceholderFormat(sq.Dollar)
 
 	b := psql.
@@ -293,40 +287,17 @@ func (r *repository) UpdateResourceContent(ctx context.Context, collection *Coll
 		}
 
 		if fieldDef, exists := fields[field]; exists && fieldDef.Type == "richtext" {
-			// Log richtext field processing
-			slog.Info("Processing richtext field",
-				"field", field,
-				"value", value,
-				"valueType", fmt.Sprintf("%T", value))
-
 			jsonValue, err := json.Marshal(value)
 			if err != nil {
 				return nil, fmt.Errorf("failed to marshal richtext field %q: %w", field, err)
 			}
 
-			slog.Info("Marshaled richtext field",
-				"field", field,
-				"jsonValue", string(jsonValue))
-
 			b = b.Set(pq.QuoteIdentifier(field), string(jsonValue))
 			fieldsUpdated++
 		} else {
-			// Log regular field processing
-			slog.Info("Processing regular field",
-				"field", field,
-				"value", value,
-				"valueType", fmt.Sprintf("%T", value))
-
 			b = b.Set(pq.QuoteIdentifier(field), value)
 			fieldsUpdated++
 		}
-	}
-
-	// Log if no fields were updated
-	if fieldsUpdated == 0 {
-		slog.Warn("No fields were updated",
-			"collection", collection.Slug,
-			"resourceSlug", resourceSlug)
 	}
 
 	query, args, err := b.ToSql()
@@ -334,28 +305,12 @@ func (r *repository) UpdateResourceContent(ctx context.Context, collection *Coll
 		return nil, fmt.Errorf("failed to build update SQL query: %w", err)
 	}
 
-	// Log the final SQL query and args
-	slog.Info("Executing update query",
-		"query", query,
-		"args", args)
-
-	result, err := config.GetDB(ctx).ExecContext(ctx, query, args...)
+	_, err = config.GetDB(ctx).ExecContext(ctx, query, args...)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, ErrNotFound
 		}
 		return nil, fmt.Errorf("failed to update resource content: %w", err)
-	}
-
-	// Log the result of the update
-	rowsAffected, _ := result.RowsAffected()
-	slog.Info("Update completed",
-		"rowsAffected", rowsAffected)
-
-	if rowsAffected == 0 {
-		slog.Warn("Update query executed but no rows were affected",
-			"collection", collection.Slug,
-			"resourceSlug", resourceSlug)
 	}
 
 	return r.FindResource(ctx, collection, resourceSlug)

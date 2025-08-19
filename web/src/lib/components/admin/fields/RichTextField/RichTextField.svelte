@@ -1,84 +1,95 @@
 <script lang="ts">
-    import { onMount } from 'svelte';
-    import { Editor } from '@tiptap/core';
-    import StarterKit from '@tiptap/starter-kit';
+import { onMount } from 'svelte';
+import { Editor } from '@tiptap/core';
+import StarterKit from '@tiptap/starter-kit';
 
-    let { value = '', ...props } = $props();
-    
-    let element: HTMLElement;
-    let editor: Editor;
+let { value = $bindable(''), ...props } = $props();
 
-    onMount(() => {
-        editor = new Editor({
-            element: element,
-            extensions: [
-                StarterKit,
-            ],
-            content: parseValue(value),
-            onTransaction: () => {
-                editor = editor;
-            },
-            onUpdate: ({ editor }) => {
-                const json = editor.getJSON();
-                value = json;
-            }
-        });
+let element: HTMLElement;
+let editor: Editor;
+let isUpdatingFromExternal = false;
 
-        return () => {
-            if (editor) {
-                editor.destroy();
-            }
-        };
-    });
+onMount(() => {
+	editor = new Editor({
+		element: element,
+		extensions: [
+			StarterKit,
+		],
+		content: parseValue(value),
+		onTransaction: () => {
+			// Force re-render when content changes
+			editor = editor;
+		},
+		onUpdate: ({ editor }) => {
+			if (!isUpdatingFromExternal) {
+				// Update the bound value when editor content changes
+				const json = editor.getJSON();
+				console.log('Editor updated, new JSON:', json);
+				value = json;
+			}
+		}
+	});
 
-    function parseValue(val: any) {
-        if (!val) {
-            return '<p></p>';
-        }
-        
-        if (typeof val === 'string') {
-            return val;
-        }
-        
-        if (Array.isArray(val)) {
-            return val.map(text => `<p>${text}</p>`).join('');
-        }
-        
-        if (typeof val === 'object' && val.type) {
-            return val;
-        }
-        
-        return '<p></p>';
-    }
+	return () => {
+		if (editor) {
+			editor.destroy();
+		}
+	};
+});
 
-    $effect(() => {
-        if (editor && value !== undefined) {
-            const currentContent = editor.getJSON();
-            const parsedValue = parseValue(value);
-            
-            if (JSON.stringify(currentContent) !== JSON.stringify(parsedValue)) {
-                editor.commands.setContent(parsedValue, false);
-            }
-        }
-    });
+function parseValue(val: any) {
+	if (!val) {
+		return '<p></p>';
+	}
+	
+	if (typeof val === 'string') {
+		return val;
+	}
+	
+	if (Array.isArray(val)) {
+		return val.map(text => `<p>${text}</p>`).join('');
+	}
+	
+	if (typeof val === 'object' && val.type) {
+		return val;
+	}
+	
+	return '<p></p>';
+}
+
+// React to external value changes
+$effect(() => {
+	if (editor && value !== undefined) {
+		const currentContent = editor.getJSON();
+		const parsedValue = parseValue(value);
+		
+		// Only update if content actually changed
+		if (JSON.stringify(currentContent) !== JSON.stringify(parsedValue)) {
+			console.log('External value changed, updating editor:', value);
+			isUpdatingFromExternal = true;
+			editor.commands.setContent(parsedValue, false);
+			isUpdatingFromExternal = false;
+		}
+	}
+});
 </script>
 
 <div bind:this={element} class="richtext-editor prose max-w-none"></div>
 
 <style>
-    :global(.richtext-editor) {
-        border: 1px solid #d1d5db;
-        border-radius: 0.375rem;
-        padding: 0.75rem;
-        min-height: 120px;
-    }
-    
-    :global(.richtext-editor:focus-within) {
-        outline: 2px solid #3b82f6;
-        outline-offset: 2px;
-    }
-    
-    :global(.ProseMirror) {
-        outline: none;
-    }
+:global(.richtext-editor) {
+	border: 1px solid #d1d5db;
+	border-radius: 0.375rem;
+	padding: 0.75rem;
+	min-height: 120px;
+}
+
+:global(.richtext-editor:focus-within) {
+	outline: 2px solid #3b82f6;
+	outline-offset: 2px;
+}
+
+:global(.ProseMirror) {
+	outline: none;
+}
 </style>
