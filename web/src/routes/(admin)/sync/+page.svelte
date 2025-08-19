@@ -90,65 +90,49 @@
 		</div>
 	{/if}
 
-	{#if activeMigration}
-		<div class="rounded-md bg-blue-50 p-4">
-			<div class="flex">
-				<PlayCircleIcon class="h-5 w-5 text-blue-400" />
-				<div class="ml-3">
-					<h3 class="text-sm font-medium text-blue-800">Active Migration</h3>
-					<div class="mt-2 text-sm text-blue-700">
-						<p><strong>Commit:</strong> {activeMigration.commit.substring(0, 7)}</p>
-						<p><strong>Message:</strong> {activeMigration.commit_message}</p>
-						<p><strong>Date:</strong> {formatDate(activeMigration.commit_date)}</p>
-					</div>
-				</div>
-			</div>
-		</div>
-	{/if}
-
 	<div class="space-y-6">
-		<section>
-			<h2 class="mb-3 text-xl font-medium">Recent Sync History</h2>
-			<div class="w-full overflow-hidden rounded-md border border-gray-200 bg-white">
-				<table class="w-full divide-y divide-gray-200">
-					<thead class="bg-gray-50">
-						<tr>
-							<th
-								class="px-6 py-3 text-left text-xs font-medium tracking-wider text-gray-500 uppercase"
-							>
-								Status
-							</th>
-							<th
-								class="px-6 py-3 text-left text-xs font-medium tracking-wider text-gray-500 uppercase"
-							>
-								Commit
-							</th>
-							<th
-								class="px-6 py-3 text-left text-xs font-medium tracking-wider text-gray-500 uppercase"
-							>
-								Message
-							</th>
-							<th
-								class="px-6 py-3 text-left text-xs font-medium tracking-wider text-gray-500 uppercase"
-							>
-								Commit Date
-							</th>
-							<th
-								class="px-6 py-3 text-left text-xs font-medium tracking-wider text-gray-500 uppercase"
-							>
-								Applied At
-							</th>
-						</tr>
-					</thead>
-					<tbody class="divide-y divide-gray-200">
-						{#if activeMigration && !data.statuses?.find((s) => s.commit === activeMigration.commit)}
-							{@const badge = getStatusBadge(activeMigration)}
+		{#if activeMigration}
+			{@const badge = getStatusBadge(activeMigration)}
+			<section>
+				<h2 class="mb-3 text-xl font-medium">Active Revision</h2>
+				<div class="w-full overflow-hidden rounded-md border border-gray-200 bg-white">
+					<table class="w-full divide-y divide-gray-200">
+						<thead class="bg-gray-50">
+							<tr>
+								<th
+									class="px-6 py-3 text-left text-xs font-medium tracking-wider text-gray-500 uppercase"
+								>
+									Status
+								</th>
+								<th
+									class="px-6 py-3 text-left text-xs font-medium tracking-wider text-gray-500 uppercase"
+								>
+									Commit
+								</th>
+								<th
+									class="px-6 py-3 text-left text-xs font-medium tracking-wider text-gray-500 uppercase"
+								>
+									Message
+								</th>
+								<th
+									class="px-6 py-3 text-left text-xs font-medium tracking-wider text-gray-500 uppercase"
+								>
+									Commit Date
+								</th>
+								<th
+									class="px-6 py-3 text-left text-xs font-medium tracking-wider text-gray-500 uppercase"
+								>
+									Applied At
+								</th>
+							</tr>
+						</thead>
+						<tbody>
 							<tr
 								class={cn(
-									'border-l-4 hover:bg-blue-100',
-									activeMigration.error_message
-										? 'border-red-400 bg-red-50 hover:bg-red-100'
-										: 'border-blue-400 bg-blue-50'
+									'hover:bg-gray-50',
+									activeMigration.is_active && 'border-l-4 border-blue-400',
+									activeMigration.error_message &&
+										'border-l-4 border-red-400 bg-red-50 hover:bg-red-100'
 								)}
 							>
 								<td class="px-6 py-3 whitespace-nowrap">
@@ -199,14 +183,53 @@
 									</td>
 								</tr>
 							{/if}
-						{/if}
+						</tbody>
+					</table>
+				</div>
+			</section>
+		{/if}
+
+		<section>
+			<h2 class="mb-3 text-xl font-medium">Recent Sync History</h2>
+			<div class="w-full overflow-hidden rounded-md border border-gray-200 bg-white">
+				<table class="w-full divide-y divide-gray-200">
+					<thead class="bg-gray-50">
+						<tr>
+							<th
+								class="px-6 py-3 text-left text-xs font-medium tracking-wider text-gray-500 uppercase"
+							>
+								Status
+							</th>
+							<th
+								class="px-6 py-3 text-left text-xs font-medium tracking-wider text-gray-500 uppercase"
+							>
+								Commit
+							</th>
+							<th
+								class="px-6 py-3 text-left text-xs font-medium tracking-wider text-gray-500 uppercase"
+							>
+								Message
+							</th>
+							<th
+								class="px-6 py-3 text-left text-xs font-medium tracking-wider text-gray-500 uppercase"
+							>
+								Commit Date
+							</th>
+							<th
+								class="px-6 py-3 text-left text-xs font-medium tracking-wider text-gray-500 uppercase"
+							>
+								Applied At
+							</th>
+						</tr>
+					</thead>
+					<tbody class="divide-y divide-gray-200">
 						{#if data.statuses && data.statuses.length > 0}
 							{#each data.statuses as status (status.commit)}
 								{@const badge = getStatusBadge(status)}
 								<tr
 									class={cn(
-										'hover:bg-gray-50',
-										status.is_active && 'border-l-4 border-blue-400 bg-blue-50 hover:bg-blue-100',
+										'border-b-gray-200 hover:bg-gray-50',
+										status.is_active && 'border-b-1 border-l-4 border-blue-400 ',
 										status.error_message && 'border-l-4 border-red-400 bg-red-50 hover:bg-red-100'
 									)}
 								>

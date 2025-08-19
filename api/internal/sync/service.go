@@ -204,8 +204,10 @@ func (s *syncProvider) SyncRepository(ctx context.Context) error {
 		return s.markErrorAndReturn(s.repositoryName, contents.Sha, err, "failed to run migration for repository %s")
 	}
 
-	// Store the sql migration inside of the
-
+	// Now, add the collections to the main collections table
+	if err := s.migrator.UpdateCollections(ctx, &schemaStruct); err != nil {
+		return fmt.Errorf("Failed to update collections: %w", err)
+	}
 	// Mark the migration as active
 	if err := s.syncStatusRepository.MarkAsActive(s.repositoryName, contents.Sha); err != nil {
 		return fmt.Errorf("failed to mark migration as active for repository %s: %w", s.repositoryName, err)
