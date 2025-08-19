@@ -81,6 +81,13 @@ func (s *syncProvider) RegisterSyncJobs(cronService cron.CronService) error {
 	return nil
 }
 
+func (s *syncProvider) markErrorAndReturn(repositoryName, commitSha string, err error, message string) error {
+	if markErr := s.syncStatusRepository.MarkError(repositoryName, commitSha, err); markErr != nil {
+		return fmt.Errorf("failed to mark error for repository %s: %w", repositoryName, markErr)
+	}
+	return fmt.Errorf(message+": %w", repositoryName, err)
+}
+
 func (s *syncProvider) SyncRepository(ctx context.Context) error {
 	slog.Info("Starting sync for repository", "repository", s.repositoryName)
 
@@ -109,17 +116,13 @@ func (s *syncProvider) SyncRepository(ctx context.Context) error {
 	// Get the manifest file from the repository contents
 	manifest, err := s.githubClient.GetFileContent(ctx, s.repositoryName, contents.Sha, s.pathToProject+"mimsy.config.json")
 	if err != nil {
-		// Mark the error to the sync status repository
-		if err := s.syncStatusRepository.MarkError(s.repositoryName, contents.Sha, err); err != nil {
-			return fmt.Errorf("failed to mark error for repository %s: %w", s.repositoryName, err)
-		}
-		return fmt.Errorf("failed to open manifest file for repository %s: %w", s.repositoryName, err)
+		return s.markErrorAndReturn(s.repositoryName, contents.Sha, err, "failed to open manifest file for repository %s")
 	}
 
 	// With that manifest, unmarshall to the Schema:
 	var config mimsy_schema.MimsyConfig
 	if err := json.Unmarshal(manifest, &config); err != nil {
-		return fmt.Errorf("failed to unmarshal config file for repository %s: %w", s.repositoryName, err)
+		return s.markErrorAndReturn(s.repositoryName, contents.Sha, err, "failed to unmarshal config file for repository %s")
 	}
 
 	var path string
@@ -134,12 +137,12 @@ func (s *syncProvider) SyncRepository(ctx context.Context) error {
 	// We need to fetch the schema from the repository contents
 	schema, err := s.githubClient.GetFileContent(ctx, s.repositoryName, contents.Sha, path)
 	if err != nil {
-		return fmt.Errorf("failed to fetch schema for repository %s: %w", s.repositoryName, err)
+		return s.markErrorAndReturn(s.repositoryName, contents.Sha, err, "failed to fetch schema for repository %s")
 	}
 
 	var schemaStruct mimsy_schema.Schema
 	if err := json.Unmarshal(schema, &schemaStruct); err != nil {
-		return fmt.Errorf("failed to unmarshal schema file for repository %s: %w", s.repositoryName, err)
+		return s.markErrorAndReturn(s.repositoryName, contents.Sha, err, "failed to unmarshal schema file for repository %s")
 	}
 
 	// Get the last active migration to compare schemas
@@ -155,19 +158,19 @@ func (s *syncProvider) SyncRepository(ctx context.Context) error {
 			// Compare schemas - if they're identical, mark as skipped
 			currentSchemaBytes, _ := json.Marshal(schemaStruct)
 			activeSchemaBytes, _ := json.Marshal(activeSchema)
-			
+
 			if string(currentSchemaBytes) == string(activeSchemaBytes) {
 				slog.Info("Schema is identical to active migration, marking as skipped", "repository", s.repositoryName, "commit", contents.Sha)
-				
+
 				// Set the manifest and mark as skipped
 				if err := s.syncStatusRepository.SetManifest(s.repositoryName, contents.Sha, schemaStruct); err != nil {
 					return fmt.Errorf("failed to set manifest for repository %s: %w", s.repositoryName, err)
 				}
-				
+
 				if err := s.syncStatusRepository.MarkAsSkipped(s.repositoryName, contents.Sha); err != nil {
 					return fmt.Errorf("failed to mark as skipped for repository %s: %w", s.repositoryName, err)
 				}
-				
+
 				slog.Info("Completed sync (skipped) for repository", "repository", s.repositoryName)
 				return nil
 			}
@@ -183,12 +186,12 @@ func (s *syncProvider) SyncRepository(ctx context.Context) error {
 	// Generate the sql migration, and store it
 	sqlSchema, err := s.migrator.GenerateSchema(ctx, &schemaStruct)
 	if err != nil {
-		return fmt.Errorf("failed to generate sql migration for repository %s: %w", s.repositoryName, err)
+		return s.markErrorAndReturn(s.repositoryName, contents.Sha, err, "failed to generate sql migration for repository %s")
 	}
 	//Serialize the sql schema
 	sqlSchemaBytes, err := json.Marshal(sqlSchema)
 	if err != nil {
-		return fmt.Errorf("failed to serialize sql schema for repository %s: %w", s.repositoryName, err)
+		return s.markErrorAndReturn(s.repositoryName, contents.Sha, err, "failed to serialize sql schema for repository %s")
 	}
 
 	if err := s.syncStatusRepository.SetAppliedMigration(s.repositoryName, contents.Sha, sqlSchemaBytes); err != nil {
@@ -197,7 +200,7 @@ func (s *syncProvider) SyncRepository(ctx context.Context) error {
 
 	// Run the migration
 	if err := s.migrator.Migrate(ctx, activeMigration, sqlSchema, contents.Message, contents.Sha); err != nil {
-		return fmt.Errorf("failed to run migration for repository %s: %w", s.repositoryName, err)
+		return s.markErrorAndReturn(s.repositoryName, contents.Sha, err, "failed to run migration for repository %s")
 	}
 
 	// Store the sql migration inside of the

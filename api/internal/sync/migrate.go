@@ -38,11 +38,38 @@ func (m *Migrator) GenerateSchema(ctx context.Context, schema *mimsy_schema.Sche
 }
 
 func (m *Migrator) UpdateCollections(ctx context.Context, schema *mimsy_schema.Schema) error {
-	// This function appears to be incorrectly implemented.
-	// UpdateResourceContent is for updating resource content within a collection,
-	// not for updating collection definitions themselves.
-	// TODO: Implement proper collection schema update logic
-	return fmt.Errorf("UpdateCollections not properly implemented - needs collection schema update logic")
+	for _, collection := range schema.Collections {
+		// Convert collection schema to JSON
+		fieldsJson, err := json.Marshal(collection.Schema)
+		if err != nil {
+			return fmt.Errorf("Failed to marshal collection schema for %s: %w", collection.Name, err)
+		}
+
+		// Generate slug from collection name (convert to lowercase, replace spaces with underscores)
+		slug := collection.Name
+
+		// Check if collection exists
+		exists, err := m.collectionRepository.CollectionExists(ctx, slug)
+		if err != nil {
+			return fmt.Errorf("Failed to check if collection %s exists: %w", slug, err)
+		}
+
+		if exists {
+			// Update existing collection
+			if err := m.collectionRepository.UpdateCollection(ctx, slug, collection.Name, fieldsJson); err != nil {
+				return fmt.Errorf("Failed to update collection %s: %w", slug, err)
+			}
+			slog.Info("Updated collection", "slug", slug, "name", collection.Name)
+		} else {
+			// Create new collection
+			if err := m.collectionRepository.CreateCollection(ctx, slug, collection.Name, fieldsJson); err != nil {
+				return fmt.Errorf("Failed to create collection %s: %w", slug, err)
+			}
+			slog.Info("Created collection", "slug", slug, "name", collection.Name)
+		}
+	}
+
+	return nil
 }
 
 func (m *Migrator) Migrate(ctx context.Context, activeSync *SyncStatus, newSql *schema_generator.SqlSchema, commitName string, commitHash string) error {
@@ -58,7 +85,12 @@ func (m *Migrator) Migrate(ctx context.Context, activeSync *SyncStatus, newSql *
 	operations := schema_diff.Diff(*activeSql, *newSql)
 	unrunMigrations := []*pgroll_migrations.Migration{
 		{
-			Name:       fmt.Sprintf("%s (hash:%s)", commitName, commitHash[:8]),
+			Name:       fmt.Sprintf("%s (hash:%s)", commitName, func() string {
+			if len(commitHash) > 8 {
+				return commitHash[:8]
+			}
+			return commitHash
+		}()),
 			Operations: operations,
 		},
 	}

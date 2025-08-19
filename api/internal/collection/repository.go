@@ -20,6 +20,8 @@ import (
 type Repository interface {
 	FindBySlug(ctx context.Context, slug string) (*Collection, error)
 	CollectionExists(ctx context.Context, slug string) (bool, error)
+	CreateCollection(ctx context.Context, slug string, name string, fieldsJson []byte) error
+	UpdateCollection(ctx context.Context, slug string, name string, fieldsJson []byte) error
 	FindResource(ctx context.Context, collection *Collection, slug string) (*Resource, error)
 	FindResources(ctx context.Context, collection *Collection) ([]Resource, error)
 	FindAll(ctx context.Context, params *FindAllParams) ([]Collection, error)
@@ -100,7 +102,6 @@ func (r Resource) MarshalJSON() ([]byte, error) {
 
 	return json.Marshal(transformed)
 }
-
 
 var ErrNotFound = errors.New("not found")
 
@@ -302,4 +303,33 @@ func (r *repository) FindUserEmail(ctx context.Context, id int64) (string, error
 	}
 
 	return email, nil
+}
+
+func (r *repository) CreateCollection(ctx context.Context, slug string, name string, fieldsJson []byte) error {
+	query := `
+		INSERT INTO "collection" (slug, name, fields, created_at, created_by, updated_at, updated_by, is_global)
+		VALUES ($1, $2, $3, NOW(), 'system', NOW(), 'system', false)
+	`
+
+	_, err := config.GetDB(ctx).ExecContext(ctx, query, slug, name, fieldsJson)
+	if err != nil {
+		return fmt.Errorf("failed to insert collection: %w", err)
+	}
+
+	return nil
+}
+
+func (r *repository) UpdateCollection(ctx context.Context, slug string, name string, fieldsJson []byte) error {
+	query := `
+		UPDATE "collection"
+		SET name = $2, fields = $3, updated_at = NOW(), updated_by = 'system'
+		WHERE slug = $1
+	`
+
+	_, err := config.GetDB(ctx).ExecContext(ctx, query, slug, name, fieldsJson)
+	if err != nil {
+		return fmt.Errorf("failed to update collection: %w", err)
+	}
+
+	return nil
 }

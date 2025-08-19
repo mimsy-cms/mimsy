@@ -35,6 +35,7 @@
             air
             delve
             pgroll
+            mockgen
 
             # Node.js development
             nodejs_22
