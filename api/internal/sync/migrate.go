@@ -95,6 +95,13 @@ func (m *Migrator) Migrate(ctx context.Context, activeSync *SyncStatus, newSql *
 		},
 	}
 
+	data, err := json.Marshal(unrunMigrations)
+	if err != nil {
+		return fmt.Errorf("Failed to marshal migrations: %w", err)
+	}
+
+	slog.Info("Pending Migrations", "migrations", unrunMigrations)
+
 	runConfig := migrations.NewRunConfig(
 		migrations.WithStateSchema("mimsy_collections_roll"),
 		migrations.WithSchema("mimsy_collections"),
@@ -106,7 +113,7 @@ func (m *Migrator) Migrate(ctx context.Context, activeSync *SyncStatus, newSql *
 	count, err := migrations.Run(ctx, runConfig)
 
 	if err != nil {
-		return fmt.Errorf("Failed to run migrations: %w", err)
+		return fmt.Errorf("Failed to run migrations: %w (Migrations: %s)", err, string(data))
 	} else if count == 0 {
 		return fmt.Errorf("No migrations were run")
 	}
