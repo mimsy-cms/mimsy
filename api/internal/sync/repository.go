@@ -161,12 +161,6 @@ func (r *syncStatusRepository) CreateIfNotExists(repo string, commitSha string, 
 		return tx.Commit()
 	}
 
-	// Deactivate previous active status
-	_, err = tx.Exec("UPDATE sync_status SET is_active = false WHERE repo = $1", repo)
-	if err != nil {
-		return fmt.Errorf("failed to deactivate previous status: %w", err)
-	}
-
 	// Create new status
 	query := `
 		INSERT INTO sync_status (repo, commit, commit_message, commit_date, is_active, is_skipped)
