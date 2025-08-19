@@ -22,6 +22,16 @@
 							"maxLength": 6
 						}
 					}
+				},
+				"description": {
+					"type": "string",
+					"options": {
+						"description": "The description of the tag",
+						"constraints": {
+							"minLength": 10,
+							"maxLength": 200
+						}
+					}
 				}
 			},
 			"isGlobal": false
@@ -82,5 +92,5 @@
 			"isGlobal": false
 		}
 	],
-	"generatedAt": "2025-08-19T09:53:05.289Z"
+	"generatedAt": "2025-08-19T15:57:26.770Z"
 }
