@@ -12,7 +12,6 @@ import (
 
 	_ "github.com/joho/godotenv/autoload"
 	"github.com/lib/pq"
-	_ "github.com/lib/pq"
 	pgroll_migrations "github.com/xataio/pgroll/pkg/migrations"
 	"github.com/xataio/pgroll/pkg/roll"
 	"github.com/xataio/pgroll/pkg/state"
@@ -68,7 +67,7 @@ func main() {
 	defer db.Close()
 
 	authRepository := auth.NewRepository()
-	authService := auth.NewAuthService(authRepository)
+	authService := auth.NewService(authRepository)
 	authHandler := auth.NewHandler(authService)
 
 	cronService := initCron(db)
@@ -124,7 +123,7 @@ func main() {
 
 	handler := util.ApplyMiddlewares(
 		config.WithDB(db),
-		auth.WithUser(authService),
+		auth.WithRequestUser(authService),
 	)
 
 	server := &http.Server{

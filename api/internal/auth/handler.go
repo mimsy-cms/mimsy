@@ -8,10 +8,10 @@ import (
 )
 
 type handler struct {
-	authService AuthService
+	authService Service
 }
 
-func NewHandler(authService AuthService) *handler {
+func NewHandler(authService Service) *handler {
 	return &handler{authService: authService}
 }
 
@@ -63,7 +63,7 @@ type ChangePasswordRequest struct {
 }
 
 func (s *handler) ChangePassword(w http.ResponseWriter, r *http.Request) {
-	user := UserFromContext(r.Context())
+	user := RequestUser(r.Context())
 	if user == nil {
 		http.Error(w, "Unauthorized", http.StatusUnauthorized)
 		return
@@ -118,7 +118,7 @@ type MeResponse struct {
 }
 
 func (s *handler) Me(w http.ResponseWriter, r *http.Request) {
-	user := UserFromContext(r.Context())
+	user := RequestUser(r.Context())
 	if user == nil {
 		http.Error(w, "Unauthorized", http.StatusUnauthorized)
 		return
@@ -133,6 +133,12 @@ func (s *handler) Me(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *handler) GetUsers(w http.ResponseWriter, r *http.Request) {
+	user := RequestUser(r.Context())
+	if user == nil {
+		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		return
+	}
+
 	users, err := s.authService.GetUsers(r.Context())
 	if err != nil {
 		http.Error(w, "Failed to retrieve users", http.StatusInternalServerError)

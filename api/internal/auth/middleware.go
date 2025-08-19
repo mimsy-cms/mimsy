@@ -10,7 +10,7 @@ type contextKey string
 
 const UserContextKey contextKey = "user"
 
-func WithUser(authService AuthService) func(http.Handler) http.Handler {
+func WithRequestUser(authService Service) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			var token string
@@ -37,7 +37,9 @@ func WithUser(authService AuthService) func(http.Handler) http.Handler {
 	}
 }
 
-func UserFromContext(ctx context.Context) *User {
+// RequestUser retrieves the authenticated user from the request context.
+// Returns nil if no user is authenticated.
+func RequestUser(ctx context.Context) *User {
 	if user, ok := ctx.Value(UserContextKey).(*User); ok {
 		return user
 	}
