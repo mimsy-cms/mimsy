@@ -195,6 +195,14 @@ func TestGetResources_Success(t *testing.T) {
 		FindResources(gomock.Any(), mockCollection).
 		Return(mockResources, nil)
 
+	mockService.EXPECT().
+		FindUserEmail(gomock.Any(), mockResources[0].CreatedBy).
+		Return("admin@example.com", nil)
+
+	mockService.EXPECT().
+		FindUserEmail(gomock.Any(), mockResources[0].UpdatedBy).
+		Return("admin@example.com", nil)
+
 	req := httptest.NewRequest("GET", "/collections/test-collection/resources", nil)
 	req.SetPathValue("slug", "test-collection")
 
