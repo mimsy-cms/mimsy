@@ -4,6 +4,7 @@ import (
 	"log/slog"
 	"net/http"
 
+	"github.com/mimsy-cms/mimsy/internal/auth"
 	"github.com/mimsy-cms/mimsy/internal/cron"
 	"github.com/mimsy-cms/mimsy/internal/util"
 )
@@ -25,6 +26,12 @@ type StatusQueryString struct {
 }
 
 func (h *Handler) Status(w http.ResponseWriter, r *http.Request) {
+	user := auth.RequestUser(r.Context())
+	if user == nil {
+		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		return
+	}
+
 	query, err := util.QueryString[StatusQueryString](r)
 	if err != nil {
 		slog.Error("Failed to decode query parameters", "error", err)
@@ -48,6 +55,12 @@ func (h *Handler) Status(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handler) Jobs(w http.ResponseWriter, r *http.Request) {
+	user := auth.RequestUser(r.Context())
+	if user == nil {
+		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		return
+	}
+
 	jobStatuses, err := h.CronService.GetJobStatuses(r.Context())
 	if err != nil {
 		slog.Error("Failed to get job statuses", "error", err)

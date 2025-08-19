@@ -19,7 +19,7 @@ func NewHandler(mediaService MediaService) *mediaHandler {
 func (h *mediaHandler) Upload(w http.ResponseWriter, r *http.Request) {
 	r.ParseMultipartForm(256 * 1024) // 256 MB
 
-	user := auth.UserFromContext(r.Context())
+	user := auth.RequestUser(r.Context())
 	if user == nil {
 		http.Error(w, "Unauthorized", http.StatusUnauthorized)
 		return
@@ -88,6 +88,12 @@ func (h *mediaHandler) GetById(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *mediaHandler) Delete(w http.ResponseWriter, r *http.Request) {
+	user := auth.RequestUser(r.Context())
+	if user == nil {
+		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		return
+	}
+
 	id, err := util.PathInt(r, "id")
 	if err != nil {
 		slog.Error("Failed to parse media ID from path", "error", err)

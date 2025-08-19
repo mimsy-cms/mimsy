@@ -5,6 +5,7 @@ import (
 	"log/slog"
 	"net/http"
 
+	"github.com/mimsy-cms/mimsy/internal/auth"
 	"github.com/mimsy-cms/mimsy/internal/util"
 )
 
@@ -61,6 +62,12 @@ func (h *Handler) GetResources(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handler) UpdateResource(w http.ResponseWriter, r *http.Request) {
+	user := auth.RequestUser(r.Context())
+	if user == nil {
+		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		return
+	}
+
 	slug := r.PathValue("slug")
 	resourceSlug := r.PathValue("resourceSlug")
 
@@ -180,6 +187,12 @@ func (h *Handler) FindAllGlobals(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handler) DeleteResource(w http.ResponseWriter, r *http.Request) {
+	user := auth.RequestUser(r.Context())
+	if user == nil {
+		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		return
+	}
+
 	slug := r.PathValue("slug")
 	resourceSlug := r.PathValue("resourceSlug")
 

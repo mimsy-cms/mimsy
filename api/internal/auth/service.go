@@ -23,7 +23,7 @@ type LoginResponse struct {
 	MustChangePassword bool   `json:"mustChangePassword"`
 }
 
-type AuthService interface {
+type Service interface {
 	CreateAdminUser(ctx context.Context) error
 	Login(ctx context.Context, email, password string) (*LoginResponse, error)
 	Logout(ctx context.Context, sessionToken string) error
@@ -33,20 +33,20 @@ type AuthService interface {
 	GetUsers(ctx context.Context) ([]User, error)
 }
 
-func (s *authService) GetUserBySessionToken(ctx context.Context, sessionToken string) (*User, error) {
-	return s.repo.GetUserBySessionToken(ctx, sessionToken)
+func (s *service) GetUserBySessionToken(ctx context.Context, sessionToken string) (*User, error) {
+	return s.authRepository.GetUserBySessionToken(ctx, sessionToken)
 }
 
-type authService struct {
-	repo AuthRepository
+type service struct {
+	authRepository Repository
 }
 
-func NewAuthService(repo AuthRepository) AuthService {
-	return &authService{repo}
+func NewService(repo Repository) Service {
+	return &service{repo}
 }
 
-func (s *authService) CreateAdminUser(ctx context.Context) error {
-	count, err := s.repo.CountUsers(ctx)
+func (s *service) CreateAdminUser(ctx context.Context) error {
+	count, err := s.authRepository.CountUsers(ctx)
 	if err != nil {
 		return fmt.Errorf("failed to count users: %w", err)
 	}
@@ -59,7 +59,7 @@ func (s *authService) CreateAdminUser(ctx context.Context) error {
 		return fmt.Errorf("failed to hash admin password: %w", err)
 	}
 
-	err = s.repo.InsertUser(ctx, adminEmail, hash, true, true)
+	err = s.authRepository.InsertUser(ctx, adminEmail, hash, true, true)
 	if err != nil {
 		return fmt.Errorf("failed to insert admin user: %w", err)
 	}
@@ -67,15 +67,15 @@ func (s *authService) CreateAdminUser(ctx context.Context) error {
 	return nil
 }
 
-func (s *authService) Login(ctx context.Context, email, password string) (*LoginResponse, error) {
-	user, err := s.repo.GetUserByEmail(ctx, email)
+func (s *service) Login(ctx context.Context, email, password string) (*LoginResponse, error) {
+	user, err := s.authRepository.GetUserByEmail(ctx, email)
 	if err != nil {
 		return nil, errors.New("invalid credentials")
 	}
 	if err := CheckPasswordHash(password, user.PasswordHash); err != nil {
 		return nil, errors.New("invalid credentials")
 	}
-	if err := s.repo.DeleteExpiredSessions(ctx); err != nil {
+	if err := s.authRepository.DeleteExpiredSessions(ctx); err != nil {
 		return nil, err
 	}
 	token, err := GenerateSessionToken()
@@ -83,18 +83,18 @@ func (s *authService) Login(ctx context.Context, email, password string) (*Login
 		return nil, err
 	}
 	expiresAt := time.Now().Add(7 * 24 * time.Hour)
-	if err := s.repo.CreateSession(ctx, token, user.ID, expiresAt); err != nil {
+	if err := s.authRepository.CreateSession(ctx, token, user.ID, expiresAt); err != nil {
 		return nil, err
 	}
 	return &LoginResponse{Session: token, MustChangePassword: user.MustChangePassword}, nil
 }
 
-func (s *authService) Logout(ctx context.Context, sessionToken string) error {
-	return s.repo.DeleteSession(ctx, sessionToken)
+func (s *service) Logout(ctx context.Context, sessionToken string) error {
+	return s.authRepository.DeleteSession(ctx, sessionToken)
 }
 
-func (s *authService) ChangePassword(ctx context.Context, userID int64, oldPass, newPass string) error {
-	current, err := s.repo.GetUserPassword(ctx, userID)
+func (s *service) ChangePassword(ctx context.Context, userID int64, oldPass, newPass string) error {
+	current, err := s.authRepository.GetUserPassword(ctx, userID)
 	if err != nil {
 		return err
 	}
@@ -105,15 +105,15 @@ func (s *authService) ChangePassword(ctx context.Context, userID int64, oldPass,
 	if err != nil {
 		return err
 	}
-	return s.repo.UpdatePassword(ctx, userID, newHash)
+	return s.authRepository.UpdatePassword(ctx, userID, newHash)
 }
 
-func (s *authService) Register(ctx context.Context, req CreateUserRequest) error {
+func (s *service) Register(ctx context.Context, req CreateUserRequest) error {
 	email := strings.TrimSpace(req.Email)
 	if email == "" || len(req.Password) < 8 {
 		return errors.New("invalid email or password too short")
 	}
-	exists, err := s.repo.UserExists(ctx, email)
+	exists, err := s.authRepository.UserExists(ctx, email)
 	if err != nil {
 		return err
 	}
@@ -124,7 +124,7 @@ func (s *authService) Register(ctx context.Context, req CreateUserRequest) error
 	if err != nil {
 		return err
 	}
-	return s.repo.InsertUser(ctx, email, hash, req.IsAdmin, true)
+	return s.authRepository.InsertUser(ctx, email, hash, req.IsAdmin, true)
 }
 
 func HashPassword(password string) (string, error) {
@@ -161,8 +161,8 @@ func GenerateSessionToken() (string, error) {
 	return base64.RawURLEncoding.EncodeToString(b), err
 }
 
-func (s *authService) GetUsers(ctx context.Context) ([]User, error) {
-	users, err := s.repo.GetUsers(ctx)
+func (s *service) GetUsers(ctx context.Context) ([]User, error) {
+	users, err := s.authRepository.GetUsers(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("failed to retrieve users: %w", err)
 	}
