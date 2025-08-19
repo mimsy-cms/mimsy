@@ -8,6 +8,7 @@ import (
 	"log/slog"
 	"os"
 
+	"github.com/mimsy-cms/mimsy/internal/collection"
 	"github.com/mimsy-cms/mimsy/internal/migrations"
 	"github.com/mimsy-cms/mimsy/pkg/mimsy_schema"
 	"github.com/mimsy-cms/mimsy/pkg/schema_diff"
@@ -16,12 +17,14 @@ import (
 )
 
 type Migrator struct {
-	generator schema_generator.SchemaGenerator
+	generator            schema_generator.SchemaGenerator
+	collectionRepository collection.Repository
 }
 
-func NewMigrator() *Migrator {
+func NewMigrator(collectionRepository collection.Repository) *Migrator {
 	return &Migrator{
-		generator: schema_generator.New(),
+		generator:            schema_generator.New(),
+		collectionRepository: collectionRepository,
 	}
 }
 
@@ -32,6 +35,14 @@ func (m *Migrator) GenerateSchema(ctx context.Context, schema *mimsy_schema.Sche
 	}
 
 	return &newSql, nil
+}
+
+func (m *Migrator) UpdateCollections(ctx context.Context, schema *mimsy_schema.Schema) error {
+	// This function appears to be incorrectly implemented.
+	// UpdateResourceContent is for updating resource content within a collection,
+	// not for updating collection definitions themselves.
+	// TODO: Implement proper collection schema update logic
+	return fmt.Errorf("UpdateCollections not properly implemented - needs collection schema update logic")
 }
 
 func (m *Migrator) Migrate(ctx context.Context, activeSync *SyncStatus, newSql *schema_generator.SqlSchema, commitName string, commitHash string) error {

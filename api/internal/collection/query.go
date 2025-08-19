@@ -8,6 +8,7 @@ import (
 	sq "github.com/Masterminds/squirrel"
 	"github.com/lib/pq"
 	"github.com/mimsy-cms/mimsy/internal/config"
+	"github.com/mimsy-cms/mimsy/pkg/mimsy_schema"
 )
 
 type rowScanner interface {
@@ -19,7 +20,7 @@ type selectQuery struct {
 	queryFields []string
 }
 
-func NewSelectQuery(tableName string, fields map[string]Field) *selectQuery {
+func NewSelectQuery(tableName string, fields mimsy_schema.CollectionFields) *selectQuery {
 	return &selectQuery{
 		tableName:   tableName,
 		queryFields: transformQueryFields(fields),
@@ -102,13 +103,15 @@ func (q *selectQuery) scan(row rowScanner) (*Resource, error) {
 	return &resource, nil
 }
 
-func transformQueryFields(fields map[string]Field) []string {
+func transformQueryFields(fields mimsy_schema.CollectionFields) []string {
 	queryFields := defaultColumns
 	for name, field := range fields {
-		if field.Type == "relation" {
-			if field.Relation != nil && field.Relation.Type == FieldRelationTypeManyToOne {
+		if field.IsRelation() {
+			// For many-to-one relations, we store the foreign key as fieldname_id
+			if field.Type == "relation" {
 				queryFields = append(queryFields, fmt.Sprintf("%s_id", name))
 			}
+			// multi_relation types are handled differently (many-to-many)
 		} else {
 			queryFields = append(queryFields, name)
 		}

@@ -18,6 +18,7 @@ type SyncStatus struct {
 	AppliedMigration string    `json:"applied_migration"`
 	AppliedAt        time.Time `json:"applied_at"`
 	IsActive         bool      `json:"is_active"`
+	IsSkipped        bool      `json:"is_skipped"`
 	ErrorMessage     string    `json:"error_message"`
 }
 
@@ -31,6 +32,7 @@ type SyncStatusRepository interface {
 	SetAppliedMigration(repo string, commitSha string, migration []byte) error
 	GetActiveMigration(repo string) (*SyncStatus, error)
 	MarkAsActive(repo string, commitSha string) error
+	MarkAsSkipped(repo string, commitSha string) error
 }
 
 type syncStatusRepository struct {
@@ -57,6 +59,7 @@ func scanSyncStatus(scanner interface {
 		&appliedMigration,
 		&appliedAt,
 		&status.IsActive,
+		&status.IsSkipped,
 		&errorMessage,
 		&manifest,
 	)
@@ -87,7 +90,7 @@ func scanSyncStatus(scanner interface {
 func (r *syncStatusRepository) GetStatus(repo string) (*SyncStatus, error) {
 	query := `
 		SELECT repo, commit, commit_message, commit_date, applied_migration,
-		       applied_at, is_active, error_message, manifest
+		       applied_at, is_active, is_skipped, error_message, manifest
 		FROM sync_status
 		WHERE repo = $1 AND is_active = true
 		LIMIT 1`
@@ -107,7 +110,7 @@ func (r *syncStatusRepository) GetStatus(repo string) (*SyncStatus, error) {
 func (r *syncStatusRepository) GetLastSyncedCommit(repo string) (*SyncStatus, error) {
 	query := `
 		SELECT repo, commit, commit_message, commit_date, applied_migration,
-		       applied_at, is_active, error_message, manifest
+		       applied_at, is_active, is_skipped, error_message, manifest
 		FROM sync_status
 		WHERE repo = $1 AND applied_at IS NOT NULL
 		ORDER BY applied_at DESC
@@ -166,8 +169,8 @@ func (r *syncStatusRepository) CreateIfNotExists(repo string, commitSha string, 
 
 	// Create new status
 	query := `
-		INSERT INTO sync_status (repo, commit, commit_message, commit_date, is_active)
-		VALUES ($1, $2, $3, $4, false)`
+		INSERT INTO sync_status (repo, commit, commit_message, commit_date, is_active, is_skipped)
+		VALUES ($1, $2, $3, $4, false, false)`
 
 	_, err = tx.Exec(query, repo, commitSha, commitMessage, commitDate)
 	if err != nil {
@@ -199,7 +202,7 @@ func (r *syncStatusRepository) SetManifest(repo string, commitSha string, manife
 func (r *syncStatusRepository) GetRecentStatuses(limit int) ([]*SyncStatus, error) {
 	query := `
 		SELECT repo, commit, commit_message, commit_date, applied_migration,
-		       applied_at, is_active, error_message, manifest
+		       applied_at, is_active, is_skipped, error_message, manifest
 		FROM sync_status
 		ORDER BY commit_date DESC
 		LIMIT $1`
@@ -244,7 +247,7 @@ func (r *syncStatusRepository) SetAppliedMigration(repo string, commitSha string
 func (r *syncStatusRepository) GetActiveMigration(repo string) (*SyncStatus, error) {
 	query := `
 		SELECT repo, commit, commit_message, commit_date, applied_migration,
-									applied_at, is_active, error_message, manifest
+									applied_at, is_active, is_skipped, error_message, manifest
 		FROM sync_status
 		WHERE repo = $1 AND is_active = true
 		LIMIT 1`
@@ -273,6 +276,20 @@ func (s *syncStatusRepository) MarkAsActive(repo string, commitSha string) error
 	_, err := s.db.Exec(query, repo, commitSha)
 	if err != nil {
 		return fmt.Errorf("failed to mark as active: %w", err)
+	}
+
+	return nil
+}
+
+func (s *syncStatusRepository) MarkAsSkipped(repo string, commitSha string) error {
+	query := `
+		UPDATE sync_status
+		SET is_skipped = true, applied_at = NOW()
+		WHERE repo = $1 AND commit = $2`
+
+	_, err := s.db.Exec(query, repo, commitSha)
+	if err != nil {
+		return fmt.Errorf("failed to mark as skipped: %w", err)
 	}
 
 	return nil

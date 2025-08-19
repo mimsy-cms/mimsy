@@ -5,6 +5,7 @@
 	import AlertCircleIcon from '@lucide/svelte/icons/alert-circle';
 	import ClockIcon from '@lucide/svelte/icons/clock';
 	import PlayCircleIcon from '@lucide/svelte/icons/play-circle';
+	import SkipForwardIcon from '@lucide/svelte/icons/skip-forward';
 	import { invalidateAll } from '$app/navigation';
 	import { cn } from '$lib/cn';
 
@@ -31,6 +32,7 @@
 
 	function getStatusBadge(status: {
 		is_active: boolean;
+		is_skipped: boolean;
 		error_message?: string;
 		applied_at?: string;
 	}) {
@@ -39,6 +41,9 @@
 		}
 		if (status.is_active) {
 			return { text: 'Active', class: 'bg-blue-100 text-blue-800', icon: PlayCircleIcon };
+		}
+		if (status.is_skipped) {
+			return { text: 'Skipped', class: 'bg-gray-100 text-gray-800', icon: SkipForwardIcon };
 		}
 		if (status.applied_at) {
 			return { text: 'Completed', class: 'bg-green-100 text-green-800', icon: CheckCircleIcon };
