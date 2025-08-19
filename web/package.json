@@ -51,6 +51,8 @@
 	"dependencies": {
 		"@internationalized/date": "^3.8.2",
 		"@lucide/svelte": "^0.525.0",
+		"@tiptap/core": "^3.2.0",
+		"@tiptap/starter-kit": "^3.2.0",
 		"bits-ui": "^2.8.10",
 		"clsx": "^2.1.1",
 		"svelte-lexical": "^0.6.1",
