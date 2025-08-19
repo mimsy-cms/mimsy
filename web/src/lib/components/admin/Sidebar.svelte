@@ -25,7 +25,8 @@
 
 	const builtins = [
 		{ name: 'Media', href: '/media' },
-		{ name: 'Users', href: '/users' }
+		{ name: 'Users', href: '/users' },
+		{ name: 'Sync Status', href: '/sync' }
 	];
 
 	async function logout() {
