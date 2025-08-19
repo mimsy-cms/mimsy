@@ -3,12 +3,50 @@ package schema_generator
 import (
 	"errors"
 	"fmt"
+	"regexp"
 
+	"github.com/lib/pq"
 	"github.com/mimsy-cms/mimsy/pkg/mimsy_schema"
 )
 
 type DatabaseCollection struct {
 	collection *mimsy_schema.Collection
+}
+
+func GetPrefixedTableName(relationName string) (string, error) {
+	if regexp.MustCompile(`<builtins\.[a-zA-Z0-9]+>`).MatchString(relationName) {
+		switch relationName {
+		case "<builtins.user>":
+			return "mimsy_internal.\"user\"", nil
+		case "<builtins.media>":
+			return "mimsy_internal.\"media\"", nil
+		default:
+			return "", errors.New("unknown builtin reference")
+		}
+	} else {
+		return fmt.Sprintf("mimsy_collections.%s", pq.QuoteIdentifier(relationName)), nil
+	}
+}
+
+func GetSimpleTableName(relationName string) (string, error) {
+	if regexp.MustCompile(`<builtins\.[a-zA-Z0-9]+>`).MatchString(relationName) {
+		switch relationName {
+		case "<builtins.user>":
+			return "user", nil
+		case "<builtins.media>":
+			return "media", nil
+		default:
+			return "", errors.New("unknown builtin reference")
+		}
+	} else {
+		return fmt.Sprintf("%s", relationName), nil
+	}
+}
+
+func RemoveSchemaFromReference(relationName string) string {
+	re := regexp.MustCompile(`(?m)[A-Za-z_\-0-9]+\.\"?([a-zA-Z_\-0-9]+)\"?`)
+
+	return re.ReplaceAllString(relationName, "$1")
 }
 
 func (dc *DatabaseCollection) GetCollectionTableName() string {
@@ -29,5 +67,10 @@ func GetRelationTableName(c *mimsy_schema.SchemaElement, collectionTableName str
 		return "", errors.New("not a multi_relation")
 	}
 
-	return fmt.Sprintf("%s_%s_relation_%s", collectionTableName, fieldName, c.RelatesTo), nil
+	relatesTo, err := GetSimpleTableName(c.RelatesTo)
+	if err != nil {
+		return "", err
+	}
+
+	return fmt.Sprintf("%s_%s_relation_%s", collectionTableName, fieldName, relatesTo), nil
 }

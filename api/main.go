@@ -9,44 +9,59 @@ import (
 	"net"
 	"net/http"
 	"os"
+	"strconv"
 
 	_ "github.com/joho/godotenv/autoload"
+	"github.com/lib/pq"
 	_ "github.com/lib/pq"
+	pgroll_migrations "github.com/xataio/pgroll/pkg/migrations"
+	"github.com/xataio/pgroll/pkg/roll"
+	"github.com/xataio/pgroll/pkg/state"
 
 	"github.com/mimsy-cms/mimsy/internal/auth"
 	"github.com/mimsy-cms/mimsy/internal/collection"
 	"github.com/mimsy-cms/mimsy/internal/config"
+	"github.com/mimsy-cms/mimsy/internal/cron"
 	"github.com/mimsy-cms/mimsy/internal/logger"
 	"github.com/mimsy-cms/mimsy/internal/media"
 	"github.com/mimsy-cms/mimsy/internal/migrations"
 	"github.com/mimsy-cms/mimsy/internal/storage"
+	"github.com/mimsy-cms/mimsy/internal/sync"
 	"github.com/mimsy-cms/mimsy/internal/util"
 )
 
 func main() {
-	initLogger()
-	storage := initStorage()
-
 	ctx := context.Background()
 
-	if err := storage.Authenticate(ctx); err != nil {
-		slog.Error("Failed to authenticate storage", "error", err)
+	initLogger()
+
+	storage, err := initStorage(ctx)
+	if err != nil {
+		slog.Error("Failed to initialize storage", "error", err)
+		return
 	}
 
-	runConfig := migrations.NewRunConfig(
-		migrations.WithMigrationsDir("./migrations"),
-		migrations.WithPgURL(getPgURL()),
-	)
+	internalRoll, err := initRoll(ctx, "mimsy_internal", "mimsy_internal_roll")
+	if err != nil {
+		slog.Error("Failed to initialize roll", "error", err)
+		return
+	}
 
-	// NOTE: Migrations should not be run like this in production.
-	migrationCount, err := migrations.Run(ctx, runConfig)
+	_, err = initRoll(ctx, "mimsy_collections", "mimsy_collections_roll")
+	if err != nil {
+		slog.Error("Failed to initialize roll", "error", err)
+		return
+	}
+
+	migrationsCount, err := runMigrations(ctx, internalRoll)
 	if err != nil {
 		slog.Error("Failed to run migrations", "error", err)
-	} else {
-		slog.Info("Successfully ran migrations", "count", migrationCount)
+		return
 	}
 
-	db, err := sql.Open("postgres", getPgURL())
+	slog.Info("Successfully ran migrations", "count", migrationsCount)
+
+	db, err := sql.Open("postgres", getPgURL()+"&search_path=mimsy_internal,mimsy_collections")
 	if err != nil {
 		fmt.Println("Failed to connect to database:", err)
 		return
@@ -56,6 +71,19 @@ func main() {
 	authRepository := auth.NewRepository()
 	authService := auth.NewAuthService(authRepository)
 	authHandler := auth.NewHandler(authService)
+
+	cronService := initCron(db)
+
+	syncRepository := sync.NewSyncStatusRepository(db)
+
+	initSync(syncRepository, cronService)
+	syncHandler := sync.NewHandler(syncRepository, cronService)
+
+	// Start the cron scheduler
+	if err := cronService.Start(ctx); err != nil {
+		slog.Error("Failed to start cron service", "error", err)
+		return
+	}
 
 	if err := authService.CreateAdminUser(config.ContextWithDB(ctx, db)); err != nil {
 		fmt.Println("Failed to create admin user:", err)
@@ -92,6 +120,8 @@ func main() {
 	v1.HandleFunc("GET /media/{id}", mediaHandler.GetById)
 	v1.HandleFunc("DELETE /media/{id}", mediaHandler.Delete)
 	v1.HandleFunc("GET /users", authHandler.GetUsers)
+	v1.HandleFunc("GET /sync/status", syncHandler.Status)
+	v1.HandleFunc("GET /sync/jobs", syncHandler.Jobs)
 
 	handler := util.ApplyMiddlewares(
 		config.WithDB(db),
@@ -132,7 +162,7 @@ func initLogger() {
 	slog.SetDefault(slog.New(handler))
 }
 
-func initStorage() storage.Storage {
+func initStorage(ctx context.Context) (storage.Storage, error) {
 	var s storage.Storage
 
 	switch os.Getenv("STORAGE") {
@@ -150,10 +180,138 @@ func initStorage() storage.Storage {
 
 		slog.Info("Using Swift storage backend", "container", os.Getenv("SWIFT_CONTAINER"))
 	default:
-		slog.Info("No storage backend configured")
+		return nil, fmt.Errorf("unsupported storage type: %s", os.Getenv("STORAGE"))
 	}
 
-	return s
+	if err := s.Authenticate(ctx); err != nil {
+		return nil, fmt.Errorf("error during storage authentication: %w", err)
+	}
+
+	return s, nil
+}
+
+func initCron(db *sql.DB) cron.CronService {
+	cronService, err := cron.NewCronService(db)
+
+	if err != nil {
+		slog.Error("Failed to initialize cron service", "error", err)
+		panic("Error during setup.")
+	}
+
+	return cronService
+}
+
+func initSync(syncStatusRepository sync.SyncStatusRepository, cronService cron.CronService) sync.SyncProvider {
+	slog.Info("Initializing sync service")
+
+	var pemKey string
+	if keyPath := os.Getenv("GH_PEM_KEY_FILE"); keyPath != "" {
+		// Read the file, and output that
+		pemKeyTemp, err := os.ReadFile(keyPath)
+		if err != nil {
+			slog.Error("Failed to read GitHub PEM key file", "error", err)
+			panic("Error during setup.")
+		}
+
+		pemKey = string(pemKeyTemp)
+	} else {
+		pemKey = os.Getenv("GH_PEM_KEY")
+		if len(pemKey) == 0 {
+			slog.Error("GitHub PEM key not set")
+			panic("Error during setup.")
+		}
+	}
+
+	appId, err := strconv.ParseInt(os.Getenv("GH_APP_ID"), 10, 64)
+	if err != nil {
+		slog.Error("Failed to parse GitHub App ID", "error", err)
+		panic("Error during setup.")
+	}
+
+	syncService, err := sync.New(
+		syncStatusRepository,
+		string(pemKey),
+		appId,
+		os.Getenv("GH_REPO"),
+	)
+	if err != nil {
+		slog.Error("Failed to initialize sync service", "error", err)
+		panic("Error during setup.")
+	}
+
+	// Register the job
+	syncService.RegisterSyncJobs(cronService)
+
+	slog.Info("Sync service initialized")
+
+	return syncService
+}
+
+// initRoll initializes pgroll states
+//
+// The roll cli commands that it replaces are:
+// - pgroll init --postgres-url "<postgres-url>" --schema mimsy --pgroll-schema mimsy_internal
+// - pgroll init --postgres-url "<postgres-url>" --schema mimsy --pgroll-schema mimsy_collections
+func initRoll(ctx context.Context, schema string, pgrollSchema string) (*roll.Roll, error) {
+	internalState, err := state.New(ctx, getPgURL(), pgrollSchema)
+	if err != nil {
+		slog.Error("Failed to create internal state", "error", err)
+		return nil, err
+	}
+
+	db, err := sql.Open("postgres", getPgURL())
+	if err != nil {
+		slog.Error("Failed to open database connection", "error", err)
+		return nil, err
+	}
+	defer db.Close()
+
+	_, err = db.Exec(fmt.Sprintf("CREATE SCHEMA IF NOT EXISTS %s", pq.QuoteIdentifier(schema)))
+	if err != nil {
+		slog.Error("Failed to create schema", "error", err)
+		return nil, err
+	}
+
+	if isInitialized, _ := internalState.IsInitialized(ctx); !isInitialized {
+		slog.Info("Initializing internal state")
+	}
+
+	if err := internalState.Init(ctx); err != nil {
+		slog.Error("Failed to initialize state", "error", err)
+	}
+
+	return roll.New(ctx, getPgURL(), schema, internalState)
+}
+
+func runMigrations(ctx context.Context, m *roll.Roll) (int, error) {
+	rawMigs, err := m.UnappliedMigrations(ctx, os.DirFS("./migrations"))
+	if err != nil {
+		return 0, fmt.Errorf("failed to get unapplied migrations: %w", err)
+	}
+
+	unappliedMigrations := make([]*pgroll_migrations.Migration, 0, len(rawMigs))
+	for _, rawMig := range rawMigs {
+		mig, err := pgroll_migrations.ParseMigration(rawMig)
+		if err != nil {
+			return 0, fmt.Errorf("failed to parse migration %q: %w", rawMig.Name, err)
+		}
+		unappliedMigrations = append(unappliedMigrations, mig)
+	}
+
+	runConfig := migrations.NewRunConfig(
+		migrations.WithStateSchema("mimsy_internal_roll"),
+		migrations.WithSchema("mimsy_internal"),
+		migrations.WithUnappliedMigrations(unappliedMigrations),
+		migrations.WithPgURL(getPgURL()),
+	)
+
+	// NOTE: Migrations should not be run like this in production.
+	migrationCount, err := migrations.Run(ctx, runConfig)
+	if err != nil {
+		return 0, fmt.Errorf("failed to run migrations: %w", err)
+	}
+
+	return migrationCount, nil
 }
 
 func getPgURL() string {

@@ -51,8 +51,12 @@ type Resource struct {
 	Slug string
 	// CreatedAt is the timestamp when the resource was created.
 	CreatedAt time.Time
+	// CreatedBy is the identifier of the user who created the resource.
+	CreatedBy string
 	// UpdatedAt is the timestamp when the resource was last updated.
 	UpdatedAt time.Time
+	// UpdatedBy is the identifier of the user who last updated the resource.
+	UpdatedBy string
 	// Fields is a map of field names to their values.
 	Fields map[string]any
 	// Collection is the slug of the collection this resource belongs to.
@@ -67,7 +71,9 @@ func (r Resource) MarshalJSON() ([]byte, error) {
 	transformed["id"] = r.Id
 	transformed["slug"] = r.Slug
 	transformed["created_at"] = r.CreatedAt
+	transformed["created_by"] = r.CreatedBy
 	transformed["updated_at"] = r.UpdatedAt
+	transformed["updated_by"] = r.UpdatedBy
 
 	for key, value := range r.Fields {
 		switch v := value.(type) {
@@ -269,7 +275,8 @@ func (r *repository) UpdateResourceContent(ctx context.Context, collection *Coll
 	b := psql.
 		Update(pq.QuoteIdentifier(collection.Slug)).
 		Where(sq.Eq{"slug": resourceSlug}).
-		Set("updated_at", sq.Expr("NOW()"))
+		Set("updated_at", sq.Expr("NOW()")).
+		Set("updated_by", ctx.Value("updated_by"))
 
 	for field, value := range content {
 		// Skip read only columns that should not be updated

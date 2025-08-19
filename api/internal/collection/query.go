@@ -28,8 +28,8 @@ func NewSelectQuery(tableName string, fields map[string]Field) *selectQuery {
 
 var (
 	// defaultColumns are the columns that will always be selected in a query.
-	defaultColumns  = []string{"id", "slug", "created_at", "updated_at"}
-	readOnlyColumns = []string{"id", "created_at", "updated_at"}
+	defaultColumns  = []string{"id", "slug", "created_at", "created_by", "updated_at", "updated_by"}
+	readOnlyColumns = []string{"id", "created_at", "created_by", "updated_at", "updated_by"}
 )
 
 func (q *selectQuery) FindOne(ctx context.Context, slug string) (*Resource, error) {
@@ -95,7 +95,9 @@ func (q *selectQuery) scan(row rowScanner) (*Resource, error) {
 	resource.Id = values[0].(int64)
 	resource.Slug = values[1].(string)
 	resource.CreatedAt = values[2].(time.Time)
-	resource.UpdatedAt = values[3].(time.Time)
+	resource.CreatedBy = values[3].(string)
+	resource.UpdatedAt = values[4].(time.Time)
+	resource.UpdatedBy = values[5].(string)
 
 	return &resource, nil
 }

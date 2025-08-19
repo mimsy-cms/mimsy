@@ -1,10 +1,10 @@
-import { vi } from 'vitest'
+import { vi } from "vitest";
 
 // Mock the SDK module globally
-vi.mock('@mimsy/sdk', () => ({
+vi.mock("@mimsy-cms/sdk", () => ({
   exportSchema: vi.fn(() => ({
     collections: [],
-    generatedAt: new Date().toISOString()
+    generatedAt: new Date().toISOString(),
   })),
   clearRegistry: vi.fn(),
   collection: vi.fn(),
@@ -12,9 +12,9 @@ vi.mock('@mimsy/sdk', () => ({
     shortString: vi.fn(),
     relation: vi.fn(),
     multiRelation: vi.fn(),
-    media: vi.fn()
+    media: vi.fn(),
   },
   builtins: {
-    User: {}
-  }
-}))
+    User: {},
+  },
+}));

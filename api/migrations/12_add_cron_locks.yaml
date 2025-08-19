@@ -1,0 +1,14 @@
+operations:
+  - create_table:
+      columns:
+        - name: key
+          type: varchar(255)
+          pk: true
+        - name: locked_by
+          type: varchar(255)
+        - name: locked_at
+          type: timestamp
+          default: CURRENT_TIMESTAMP
+        - name: expires_at
+          type: timestamp
+      name: cron_locks

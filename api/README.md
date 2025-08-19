@@ -27,13 +27,7 @@ Start the compose services:
 docker compose up -d
 ```
 
-Initialize pgroll:
-
-```bash
-pgroll init --postgres-url "postgres://mimsy:mimsy@localhost?sslmode=disable" --schema mimsy
-```
-
-Run a migration:
+### Run a migration:
 
 ```bash
 pgroll start migrations/<name>.yaml --complete --postgres-url "postgres://mimsy:mimsy@localhost?sslmode=disable" --schema mimsy

@@ -1,4 +1,4 @@
-import { collection, fields, builtins } from "@mimsy/sdk";
+import { collection, fields, builtins } from "@mimsy-cms/sdk";
 
 const Tags = collection("tags", {
   name: fields.shortString({

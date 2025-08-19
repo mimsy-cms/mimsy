@@ -249,11 +249,11 @@
 				</div>
 				<div>
 					<p class="font-semibold">Created</p>
-					<p class="text-gray-600">{formatDate(data.definition.created_at)}</p>
+					<p class="text-gray-600">{formatDate(data.resource.created_at)}</p>
 				</div>
 				<div>
 					<p class="font-semibold">Created by</p>
-					<p class="text-gray-600">{data.definition.created_by}</p>
+					<p class="text-gray-600">{data.resource.created_by}</p>
 				</div>
 				<div>
 					<p class="font-semibold">Last modified</p>
@@ -261,7 +261,7 @@
 				</div>
 				<div>
 					<p class="font-semibold">Last modified by</p>
-					<p class="text-gray-600">{data.definition.updated_by || 'N/A'}</p>
+					<p class="text-gray-600">{data.resource.updated_by}</p>
 				</div>
 			</div>
 		</div>
