@@ -188,6 +188,7 @@ func (s *syncProvider) SyncRepository(ctx context.Context) error {
 	if err != nil {
 		return s.markErrorAndReturn(s.repositoryName, contents.Sha, err, "failed to generate sql migration for repository %s")
 	}
+
 	//Serialize the sql schema
 	sqlSchemaBytes, err := json.Marshal(sqlSchema)
 	if err != nil {

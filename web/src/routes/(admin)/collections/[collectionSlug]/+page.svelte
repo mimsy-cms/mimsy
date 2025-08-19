@@ -3,20 +3,6 @@
 	import MoreVerticalIcon from '@lucide/svelte/icons/more-vertical';
 
 	let { data } = $props();
-
-	function formatDate(dateStr: string) {
-		const date = new Date(dateStr);
-		const pad = (n: number) => n.toString().padStart(2, '0');
-
-		const day = pad(date.getDate());
-		const month = pad(date.getMonth() + 1);
-		const year = date.getFullYear();
-		const hours = pad(date.getHours());
-		const minutes = pad(date.getMinutes());
-		const seconds = pad(date.getSeconds());
-
-		return `${day}/${month}/${year}, ${hours}:${minutes}:${seconds}`;
-	}
 </script>
 
 <div class="flex flex-col gap-6">
@@ -27,27 +13,37 @@
 	<Searchbar id="search" name="search" class="max-w-md" />
 
 	<div class="w-full overflow-hidden rounded-md border border-gray-200 bg-white">
-		<table class="table-fixed w-full divide-y divide-gray-200">
+		<table class="w-full table-fixed divide-y divide-gray-200">
 			<thead class="bg-gray-50">
 				<tr>
-					<th class="w-1/4 px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
+					<th
+						scope="col"
+						class="px-6 py-3 text-left text-xs font-medium tracking-wider text-gray-500 uppercase"
+					>
 						ID
 					</th>
-					<th class="w-1/4 px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
+					<th
+						scope="col"
+						class="px-6 py-3 text-left text-xs font-medium tracking-wider text-gray-500 uppercase"
+					>
 						Slug
 					</th>
-					<th class="w-1/4 px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
+					<th
+						class="w-1/4 px-6 py-3 text-left text-xs font-medium tracking-wider text-gray-500 uppercase"
+					>
 						Created By
 					</th>
-					<th class="w-1/4 px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
+					<th
+						class="w-1/4 px-6 py-3 text-left text-xs font-medium tracking-wider text-gray-500 uppercase"
+					>
 						Last updated
 					</th>
 				</tr>
 			</thead>
 			<tbody class="divide-y divide-gray-200">
-				{#each data.resources as resource}
+				{#each data.resources as resource (resource.id)}
 					<tr class="hover:bg-gray-50">
-						<td class="whitespace-nowrap px-6 py-3">
+						<td class="px-6 py-3 whitespace-nowrap">
 							<div class="flex items-center text-sm text-gray-500">
 								{resource.id}
 							</div>
@@ -61,16 +57,11 @@
 								{resource.slug}
 							</a>
 						</td>
-
-						<td class="whitespace-nowrap px-6 py-3">
-							<div class="flex items-center text-sm text-gray-500">
-								{resource.created_by_email}
-							</div>
-						</td>
-
-						<td class="whitespace-nowrap px-6 py-3">
-							<div class="flex items-center text-sm text-gray-500">
-								{formatDate(resource.updated_at)}
+						<td class="px-6 py-3 text-right text-sm font-medium whitespace-nowrap">
+							<div class="flex items-center justify-end space-x-2">
+								<button class="text-gray-400 hover:text-gray-600">
+									<MoreVerticalIcon class="size-4" />
+								</button>
 							</div>
 						</td>
 					</tr>

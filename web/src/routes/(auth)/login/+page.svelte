@@ -7,10 +7,9 @@
 
 	let { data } = $props();
 
-	let { form, errors, enhance, message } = superForm(
-		data.form, {
-			resetForm: false,
-		});
+	let { form, errors, enhance, message } = superForm(data.form, {
+		resetForm: false
+	});
 </script>
 
 <div class="flex min-h-screen flex-col items-center justify-center p-6">
@@ -44,6 +43,6 @@
 	</form>
 
 	{#if $message}
-		<p role="alert" class="text-red-600 mt-2 text-sm">{$message}</p>
+		<p role="alert" class="mt-2 text-sm text-red-600">{$message}</p>
 	{/if}
 </div>

@@ -39,21 +39,21 @@
 >
 	<Select.Trigger
 		class={[
-			'data-placeholder:text-gray-600 inline-flex touch-none select-none items-center rounded-md border border-gray-300 bg-white py-2 text-sm',
+			'inline-flex touch-none items-center rounded-md border border-gray-300 bg-white py-2 text-sm select-none data-placeholder:text-gray-600',
 			'data-[state=open]:border-blue-500 data-[state=open]:ring-1 data-[state=open]:ring-blue-500'
 		]}
 		aria-label={label}
 	>
 		<span class="ml-3">{selectedLabel}</span>
-		<ChevronsUpDownIcon class="ml-auto mr-2 size-4 text-gray-600" />
+		<ChevronsUpDownIcon class="mr-2 ml-auto size-4 text-gray-600" />
 	</Select.Trigger>
 	<Select.Portal>
 		<Select.Content
 			class={[
 				'data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-99',
 				'data-[state=open]:zoom-in-99 data-[side=bottom]:slide-in-from-top-1 data-[side=left]:slide-in-from-right-1 data-[side=right]:slide-in-from-left-1 data-[side=top]:slide-in-from-bottom-1',
-				'outline-hidden max-h-[var(--bits-select-content-available-height)] w-[var(--bits-select-anchor-width)] min-w-[var(--bits-select-anchor-width)] shadow-md',
-				'select-none rounded-xl border border-gray-300 bg-white px-1 py-2 data-[side=bottom]:translate-y-1 data-[side=left]:-translate-x-1 data-[side=right]:translate-x-1 data-[side=top]:-translate-y-1'
+				'max-h-[var(--bits-select-content-available-height)] w-[var(--bits-select-anchor-width)] min-w-[var(--bits-select-anchor-width)] shadow-md outline-hidden',
+				'rounded-xl border border-gray-300 bg-white px-1 py-2 select-none data-[side=bottom]:translate-y-1 data-[side=left]:-translate-x-1 data-[side=right]:translate-x-1 data-[side=top]:-translate-y-1'
 			]}
 			side="bottom"
 			sideOffset={10}
@@ -62,7 +62,7 @@
 				{#each items as item, i (i + item.value)}
 					<Select.Item
 						class={[
-							'data-highlighted:bg-gray-100  outline-hidden data-disabled:opacity-50 flex h-10 w-full select-none items-center rounded-md px-3 py-1.5 text-sm capitalize',
+							'flex  h-10 w-full items-center rounded-md px-3 py-1.5 text-sm capitalize outline-hidden select-none data-disabled:opacity-50 data-highlighted:bg-gray-100',
 							'data-selected:bg-blue-500 data-selected:text-white'
 						]}
 						value={item.value}

@@ -43,7 +43,7 @@
 			{id}
 			{name}
 			class={[
-				'h-input border-border-input text-foreground flex w-full select-none items-center rounded-md border border-gray-300 bg-white px-2 py-1 text-sm',
+				'h-input border-border-input text-foreground flex w-full items-center rounded-md border border-gray-300 bg-white px-2 py-1 text-sm select-none',
 				' focus-within:border-blue-500 focus-within:ring-1 focus-within:ring-blue-500'
 			]}
 		>
@@ -57,7 +57,7 @@
 						{:else}
 							<DatePicker.Segment
 								{part}
-								class="focus:text-foreground focus-visible:ring-0! focus-visible:ring-offset-0! rounded-md px-1 py-1.5 outline-none hover:bg-gray-100 focus:bg-gray-100 aria-[valuetext=Empty]:text-gray-800"
+								class="focus:text-foreground rounded-md px-1 py-1.5 outline-none hover:bg-gray-100 focus:bg-gray-100 focus-visible:ring-0! focus-visible:ring-offset-0! aria-[valuetext=Empty]:text-gray-800"
 							>
 								{value}
 							</DatePicker.Segment>
@@ -65,7 +65,7 @@
 					</div>
 				{/each}
 				<DatePicker.Trigger
-					class="ml-auto inline-flex size-8 items-center justify-center rounded-md text-gray-600 outline-none transition-all hover:bg-gray-100 focus:bg-gray-100 active:bg-gray-100"
+					class="ml-auto inline-flex size-8 items-center justify-center rounded-md text-gray-600 transition-all outline-none hover:bg-gray-100 focus:bg-gray-100 active:bg-gray-100"
 				>
 					<CalendarIcon class="size-6" />
 				</DatePicker.Trigger>
@@ -88,14 +88,14 @@
 							<ChevronRight class="size-6" />
 						</DatePicker.NextButton>
 					</DatePicker.Header>
-					<div class="flex flex-col space-y-4 pt-4 sm:flex-row sm:space-x-4 sm:space-y-0">
+					<div class="flex flex-col space-y-4 pt-4 sm:flex-row sm:space-y-0 sm:space-x-4">
 						{#each months as month (month.value)}
-							<DatePicker.Grid class="w-full border-collapse select-none space-y-1">
+							<DatePicker.Grid class="w-full border-collapse space-y-1 select-none">
 								<DatePicker.GridHead>
 									<DatePicker.GridRow class="mb-1 flex w-full justify-between">
 										{#each weekdays as day (day)}
 											<DatePicker.HeadCell
-												class="font-normal! w-10 rounded-md text-xs text-gray-800"
+												class="w-10 rounded-md text-xs font-normal! text-gray-800"
 											>
 												<div>{day.slice(0, 2)}</div>
 											</DatePicker.HeadCell>
@@ -109,17 +109,17 @@
 												<DatePicker.Cell
 													{date}
 													month={month.value}
-													class="p-0! relative size-10 text-center text-sm"
+													class="relative size-10 p-0! text-center text-sm"
 												>
 													<DatePicker.Day
 														class={[
-															'data-selected:bg-blue-500 data-disabled:text-gray-500 data-selected:text-white data-unavailable:text-gray-800 hover:bg-blue-200',
+															'hover:bg-blue-200 data-disabled:text-gray-500 data-selected:bg-blue-500 data-selected:text-white data-unavailable:text-gray-800',
 															'data-disabled:pointer-events-none data-outside-month:pointer-events-none data-selected:font-medium data-unavailable:line-through',
-															'group relative inline-flex size-10 items-center justify-center whitespace-nowrap rounded-md border border-transparent bg-transparent p-0 text-sm font-normal transition-all hover:border-white'
+															'group relative inline-flex size-10 items-center justify-center rounded-md border border-transparent bg-transparent p-0 text-sm font-normal whitespace-nowrap transition-all hover:border-white'
 														]}
 													>
 														<div
-															class="group-data-selected:bg-blue-300 group-data-today:block absolute top-[5px] hidden size-1 rounded-full bg-white transition-all"
+															class="absolute top-[5px] hidden size-1 rounded-full bg-white transition-all group-data-selected:bg-blue-300 group-data-today:block"
 														></div>
 														{date.day}
 													</DatePicker.Day>

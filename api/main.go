@@ -119,6 +119,7 @@ func main() {
 	v1.HandleFunc("GET /users", authHandler.GetUsers)
 	v1.HandleFunc("GET /sync/status", syncHandler.Status)
 	v1.HandleFunc("GET /sync/jobs", syncHandler.Jobs)
+	v1.HandleFunc("GET /sync/active-migration", syncHandler.ActiveMigration)
 
 	handler := util.ApplyMiddlewares(
 		config.WithDB(db),

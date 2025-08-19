@@ -18,8 +18,13 @@
 		slug: data.resource?.slug || '',
 		...Object.fromEntries(
 			Object.keys(data.definition.fields).map((fieldName) => {
-				let value = data.resource?.[fieldName] ?? getDefaultValue(data.definition.fields[fieldName]);
-				if (data.definition.fields[fieldName].type === 'date' && typeof value === 'string' && value) {
+				let value =
+					data.resource?.[fieldName] ?? getDefaultValue(data.definition.fields[fieldName]);
+				if (
+					data.definition.fields[fieldName].type === 'date' &&
+					typeof value === 'string' &&
+					value
+				) {
 					value = new Date(value);
 				}
 				return [fieldName, value];
@@ -84,13 +89,16 @@
 				schemaContent.updated_by = currentUser.id;
 			}
 
-			const response = await fetch(`/api/v1/collections/${data.definition.slug}/${resourceContent.slug}`, {
-				method: 'PUT',
-				headers: {
-					'Content-Type': 'application/json'
-				},
-				body: JSON.stringify(schemaContent)
-			});
+			const response = await fetch(
+				`/api/v1/collections/${data.definition.slug}/${resourceContent.slug}`,
+				{
+					method: 'PUT',
+					headers: {
+						'Content-Type': 'application/json'
+					},
+					body: JSON.stringify(schemaContent)
+				}
+			);
 
 			if (!response.ok) {
 				throw new Error(`Failed to save resource: ${response.statusText}`);
@@ -154,13 +162,13 @@
 	</div>
 
 	{#if error}
-		<div class="rounded bg-red-100 border border-red-400 text-red-700 px-4 py-3">
+		<div class="rounded border border-red-400 bg-red-100 px-4 py-3 text-red-700">
 			{error}
 		</div>
 	{/if}
 
 	{#if success}
-		<div class="rounded bg-green-100 border border-green-400 text-green-700 px-4 py-3">
+		<div class="rounded border border-green-400 bg-green-100 px-4 py-3 text-green-700">
 			{success}
 		</div>
 	{/if}
@@ -169,11 +177,7 @@
 		<div class="flex flex-1 flex-col gap-4 rounded-md border border-gray-300 bg-white p-4">
 			<div class="flex flex-col gap-2">
 				<label for="slug">Slug</label>
-				<Input
-					id="slug"
-					name="slug"
-					bind:value={resourceContent.slug}
-				/>
+				<Input id="slug" name="slug" bind:value={resourceContent.slug} />
 			</div>
 
 			{#if Object.keys(data.definition.fields).length > 0}
@@ -184,9 +188,9 @@
 								{fieldName}
 								{#if field.required}<span class="text-red-500">*</span>{/if}
 							</label>
-							<EmailField 
-								id={fieldName} 
-								name={fieldName} 
+							<EmailField
+								id={fieldName}
+								name={fieldName}
 								placeholder="example@example.com"
 								bind:value={resourceContent[fieldName]}
 								required={field.required}
@@ -196,9 +200,9 @@
 								{fieldName}
 								{#if field.required}<span class="text-red-500">*</span>{/if}
 							</label>
-							<DateField 
-								id={fieldName} 
-								name={fieldName} 
+							<DateField
+								id={fieldName}
+								name={fieldName}
 								label={field.label}
 								bind:value={resourceContent[fieldName]}
 								required={field.required}
@@ -208,8 +212,8 @@
 								{fieldName}
 								{#if field.required}<span class="text-red-500">*</span>{/if}
 							</label>
-							<NumberField 
-								id={fieldName} 
+							<NumberField
+								id={fieldName}
 								name={fieldName}
 								bind:value={resourceContent[fieldName]}
 								required={field.required}
@@ -219,9 +223,9 @@
 								{fieldName}
 								{#if field.required}<span class="text-red-500">*</span>{/if}
 							</label>
-							<CheckboxField 
-								id={fieldName} 
-								name={fieldName} 
+							<CheckboxField
+								id={fieldName}
+								name={fieldName}
 								label={field.label}
 								bind:checked={resourceContent[fieldName]}
 								required={field.required}
@@ -231,8 +235,8 @@
 								{fieldName}
 								{#if field.required}<span class="text-red-500">*</span>{/if}
 							</label>
-							<SelectField 
-								name={fieldName} 
+							<SelectField
+								name={fieldName}
 								options={field.options || []}
 								bind:value={resourceContent[fieldName]}
 								required={field.required}
@@ -250,8 +254,8 @@
 								{fieldName}
 								{#if field.required}<span class="text-red-500">*</span>{/if}
 							</label>
-							<PlainTextField 
-								id={fieldName} 
+							<PlainTextField
+								id={fieldName}
 								name={fieldName}
 								bind:value={resourceContent[fieldName]}
 								required={field.required}
