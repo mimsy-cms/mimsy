@@ -345,6 +345,7 @@ func TestDelete_Success(t *testing.T) {
 	handler := media.NewHandler(mockService)
 
 	mockMedia := createMockMedia()
+	user := createMockUser()
 
 	mockService.EXPECT().
 		GetById(gomock.Any(), int64(1)).
@@ -356,6 +357,8 @@ func TestDelete_Success(t *testing.T) {
 
 	req := httptest.NewRequest("DELETE", "/media/1", nil)
 	req.SetPathValue("id", "1")
+
+	req = addUserToContext(req, user)
 
 	w := executeRequest(http.HandlerFunc(handler.Delete), req, t)
 
@@ -371,8 +374,12 @@ func TestDelete_InvalidId(t *testing.T) {
 	mockService := mocks.NewMockMediaService(ctrl)
 	handler := media.NewHandler(mockService)
 
+	user := createMockUser()
+
 	req := httptest.NewRequest("DELETE", "/media/invalid", nil)
 	req.SetPathValue("id", "invalid")
+
+	req = addUserToContext(req, user)
 
 	w := executeRequest(http.HandlerFunc(handler.Delete), req, t)
 
@@ -388,12 +395,16 @@ func TestDelete_MediaNotFound(t *testing.T) {
 	mockService := mocks.NewMockMediaService(ctrl)
 	handler := media.NewHandler(mockService)
 
+	user := createMockUser()
+
 	mockService.EXPECT().
 		GetById(gomock.Any(), int64(999)).
 		Return(nil, errors.New("not found"))
 
 	req := httptest.NewRequest("DELETE", "/media/999", nil)
 	req.SetPathValue("id", "999")
+
+	req = addUserToContext(req, user)
 
 	w := executeRequest(http.HandlerFunc(handler.Delete), req, t)
 
@@ -410,6 +421,7 @@ func TestDelete_MediaReferenced(t *testing.T) {
 	handler := media.NewHandler(mockService)
 
 	mockMedia := createMockMedia()
+	user := createMockUser()
 
 	mockService.EXPECT().
 		GetById(gomock.Any(), int64(1)).
@@ -421,6 +433,8 @@ func TestDelete_MediaReferenced(t *testing.T) {
 
 	req := httptest.NewRequest("DELETE", "/media/1", nil)
 	req.SetPathValue("id", "1")
+
+	req = addUserToContext(req, user)
 
 	w := executeRequest(http.HandlerFunc(handler.Delete), req, t)
 
@@ -437,6 +451,7 @@ func TestDelete_ServiceError(t *testing.T) {
 	handler := media.NewHandler(mockService)
 
 	mockMedia := createMockMedia()
+	user := createMockUser()
 
 	mockService.EXPECT().
 		GetById(gomock.Any(), int64(1)).
@@ -448,6 +463,8 @@ func TestDelete_ServiceError(t *testing.T) {
 
 	req := httptest.NewRequest("DELETE", "/media/1", nil)
 	req.SetPathValue("id", "1")
+
+	req = addUserToContext(req, user)
 
 	w := executeRequest(http.HandlerFunc(handler.Delete), req, t)
 
