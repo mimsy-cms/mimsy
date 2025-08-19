@@ -14,6 +14,13 @@ export const Tags = collection('tags', {
 			minLength: 6,
 			maxLength: 6
 		}
+	}),
+	description: fields.shortString({
+		description: 'The description of the tag',
+		constraints: {
+			minLength: 10,
+			maxLength: 200
+		}
 	})
 });
 
