@@ -43,8 +43,20 @@
 				<span class="flex-1">Dashboard</span>
 			</MenuItem>
 
-			<Accordion text="Collections" icon={DatabaseIcon} items={collections} {onNavigate} />
-			<Accordion text="Globals" icon={GlobeIcon} items={globals} {onNavigate} />
+			<Accordion
+				text="Collections"
+				emptyText="No Collections"
+				icon={DatabaseIcon}
+				items={collections}
+				{onNavigate}
+			/>
+			<Accordion
+				text="Globals"
+				emptyText="No Globals"
+				icon={GlobeIcon}
+				items={globals}
+				{onNavigate}
+			/>
 			<Accordion text="Builtins" icon={AnvilIcon} items={builtins} {onNavigate} />
 		</nav>
 
