@@ -152,10 +152,27 @@ func (s *syncProvider) SyncRepository(ctx context.Context) error {
 		return fmt.Errorf("failed to get last active migration for repository %s: %w", s.repositoryName, err)
 	}
 
+	// Generate the sql migration, and store it
+	sqlSchema, err := s.migrator.GenerateSchema(ctx, &schemaStruct)
+	if err != nil {
+		return fmt.Errorf("failed to generate sql migration for repository %s: %w", s.repositoryName, err)
+	}
+	//Serialize the sql schema
+	sqlSchemaBytes, err := json.Marshal(sqlSchema)
+	if err != nil {
+		return fmt.Errorf("failed to serialize sql schema for repository %s: %w", s.repositoryName, err)
+	}
+
+	if err := s.syncStatusRepository.SetAppliedMigration(s.repositoryName, contents.Sha, sqlSchemaBytes); err != nil {
+		return fmt.Errorf("failed to store sql migration for repository %s: %w", s.repositoryName, err)
+	}
+
 	// Run the migration
-	if err := s.migrator.Migrate(ctx, activeMigration, &schemaStruct, contents.Message, contents.Sha); err != nil {
+	if err := s.migrator.Migrate(ctx, activeMigration, sqlSchema, contents.Message, contents.Sha); err != nil {
 		return fmt.Errorf("failed to run migration for repository %s: %w", s.repositoryName, err)
 	}
+
+	// Store the sql migration inside of the
 
 	// Mark the migration as active
 	if err := s.syncStatusRepository.MarkAsActive(s.repositoryName, contents.Sha); err != nil {
