@@ -57,9 +57,9 @@ func createMockCollection() *collection.Collection {
 		Name:      "Test Collection",
 		Fields:    fieldsJSON,
 		CreatedAt: "2024-01-01T00:00:00Z",
-		CreatedBy: "admin@example.com",
+		CreatedBy: 0,
 		UpdatedAt: "2024-01-01T00:00:00Z",
-		UpdatedBy: nil,
+		UpdatedBy: 0,
 		IsGlobal:  false,
 	}
 }
@@ -194,6 +194,14 @@ func TestGetResources_Success(t *testing.T) {
 	mockService.EXPECT().
 		FindResources(gomock.Any(), mockCollection).
 		Return(mockResources, nil)
+
+	mockService.EXPECT().
+		FindUserEmail(gomock.Any(), mockResources[0].CreatedBy).
+		Return("admin@example.com", nil)
+
+	mockService.EXPECT().
+		FindUserEmail(gomock.Any(), mockResources[0].UpdatedBy).
+		Return("admin@example.com", nil)
 
 	req := httptest.NewRequest("GET", "/collections/test-collection/resources", nil)
 	req.SetPathValue("slug", "test-collection")

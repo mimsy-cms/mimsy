@@ -3,13 +3,15 @@ package collection
 import "encoding/json"
 
 type CollectionResponse struct {
-	Slug      string          `json:"slug"`
-	Name      string          `json:"name"`
-	Fields    json.RawMessage `json:"fields"`
-	CreatedAt string          `json:"created_at"`
-	CreatedBy string          `json:"created_by"`
-	UpdatedAt string          `json:"updated_at"`
-	UpdatedBy *string         `json:"updated_by,omitempty"`
+	Slug           string          `json:"slug"`
+	Name           string          `json:"name"`
+	Fields         json.RawMessage `json:"fields"`
+	CreatedAt      string          `json:"created_at"`
+	CreatedBy      int64           `json:"created_by"`
+	CreatedByEmail string          `json:"created_by_email"`
+	UpdatedAt      string          `json:"updated_at"`
+	UpdatedBy      int64           `json:"updated_by,omitempty"`
+	UpdatedByEmail string          `json:"updated_by_email,omitempty"`
 }
 
 func NewCollectionResponse(c *Collection) *CollectionResponse {

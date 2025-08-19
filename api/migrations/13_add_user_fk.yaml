@@ -1,0 +1,13 @@
+operations:
+  - alter_column:
+      table: collection
+      column: created_by
+      type: BIGINT
+      up: "0"
+      down: "NULL"
+  - alter_column:
+      table: collection
+      column: updated_by
+      type: BIGINT
+      up: "0"
+      down: "NULL"
