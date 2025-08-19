@@ -29,7 +29,11 @@
 		return message.length > 60 ? message.substring(0, 60) + '...' : message;
 	}
 
-	function getStatusBadge(status: { is_active: boolean; error_message?: string; applied_at?: string }) {
+	function getStatusBadge(status: {
+		is_active: boolean;
+		error_message?: string;
+		applied_at?: string;
+	}) {
 		if (status.error_message) {
 			return { text: 'Error', class: 'bg-red-100 text-red-800', icon: AlertCircleIcon };
 		}
@@ -48,8 +52,8 @@
 		refreshing = false;
 	}
 
-	const activeMigration = $derived(data.statuses?.find(s => s.is_active));
-	const errorMigrations = $derived(data.statuses?.filter(s => s.error_message) || []);
+	const activeMigration = $derived(data.statuses?.find((s) => s.is_active));
+	const errorMigrations = $derived(data.statuses?.filter((s) => s.error_message) || []);
 </script>
 
 <div class="flex flex-col gap-6">
@@ -59,11 +63,11 @@
 			onclick={handleRefresh}
 			disabled={refreshing}
 			class={cn(
-				"flex items-center gap-2 rounded-md border border-gray-300 bg-white px-3 py-2 text-sm hover:bg-gray-50",
-				refreshing && "opacity-50 cursor-not-allowed"
+				'flex items-center gap-2 rounded-md border border-gray-300 bg-white px-3 py-2 text-sm hover:bg-gray-50',
+				refreshing && 'cursor-not-allowed opacity-50'
 			)}
 		>
-			<RefreshCwIcon class={cn("h-4 w-4", refreshing && "animate-spin")} />
+			<RefreshCwIcon class={cn('h-4 w-4', refreshing && 'animate-spin')} />
 			Refresh
 		</button>
 	</div>
@@ -99,14 +103,17 @@
 	{/if}
 
 	{#if errorMigrations.length > 0}
-		{#each errorMigrations as errorMigration}
+		{#each errorMigrations as errorMigration (errorMigration.commit)}
 			<div class="rounded-md bg-red-50 p-4">
 				<div class="flex">
 					<AlertCircleIcon class="h-5 w-5 text-red-400" />
 					<div class="ml-3 flex-1">
 						<h3 class="text-sm font-medium text-red-800">Migration Error</h3>
 						<div class="mt-2 text-sm text-red-700">
-							<p><strong>Commit:</strong> {errorMigration.commit.substring(0, 7)} - {errorMigration.commit_message}</p>
+							<p>
+								<strong>Commit:</strong>
+								{errorMigration.commit.substring(0, 7)} - {errorMigration.commit_message}
+							</p>
 							<p class="mt-1"><strong>Error:</strong> {errorMigration.error_message}</p>
 						</div>
 					</div>
@@ -122,45 +129,61 @@
 				<table class="w-full divide-y divide-gray-200">
 					<thead class="bg-gray-50">
 						<tr>
-							<th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
+							<th
+								class="px-6 py-3 text-left text-xs font-medium tracking-wider text-gray-500 uppercase"
+							>
 								Status
 							</th>
-							<th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
+							<th
+								class="px-6 py-3 text-left text-xs font-medium tracking-wider text-gray-500 uppercase"
+							>
 								Commit
 							</th>
-							<th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
+							<th
+								class="px-6 py-3 text-left text-xs font-medium tracking-wider text-gray-500 uppercase"
+							>
 								Message
 							</th>
-							<th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
+							<th
+								class="px-6 py-3 text-left text-xs font-medium tracking-wider text-gray-500 uppercase"
+							>
 								Commit Date
 							</th>
-							<th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
+							<th
+								class="px-6 py-3 text-left text-xs font-medium tracking-wider text-gray-500 uppercase"
+							>
 								Applied At
 							</th>
 						</tr>
 					</thead>
 					<tbody class="divide-y divide-gray-200">
 						{#if data.statuses && data.statuses.length > 0}
-							{#each data.statuses as status}
+							{#each data.statuses as status (status.commit)}
 								{@const badge = getStatusBadge(status)}
 								<tr class="hover:bg-gray-50">
-									<td class="whitespace-nowrap px-6 py-3">
-										<span class={cn("inline-flex items-center gap-1 rounded-full px-2 py-1 text-xs font-semibold", badge.class)}>
-											{@const Icon = badge.icon}
-											<Icon class="h-3 w-3" />
+									<td class="px-6 py-3 whitespace-nowrap">
+										<span
+											class={cn(
+												'inline-flex items-center gap-1 rounded-full px-2 py-1 text-xs font-semibold',
+												badge.class
+											)}
+										>
+											<badge.icon class="h-3 w-3" />
 											{badge.text}
 										</span>
 									</td>
-									<td class="whitespace-nowrap px-6 py-3 text-sm text-gray-900">
-										<code class="rounded bg-gray-100 px-1 py-0.5 text-xs">{status.commit.substring(0, 7)}</code>
+									<td class="px-6 py-3 text-sm whitespace-nowrap text-gray-900">
+										<code class="rounded bg-gray-100 px-1 py-0.5 text-xs"
+											>{status.commit.substring(0, 7)}</code
+										>
 									</td>
 									<td class="px-6 py-3 text-sm text-gray-500">
 										{formatCommitMessage(status.commit_message)}
 									</td>
-									<td class="whitespace-nowrap px-6 py-3 text-sm text-gray-500">
+									<td class="px-6 py-3 text-sm whitespace-nowrap text-gray-500">
 										{formatDate(status.commit_date)}
 									</td>
-									<td class="whitespace-nowrap px-6 py-3 text-sm text-gray-500">
+									<td class="px-6 py-3 text-sm whitespace-nowrap text-gray-500">
 										{formatDate(status.applied_at)}
 									</td>
 								</tr>
@@ -183,26 +206,36 @@
 				<table class="w-full divide-y divide-gray-200">
 					<thead class="bg-gray-50">
 						<tr>
-							<th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
+							<th
+								class="px-6 py-3 text-left text-xs font-medium tracking-wider text-gray-500 uppercase"
+							>
 								Job Name
 							</th>
-							<th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
+							<th
+								class="px-6 py-3 text-left text-xs font-medium tracking-wider text-gray-500 uppercase"
+							>
 								Schedule
 							</th>
-							<th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
+							<th
+								class="px-6 py-3 text-left text-xs font-medium tracking-wider text-gray-500 uppercase"
+							>
 								Status
 							</th>
-							<th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
+							<th
+								class="px-6 py-3 text-left text-xs font-medium tracking-wider text-gray-500 uppercase"
+							>
 								Last Run
 							</th>
-							<th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
+							<th
+								class="px-6 py-3 text-left text-xs font-medium tracking-wider text-gray-500 uppercase"
+							>
 								Next Run
 							</th>
 						</tr>
 					</thead>
 					<tbody class="divide-y divide-gray-200">
 						{#if data.jobs && data.jobs.length > 0}
-							{#each data.jobs as job}
+							{#each data.jobs as job (job.name)}
 								<tr class="hover:bg-gray-50">
 									<td class="px-6 py-3 text-sm font-medium text-gray-900">
 										{job.name}
@@ -210,23 +243,27 @@
 									<td class="px-6 py-3 text-sm text-gray-500">
 										<code class="rounded bg-gray-100 px-1 py-0.5 text-xs">{job.schedule}</code>
 									</td>
-									<td class="whitespace-nowrap px-6 py-3">
+									<td class="px-6 py-3 whitespace-nowrap">
 										{#if job.is_running}
-											<span class="inline-flex items-center gap-1 rounded-full bg-yellow-100 px-2 py-1 text-xs font-semibold text-yellow-800">
+											<span
+												class="inline-flex items-center gap-1 rounded-full bg-yellow-100 px-2 py-1 text-xs font-semibold text-yellow-800"
+											>
 												<RefreshCwIcon class="h-3 w-3 animate-spin" />
 												Running
 											</span>
 										{:else}
-											<span class="inline-flex items-center gap-1 rounded-full bg-gray-100 px-2 py-1 text-xs font-semibold text-gray-800">
+											<span
+												class="inline-flex items-center gap-1 rounded-full bg-gray-100 px-2 py-1 text-xs font-semibold text-gray-800"
+											>
 												<ClockIcon class="h-3 w-3" />
 												Idle
 											</span>
 										{/if}
 									</td>
-									<td class="whitespace-nowrap px-6 py-3 text-sm text-gray-500">
+									<td class="px-6 py-3 text-sm whitespace-nowrap text-gray-500">
 										{formatDate(job.last_run)}
 									</td>
-									<td class="whitespace-nowrap px-6 py-3 text-sm text-gray-500">
+									<td class="px-6 py-3 text-sm whitespace-nowrap text-gray-500">
 										{formatDate(job.next_run)}
 									</td>
 								</tr>
