@@ -1,6 +1,11 @@
 import type { PageServerLoad } from './$types';
 import type { SyncStatus, JobStatus } from '$lib/types/sync';
 
+type SyncStatusResponse = {
+	statuses: SyncStatus[];
+	repository: string;
+};
+
 export const load: PageServerLoad = async ({ fetch }) => {
 	try {
 		const [statusResponse, jobsResponse] = await Promise.all([
@@ -16,12 +21,13 @@ export const load: PageServerLoad = async ({ fetch }) => {
 			};
 		}
 
-		const statuses: SyncStatus[] = await statusResponse.json();
+		const { statuses, repository }: SyncStatusResponse = await statusResponse.json();
 		const jobs: JobStatus[] = await jobsResponse.json();
 
 		return {
 			statuses,
-			jobs
+			jobs,
+			repository
 		};
 	} catch (error) {
 		console.error('Error loading sync data:', error);

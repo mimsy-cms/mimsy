@@ -130,27 +130,27 @@
 					<thead class="bg-gray-50">
 						<tr>
 							<th
-								class="px-6 py-3 text-left text-xs font-medium tracking-wider text-gray-500 uppercase"
+								class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500"
 							>
 								Status
 							</th>
 							<th
-								class="px-6 py-3 text-left text-xs font-medium tracking-wider text-gray-500 uppercase"
+								class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500"
 							>
 								Commit
 							</th>
 							<th
-								class="px-6 py-3 text-left text-xs font-medium tracking-wider text-gray-500 uppercase"
+								class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500"
 							>
 								Message
 							</th>
 							<th
-								class="px-6 py-3 text-left text-xs font-medium tracking-wider text-gray-500 uppercase"
+								class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500"
 							>
 								Commit Date
 							</th>
 							<th
-								class="px-6 py-3 text-left text-xs font-medium tracking-wider text-gray-500 uppercase"
+								class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500"
 							>
 								Applied At
 							</th>
@@ -161,7 +161,7 @@
 							{#each data.statuses as status (status.commit)}
 								{@const badge = getStatusBadge(status)}
 								<tr class="hover:bg-gray-50">
-									<td class="px-6 py-3 whitespace-nowrap">
+									<td class="whitespace-nowrap px-6 py-3">
 										<span
 											class={cn(
 												'inline-flex items-center gap-1 rounded-full px-2 py-1 text-xs font-semibold',
@@ -172,18 +172,24 @@
 											{badge.text}
 										</span>
 									</td>
-									<td class="px-6 py-3 text-sm whitespace-nowrap text-gray-900">
-										<code class="rounded bg-gray-100 px-1 py-0.5 text-xs"
-											>{status.commit.substring(0, 7)}</code
+									<td class="whitespace-nowrap px-6 py-3 text-sm text-gray-900">
+										<a
+											href={'https://github.com/' + data.repository + '/commit/' + status.commit}
+											class="hover:underline"
+											target="_blank"
 										>
+											<code class="rounded bg-gray-100 px-1 py-0.5 text-xs"
+												>{status.commit.substring(0, 7)}</code
+											>
+										</a>
 									</td>
 									<td class="px-6 py-3 text-sm text-gray-500">
 										{formatCommitMessage(status.commit_message)}
 									</td>
-									<td class="px-6 py-3 text-sm whitespace-nowrap text-gray-500">
+									<td class="whitespace-nowrap px-6 py-3 text-sm text-gray-500">
 										{formatDate(status.commit_date)}
 									</td>
-									<td class="px-6 py-3 text-sm whitespace-nowrap text-gray-500">
+									<td class="whitespace-nowrap px-6 py-3 text-sm text-gray-500">
 										{formatDate(status.applied_at)}
 									</td>
 								</tr>
@@ -207,27 +213,27 @@
 					<thead class="bg-gray-50">
 						<tr>
 							<th
-								class="px-6 py-3 text-left text-xs font-medium tracking-wider text-gray-500 uppercase"
+								class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500"
 							>
 								Job Name
 							</th>
 							<th
-								class="px-6 py-3 text-left text-xs font-medium tracking-wider text-gray-500 uppercase"
+								class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500"
 							>
 								Schedule
 							</th>
 							<th
-								class="px-6 py-3 text-left text-xs font-medium tracking-wider text-gray-500 uppercase"
+								class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500"
 							>
 								Status
 							</th>
 							<th
-								class="px-6 py-3 text-left text-xs font-medium tracking-wider text-gray-500 uppercase"
+								class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500"
 							>
 								Last Run
 							</th>
 							<th
-								class="px-6 py-3 text-left text-xs font-medium tracking-wider text-gray-500 uppercase"
+								class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500"
 							>
 								Next Run
 							</th>
@@ -243,7 +249,7 @@
 									<td class="px-6 py-3 text-sm text-gray-500">
 										<code class="rounded bg-gray-100 px-1 py-0.5 text-xs">{job.schedule}</code>
 									</td>
-									<td class="px-6 py-3 whitespace-nowrap">
+									<td class="whitespace-nowrap px-6 py-3">
 										{#if job.is_running}
 											<span
 												class="inline-flex items-center gap-1 rounded-full bg-yellow-100 px-2 py-1 text-xs font-semibold text-yellow-800"
@@ -260,10 +266,10 @@
 											</span>
 										{/if}
 									</td>
-									<td class="px-6 py-3 text-sm whitespace-nowrap text-gray-500">
+									<td class="whitespace-nowrap px-6 py-3 text-sm text-gray-500">
 										{formatDate(job.last_run)}
 									</td>
-									<td class="px-6 py-3 text-sm whitespace-nowrap text-gray-500">
+									<td class="whitespace-nowrap px-6 py-3 text-sm text-gray-500">
 										{formatDate(job.next_run)}
 									</td>
 								</tr>
