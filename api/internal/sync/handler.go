@@ -15,7 +15,16 @@ type Handler struct {
 	CronService cron.CronService
 }
 
-func NewHandler(repository SyncStatusRepository, cronService cron.CronService) *Handler {
+func NewHandler(cronService cron.CronService) *Handler {
+	return &Handler{
+		Repository:  NewRepository(),
+		CronService: cronService,
+	}
+}
+
+// NewHandlerWithRepository creates a new handler with the given repository and cron service.
+// This is primarily used for testing to inject mock dependencies.
+func NewHandlerWithRepository(repository SyncStatusRepository, cronService cron.CronService) *Handler {
 	return &Handler{
 		Repository:  repository,
 		CronService: cronService,
@@ -45,7 +54,7 @@ func (h *Handler) Status(w http.ResponseWriter, r *http.Request) {
 		limit = 5 // Default to 5, max 10
 	}
 
-	statuses, err := h.Repository.GetRecentStatuses(limit)
+	statuses, err := h.Repository.GetRecentStatuses(r.Context(), limit)
 	if err != nil {
 		slog.Error("Failed to get recent sync statuses", "error", err)
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
@@ -86,7 +95,7 @@ func (h *Handler) ActiveMigration(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	activeMigration, err := h.Repository.GetActiveMigration(repo)
+	activeMigration, err := h.Repository.GetActiveMigration(r.Context(), repo)
 	if err != nil {
 		slog.Error("Failed to get active migration", "error", err)
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)

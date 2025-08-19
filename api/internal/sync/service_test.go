@@ -10,10 +10,9 @@ import (
 	"testing"
 	"time"
 
+	"github.com/DATA-DOG/go-sqlmock"
 	"github.com/golang/mock/gomock"
-	mocks_collection "github.com/mimsy-cms/mimsy/internal/mocks/collection"
 	mocks_cron "github.com/mimsy-cms/mimsy/internal/mocks/cron"
-	mocks_sync "github.com/mimsy-cms/mimsy/internal/mocks/sync"
 	"github.com/mimsy-cms/mimsy/internal/sync"
 	"github.com/mimsy-cms/mimsy/pkg/github_fetcher"
 	"github.com/mimsy-cms/mimsy/pkg/mimsy_schema"
@@ -30,15 +29,14 @@ func getTestPEMKey(t *testing.T) string {
 }
 
 func TestNew_Success(t *testing.T) {
-	ctrl := gomock.NewController(t)
-	defer ctrl.Finish()
-
-	mockSyncRepo := mocks_sync.NewMockSyncStatusRepository(ctrl)
-	mockCollectionRepo := mocks_collection.NewMockRepository(ctrl)
+	db, _, err := sqlmock.New()
+	if err != nil {
+		t.Fatalf("Failed to create mock db: %v", err)
+	}
+	defer db.Close()
 
 	provider, err := sync.New(
-		mockSyncRepo,
-		mockCollectionRepo,
+		db,
 		getTestPEMKey(t),
 		123456,
 		"test-repo",
@@ -54,15 +52,14 @@ func TestNew_Success(t *testing.T) {
 }
 
 func TestSyncProvider_GetStatus(t *testing.T) {
-	ctrl := gomock.NewController(t)
-	defer ctrl.Finish()
-
-	mockSyncRepo := mocks_sync.NewMockSyncStatusRepository(ctrl)
-	mockCollectionRepo := mocks_collection.NewMockRepository(ctrl)
+	db, _, err := sqlmock.New()
+	if err != nil {
+		t.Fatalf("Failed to create mock db: %v", err)
+	}
+	defer db.Close()
 
 	provider, err := sync.New(
-		mockSyncRepo,
-		mockCollectionRepo,
+		db,
 		getTestPEMKey(t),
 		123456,
 		"test-repo",
@@ -86,13 +83,16 @@ func TestSyncProvider_RegisterSyncJobs_Success(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
-	mockSyncRepo := mocks_sync.NewMockSyncStatusRepository(ctrl)
-	mockCollectionRepo := mocks_collection.NewMockRepository(ctrl)
+	db, _, err := sqlmock.New()
+	if err != nil {
+		t.Fatalf("Failed to create mock db: %v", err)
+	}
+	defer db.Close()
+
 	mockCron := mocks_cron.NewMockCronService(ctrl)
 
 	provider, err := sync.New(
-		mockSyncRepo,
-		mockCollectionRepo,
+		db,
 		getTestPEMKey(t),
 		123456,
 		"test-repo",
@@ -117,13 +117,16 @@ func TestSyncProvider_RegisterSyncJobs_Error(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
-	mockSyncRepo := mocks_sync.NewMockSyncStatusRepository(ctrl)
-	mockCollectionRepo := mocks_collection.NewMockRepository(ctrl)
+	db, _, err := sqlmock.New()
+	if err != nil {
+		t.Fatalf("Failed to create mock db: %v", err)
+	}
+	defer db.Close()
+
 	mockCron := mocks_cron.NewMockCronService(ctrl)
 
 	provider, err := sync.New(
-		mockSyncRepo,
-		mockCollectionRepo,
+		db,
 		getTestPEMKey(t),
 		123456,
 		"test-repo",
@@ -145,17 +148,16 @@ func TestSyncProvider_RegisterSyncJobs_Error(t *testing.T) {
 }
 
 func TestSyncProvider_SyncRepository_UpToDate(t *testing.T) {
-	ctrl := gomock.NewController(t)
-	defer ctrl.Finish()
+	db, _, err := sqlmock.New()
+	if err != nil {
+		t.Fatalf("Failed to create mock db: %v", err)
+	}
+	defer db.Close()
 
 	// This test requires more complex mocking with the internal sync provider
 	// For now, we'll test the basic initialization and public interface
-	mockSyncRepo := mocks_sync.NewMockSyncStatusRepository(ctrl)
-	mockCollectionRepo := mocks_collection.NewMockRepository(ctrl)
-
 	provider, err := sync.New(
-		mockSyncRepo,
-		mockCollectionRepo,
+		db,
 		getTestPEMKey(t),
 		123456,
 		"test-repo",
@@ -371,7 +373,7 @@ func (s *testSyncProvider) SyncRepository(ctx context.Context) error {
 	}
 
 	// Get the last synced commit
-	dbCommit, err := s.syncStatusRepository.GetLastSyncedCommit(s.repositoryName)
+	dbCommit, err := s.syncStatusRepository.GetLastSyncedCommit(ctx, s.repositoryName)
 	if err != nil {
 		return err
 	}
@@ -382,7 +384,7 @@ func (s *testSyncProvider) SyncRepository(ctx context.Context) error {
 	}
 
 	// Create the sync status
-	if err := s.syncStatusRepository.CreateIfNotExists(s.repositoryName, contents.Sha, contents.Message, contents.Date); err != nil {
+	if err := s.syncStatusRepository.CreateIfNotExists(ctx, s.repositoryName, contents.Sha, contents.Message, contents.Date); err != nil {
 		return err
 	}
 
@@ -417,7 +419,7 @@ func (s *testSyncProvider) SyncRepository(ctx context.Context) error {
 	}
 
 	// Get the last active migration to compare schemas
-	activeMigration, err := s.syncStatusRepository.GetActiveMigration(s.repositoryName)
+	activeMigration, err := s.syncStatusRepository.GetActiveMigration(ctx, s.repositoryName)
 	if err != nil {
 		return err
 	}
@@ -432,11 +434,11 @@ func (s *testSyncProvider) SyncRepository(ctx context.Context) error {
 
 			if string(currentSchemaBytes) == string(activeSchemaBytes) {
 				// Set the manifest and mark as skipped
-				if err := s.syncStatusRepository.SetManifest(s.repositoryName, contents.Sha, schemaStruct); err != nil {
+				if err := s.syncStatusRepository.SetManifest(ctx, s.repositoryName, contents.Sha, schemaStruct); err != nil {
 					return err
 				}
 
-				if err := s.syncStatusRepository.MarkAsSkipped(s.repositoryName, contents.Sha); err != nil {
+				if err := s.syncStatusRepository.MarkAsSkipped(ctx, s.repositoryName, contents.Sha); err != nil {
 					return err
 				}
 
@@ -446,11 +448,11 @@ func (s *testSyncProvider) SyncRepository(ctx context.Context) error {
 	}
 
 	// Schemas are different, proceed with normal migration (simplified for test)
-	if err := s.syncStatusRepository.SetManifest(s.repositoryName, contents.Sha, schemaStruct); err != nil {
+	if err := s.syncStatusRepository.SetManifest(ctx, s.repositoryName, contents.Sha, schemaStruct); err != nil {
 		return err
 	}
 
-	if err := s.syncStatusRepository.MarkAsActive(s.repositoryName, contents.Sha); err != nil {
+	if err := s.syncStatusRepository.MarkAsActive(ctx, s.repositoryName, contents.Sha); err != nil {
 		return err
 	}
 
@@ -467,43 +469,43 @@ type mockSyncStatusRepository struct {
 	markAsActiveCalled      bool
 }
 
-func (m *mockSyncStatusRepository) GetLastSyncedCommit(repo string) (*sync.SyncStatus, error) {
+func (m *mockSyncStatusRepository) GetLastSyncedCommit(ctx context.Context, repo string) (*sync.SyncStatus, error) {
 	return m.lastSyncedCommit, nil
 }
 
-func (m *mockSyncStatusRepository) GetActiveMigration(repo string) (*sync.SyncStatus, error) {
+func (m *mockSyncStatusRepository) GetActiveMigration(ctx context.Context, repo string) (*sync.SyncStatus, error) {
 	return m.activeMigration, nil
 }
 
-func (m *mockSyncStatusRepository) CreateIfNotExists(repo string, commitSha string, commitMessage string, commitDate time.Time) error {
+func (m *mockSyncStatusRepository) CreateIfNotExists(ctx context.Context, repo string, commitSha string, commitMessage string, commitDate time.Time) error {
 	m.createIfNotExistsCalled = true
 	return nil
 }
 
-func (m *mockSyncStatusRepository) SetManifest(repo string, commitSha string, manifest mimsy_schema.Schema) error {
+func (m *mockSyncStatusRepository) SetManifest(ctx context.Context, repo string, commitSha string, manifest mimsy_schema.Schema) error {
 	m.setManifestCalled = true
 	return nil
 }
 
-func (m *mockSyncStatusRepository) MarkAsSkipped(repo string, commitSha string) error {
+func (m *mockSyncStatusRepository) MarkAsSkipped(ctx context.Context, repo string, commitSha string) error {
 	m.markAsSkippedCalled = true
 	return nil
 }
 
-func (m *mockSyncStatusRepository) MarkAsActive(repo string, commitSha string) error {
+func (m *mockSyncStatusRepository) MarkAsActive(ctx context.Context, repo string, commitSha string) error {
 	m.markAsActiveCalled = true
 	return nil
 }
 
 // Unused methods for interface compliance
-func (m *mockSyncStatusRepository) GetStatus(repo string) (*sync.SyncStatus, error) { return nil, nil }
-func (m *mockSyncStatusRepository) GetRecentStatuses(limit int) ([]sync.SyncStatus, error) {
+func (m *mockSyncStatusRepository) GetStatus(ctx context.Context, repo string) (*sync.SyncStatus, error) { return nil, nil }
+func (m *mockSyncStatusRepository) GetRecentStatuses(ctx context.Context, limit int) ([]sync.SyncStatus, error) {
 	return nil, nil
 }
-func (m *mockSyncStatusRepository) MarkError(repo string, commitSha string, err error) error {
+func (m *mockSyncStatusRepository) MarkError(ctx context.Context, repo string, commitSha string, err error) error {
 	return nil
 }
-func (m *mockSyncStatusRepository) SetAppliedMigration(repo string, commitSha string, migration []byte) error {
+func (m *mockSyncStatusRepository) SetAppliedMigration(ctx context.Context, repo string, commitSha string, migration []byte) error {
 	return nil
 }
 
