@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/golang/mock/gomock"
+	"github.com/mimsy-cms/mimsy/internal/auth"
 	"github.com/mimsy-cms/mimsy/internal/collection"
 	mocks "github.com/mimsy-cms/mimsy/internal/mocks/collection"
 )
@@ -74,6 +75,19 @@ func createMockResource() *collection.Resource {
 			"content": "Test Content",
 		},
 	}
+}
+
+func createMockUser() *auth.User {
+	return &auth.User{
+		ID:      1,
+		Email:   "admin@example.com",
+		IsAdmin: true,
+	}
+}
+
+func addUserToContext(req *http.Request, user *auth.User) *http.Request {
+	ctx := context.WithValue(req.Context(), auth.UserContextKey, user)
+	return req.WithContext(ctx)
 }
 
 // =================================================================================================
@@ -335,6 +349,8 @@ func TestUpdateResource_Success(t *testing.T) {
 	mockCollection := createMockCollection()
 	mockResource := createMockResource()
 
+	user := createMockUser()
+
 	contentData := map[string]any{
 		"title":   "Updated Title",
 		"content": "Updated Content",
@@ -353,6 +369,8 @@ func TestUpdateResource_Success(t *testing.T) {
 	req.SetPathValue("slug", "test-collection")
 	req.SetPathValue("resourceSlug", "test-resource")
 
+	req = addUserToContext(req, user)
+
 	w := executeRequest(http.HandlerFunc(handler.UpdateResource), req, t)
 
 	if w.Code != http.StatusOK {
@@ -367,9 +385,13 @@ func TestUpdateResource_InvalidJSON(t *testing.T) {
 	mockService := mocks.NewMockService(ctrl)
 	handler := collection.NewHandler(mockService)
 
+	user := createMockUser()
+
 	req := newJSONRequest(t, "PUT", "/collections/test-collection/resources/test-resource", `{"title":"Updated Title"`) // malformed JSON
 	req.SetPathValue("slug", "test-collection")
 	req.SetPathValue("resourceSlug", "test-resource")
+
+	req = addUserToContext(req, user)
 
 	w := executeRequest(http.HandlerFunc(handler.UpdateResource), req, t)
 
@@ -385,6 +407,8 @@ func TestUpdateResource_CollectionNotFound(t *testing.T) {
 	mockService := mocks.NewMockService(ctrl)
 	handler := collection.NewHandler(mockService)
 
+	user := createMockUser()
+
 	mockService.EXPECT().
 		FindBySlug(gomock.Any(), "nonexistent").
 		Return(nil, collection.ErrNotFound)
@@ -393,6 +417,8 @@ func TestUpdateResource_CollectionNotFound(t *testing.T) {
 	req := newJSONRequest(t, "PUT", "/collections/nonexistent/resources/test-resource", reqBody)
 	req.SetPathValue("slug", "nonexistent")
 	req.SetPathValue("resourceSlug", "test-resource")
+
+	req = addUserToContext(req, user)
 
 	w := executeRequest(http.HandlerFunc(handler.UpdateResource), req, t)
 
@@ -407,6 +433,8 @@ func TestUpdateResource_ResourceNotFound(t *testing.T) {
 
 	mockService := mocks.NewMockService(ctrl)
 	handler := collection.NewHandler(mockService)
+
+	user := createMockUser()
 
 	mockCollection := createMockCollection()
 	contentData := map[string]any{"title": "Updated Title"}
@@ -423,6 +451,8 @@ func TestUpdateResource_ResourceNotFound(t *testing.T) {
 	req := newJSONRequest(t, "PUT", "/collections/test-collection/resources/nonexistent", reqBody)
 	req.SetPathValue("slug", "test-collection")
 	req.SetPathValue("resourceSlug", "nonexistent")
+
+	req = addUserToContext(req, user)
 
 	w := executeRequest(http.HandlerFunc(handler.UpdateResource), req, t)
 
@@ -441,6 +471,8 @@ func TestDeleteResource_Success(t *testing.T) {
 
 	mockService := mocks.NewMockService(ctrl)
 	handler := collection.NewHandler(mockService)
+
+	user := createMockUser()
 
 	mockCollection := createMockCollection()
 	mockResource := createMockResource()
@@ -469,6 +501,8 @@ func TestDeleteResource_Success(t *testing.T) {
 	req.SetPathValue("slug", "test-collection")
 	req.SetPathValue("resourceSlug", "test-resource")
 
+	req = addUserToContext(req, user)
+
 	w := executeRequest(http.HandlerFunc(handler.DeleteResource), req, t)
 
 	if w.Code != http.StatusNoContent {
@@ -482,6 +516,8 @@ func TestDeleteResource_ResourceNotFound(t *testing.T) {
 
 	mockService := mocks.NewMockService(ctrl)
 	handler := collection.NewHandler(mockService)
+
+	user := createMockUser()
 
 	mockCollection := createMockCollection()
 
@@ -497,6 +533,8 @@ func TestDeleteResource_ResourceNotFound(t *testing.T) {
 	req.SetPathValue("slug", "test-collection")
 	req.SetPathValue("resourceSlug", "nonexistent")
 
+	req = addUserToContext(req, user)
+
 	w := executeRequest(http.HandlerFunc(handler.DeleteResource), req, t)
 
 	if w.Code != http.StatusNotFound {
@@ -510,6 +548,8 @@ func TestDeleteResource_DeleteError(t *testing.T) {
 
 	mockService := mocks.NewMockService(ctrl)
 	handler := collection.NewHandler(mockService)
+
+	user := createMockUser()
 
 	mockCollection := createMockCollection()
 	mockResource := createMockResource()
@@ -537,6 +577,8 @@ func TestDeleteResource_DeleteError(t *testing.T) {
 	req := httptest.NewRequest("DELETE", "/collections/test-collection/resources/test-resource", nil)
 	req.SetPathValue("slug", "test-collection")
 	req.SetPathValue("resourceSlug", "test-resource")
+
+	req = addUserToContext(req, user)
 
 	w := executeRequest(http.HandlerFunc(handler.DeleteResource), req, t)
 
