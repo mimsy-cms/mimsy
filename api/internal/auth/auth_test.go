@@ -145,7 +145,6 @@ package auth_test
 // 		t.Fatalf("expected status Unauthorized, got %v", w.Code)
 // 	}
 // }
-
 // // TestLogin_Failure_UserNotFound tests the login handler for a failed login because of user not found
 // func TestLogin_Failure_UserNotFound(t *testing.T) {
 // 	ctrl := gomock.NewController(t)

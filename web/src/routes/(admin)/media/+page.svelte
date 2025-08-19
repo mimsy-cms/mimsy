@@ -15,8 +15,29 @@
 
 	let { data } = $props();
 
+	const MAX_FILE_SIZE = 256 * 1024 * 1024; // 256 MB
+
 	async function handleFileDrop(files: FileList) {
-		const newUploads = createUploadProgress(files);
+		const validFiles: File[] = [];
+		const oversizedFiles: File[] = [];
+
+		for (const file of files) {
+			if (file.size <= MAX_FILE_SIZE) {
+				validFiles.push(file);
+			} else {
+				oversizedFiles.push(file);
+			}
+		}
+
+		if (oversizedFiles.length > 0) {
+			alert(`The following files are too large to upload (max size is 256 MB):\n\n${oversizedFiles.map(f => f.name).join('\n')}`);
+		}
+
+		if (validFiles.length === 0) {
+			return;
+		}
+
+		const newUploads = createUploadProgress(validFiles);
 		uploads.push(...newUploads);
 
 		const uploadPromises = newUploads.map(async (uploadItem) => {
