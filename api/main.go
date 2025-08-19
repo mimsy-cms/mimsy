@@ -6,7 +6,6 @@ import (
 	"database/sql"
 	"fmt"
 	"log/slog"
-	"net"
 	"net/http"
 	"os"
 	"strconv"
@@ -129,7 +128,7 @@ func main() {
 	)
 
 	server := &http.Server{
-		Addr:    net.JoinHostPort("localhost", cmp.Or(os.Getenv("APP_PORT"), "3000")),
+		Addr:    fmt.Sprintf(":%s", cmp.Or(os.Getenv("APP_PORT"), "3000")),
 		Handler: handler(mux),
 	}
 

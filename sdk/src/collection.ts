@@ -27,7 +27,7 @@ type ObjectOf<S extends Schema> = S extends BuiltInValue
     };
 
 export function toObject<S extends Schema>(
-  collection: Collection<S>,
+  collection: Collection<S>
 ): ObjectOf<S> {
   // TODO: Implement toObject function
   return {} as ObjectOf<S>;
@@ -35,7 +35,7 @@ export function toObject<S extends Schema>(
 
 export function collection<T extends Schema>(
   name: string,
-  schema: T,
+  schema: T
 ): Collection<T> {
   const coll = {
     name,
@@ -46,10 +46,7 @@ export function collection<T extends Schema>(
   return coll;
 }
 
-export function global<T extends Schema>(
-  name: string,
-  schema: T,
-): Global<T> {
+export function global<T extends Schema>(name: string, schema: T): Global<T> {
   const coll = {
     name,
     schema,
