@@ -52,9 +52,9 @@ func createMockCollection() *collection.Collection {
 		Name:      "Test Collection",
 		Fields:    fieldsJSON,
 		CreatedAt: "2024-01-01T00:00:00Z",
-		CreatedBy: "admin@example.com",
+		CreatedBy: 0,
 		UpdatedAt: "2024-01-01T00:00:00Z",
-		UpdatedBy: nil,
+		UpdatedBy: 0,
 		IsGlobal:  false,
 	}
 }

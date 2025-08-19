@@ -51,11 +51,16 @@ func (h *Handler) GetResources(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		slog.Error("Failed to get resources", "slug", slug, "error", err)
 		if err == ErrNotFound {
-			http.Error(w, "Collection not found", http.StatusNotFound)
+			http.Error(w, "Resources not found", http.StatusNotFound)
 		} else {
 			http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 		}
 		return
+	}
+
+	for i := range resources {
+		resources[i].CreatedByEmail, _ = h.Service.FindUserEmail(r.Context(), resources[i].CreatedBy)
+		resources[i].UpdatedByEmail, _ = h.Service.FindUserEmail(r.Context(), resources[i].UpdatedBy)
 	}
 
 	util.JSON(w, http.StatusOK, resources)

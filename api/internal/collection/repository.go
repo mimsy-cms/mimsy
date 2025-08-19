@@ -35,14 +35,16 @@ func NewRepository() *repository {
 }
 
 type Collection struct {
-	Slug      string
-	Name      string
-	Fields    json.RawMessage
-	CreatedAt string
-	CreatedBy string
-	UpdatedAt string
-	UpdatedBy *string
-	IsGlobal  bool
+	Slug           string
+	Name           string
+	Fields         json.RawMessage
+	CreatedAt      string
+	CreatedBy      int64
+	CreatedByEmail string
+	UpdatedAt      string
+	UpdatedBy      int64
+	UpdatedByEmail string
+	IsGlobal       bool
 }
 
 type Resource struct {
@@ -150,6 +152,9 @@ func (r *repository) FindBySlug(ctx context.Context, slug string) (*Collection, 
 	} else if err != nil {
 		return nil, err
 	}
+
+	collection.CreatedByEmail, _ = r.FindUserEmail(ctx, collection.CreatedBy)
+	collection.UpdatedByEmail, _ = r.FindUserEmail(ctx, collection.UpdatedBy)
 
 	return &collection, nil
 }
