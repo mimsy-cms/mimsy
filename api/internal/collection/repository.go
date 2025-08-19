@@ -38,16 +38,12 @@ func NewRepository() *repository {
 }
 
 type Collection struct {
-	Slug           string
-	Name           string
-	Fields         json.RawMessage
-	CreatedAt      string
-	CreatedBy      int64
-	CreatedByEmail string
-	UpdatedAt      string
-	UpdatedBy      int64
-	UpdatedByEmail string
-	IsGlobal       bool
+	Slug      string
+	Name      string
+	Fields    json.RawMessage
+	CreatedAt string
+	UpdatedAt string
+	IsGlobal  bool
 }
 
 type Resource struct {
@@ -108,16 +104,14 @@ var ErrNotFound = errors.New("not found")
 func (r *repository) FindBySlug(ctx context.Context, slug string) (*Collection, error) {
 	var collection Collection
 	err := config.GetDB(ctx).QueryRowContext(ctx,
-		`SELECT slug, name, fields, created_at, created_by, updated_at, updated_by FROM "collection" WHERE slug = $1`,
+		`SELECT slug, name, fields, created_at, updated_at FROM "collection" WHERE slug = $1`,
 		slug,
 	).Scan(
 		&collection.Slug,
 		&collection.Name,
 		&collection.Fields,
 		&collection.CreatedAt,
-		&collection.CreatedBy,
 		&collection.UpdatedAt,
-		&collection.UpdatedBy,
 	)
 
 	if err == sql.ErrNoRows {
@@ -125,9 +119,6 @@ func (r *repository) FindBySlug(ctx context.Context, slug string) (*Collection, 
 	} else if err != nil {
 		return nil, err
 	}
-
-	collection.CreatedByEmail, _ = r.FindUserEmail(ctx, collection.CreatedBy)
-	collection.UpdatedByEmail, _ = r.FindUserEmail(ctx, collection.UpdatedBy)
 
 	return &collection, nil
 }
@@ -182,7 +173,7 @@ type FindAllParams struct {
 func (r *repository) FindAll(ctx context.Context, params *FindAllParams) ([]Collection, error) {
 	sql, args, err := sq.StatementBuilder.PlaceholderFormat(sq.Dollar).
 		Select(
-			"slug", "name", "fields", "created_at", "created_by", "updated_at", "updated_by", "is_global",
+			"slug", "name", "fields", "created_at", "updated_at", "is_global",
 		).
 		From("collection").
 		Where(sq.Eq{"is_global": false}).
@@ -202,7 +193,7 @@ func (r *repository) FindAll(ctx context.Context, params *FindAllParams) ([]Coll
 	var collections []Collection
 	for rows.Next() {
 		var coll Collection
-		if err := rows.Scan(&coll.Slug, &coll.Name, &coll.Fields, &coll.CreatedAt, &coll.CreatedBy, &coll.UpdatedAt, &coll.UpdatedBy, &coll.IsGlobal); err != nil {
+		if err := rows.Scan(&coll.Slug, &coll.Name, &coll.Fields, &coll.CreatedAt, &coll.UpdatedAt, &coll.IsGlobal); err != nil {
 			return nil, err
 		}
 		collections = append(collections, coll)
@@ -213,7 +204,7 @@ func (r *repository) FindAll(ctx context.Context, params *FindAllParams) ([]Coll
 func (r *repository) FindAllGlobals(ctx context.Context, params *FindAllParams) ([]Collection, error) {
 	sql, args, err := sq.StatementBuilder.PlaceholderFormat(sq.Dollar).
 		Select(
-			"slug", "name", "fields", "created_at", "created_by", "updated_at", "updated_by", "is_global",
+			"slug", "name", "fields", "created_at", "updated_at", "is_global",
 		).
 		From("collection").
 		Where(sq.Eq{"is_global": true}).
@@ -232,7 +223,7 @@ func (r *repository) FindAllGlobals(ctx context.Context, params *FindAllParams) 
 	var collections []Collection
 	for rows.Next() {
 		var coll Collection
-		if err := rows.Scan(&coll.Slug, &coll.Name, &coll.Fields, &coll.CreatedAt, &coll.CreatedBy, &coll.UpdatedAt, &coll.UpdatedBy, &coll.IsGlobal); err != nil {
+		if err := rows.Scan(&coll.Slug, &coll.Name, &coll.Fields, &coll.CreatedAt, &coll.UpdatedAt, &coll.IsGlobal); err != nil {
 			return nil, err
 		}
 		collections = append(collections, coll)
@@ -307,8 +298,8 @@ func (r *repository) FindUserEmail(ctx context.Context, id int64) (string, error
 
 func (r *repository) CreateCollection(ctx context.Context, slug string, name string, fieldsJson []byte) error {
 	query := `
-		INSERT INTO "collection" (slug, name, fields, created_at, created_by, updated_at, updated_by, is_global)
-		VALUES ($1, $2, $3, NOW(), 'system', NOW(), 'system', false)
+		INSERT INTO "collection" (slug, name, fields, created_at, updated_at, is_global)
+		VALUES ($1, $2, $3, NOW(), NOW(), false)
 	`
 
 	_, err := config.GetDB(ctx).ExecContext(ctx, query, slug, name, fieldsJson)
@@ -322,7 +313,7 @@ func (r *repository) CreateCollection(ctx context.Context, slug string, name str
 func (r *repository) UpdateCollection(ctx context.Context, slug string, name string, fieldsJson []byte) error {
 	query := `
 		UPDATE "collection"
-		SET name = $2, fields = $3, updated_at = NOW(), updated_by = 'system'
+		SET name = $2, fields = $3, updated_at = NOW()
 		WHERE slug = $1
 	`
 
