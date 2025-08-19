@@ -121,6 +121,9 @@ func (h *Handler) GetResource(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	resource.CreatedByEmail, _ = h.Service.FindUserEmail(r.Context(), resource.CreatedBy)
+	resource.UpdatedByEmail, _ = h.Service.FindUserEmail(r.Context(), resource.UpdatedBy)
+
 	util.JSON(w, http.StatusOK, resource)
 }
 
@@ -201,6 +204,9 @@ func (h *Handler) DeleteResource(w http.ResponseWriter, r *http.Request) {
 		}
 		return
 	}
+
+	resource.CreatedByEmail, _ = h.Service.FindUserEmail(r.Context(), resource.CreatedBy)
+	resource.UpdatedByEmail, _ = h.Service.FindUserEmail(r.Context(), resource.UpdatedBy)
 
 	if err := h.Service.DeleteResource(r.Context(), resource); err != nil {
 		slog.Error("Failed to delete resource", "slug", slug, "resourceSlug", resourceSlug, "error", err)

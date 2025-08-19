@@ -12,6 +12,7 @@ type Service interface {
 	FindAllGlobals(ctx context.Context, params *FindAllParams) ([]Collection, error)
 	UpdateResourceContent(ctx context.Context, collection *Collection, resourceSlug string, content map[string]any) (*Resource, error)
 	DeleteResource(ctx context.Context, resource *Resource) error
+	FindUserEmail(ctx context.Context, id int64) (string, error)
 }
 
 func NewService(collectionRepository Repository) *service {
@@ -50,4 +51,8 @@ func (s *service) UpdateResourceContent(ctx context.Context, collection *Collect
 
 func (s *service) DeleteResource(ctx context.Context, resource *Resource) error {
 	return s.collectionRepository.DeleteResource(ctx, resource)
+}
+
+func (s *service) FindUserEmail(ctx context.Context, id int64) (string, error) {
+	return s.collectionRepository.FindUserEmail(ctx, id)
 }
