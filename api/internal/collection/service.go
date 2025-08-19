@@ -2,66 +2,57 @@ package collection
 
 import (
 	"context"
-	"encoding/json"
 )
 
-func NewService(collectionRepository Repository) *Service {
-	return &Service{
+type Service interface {
+	FindBySlug(ctx context.Context, slug string) (*Collection, error)
+	FindResource(ctx context.Context, collection *Collection, slug string) (*Resource, error)
+	FindResources(ctx context.Context, collection *Collection) ([]Resource, error)
+	FindAll(ctx context.Context, params *FindAllParams) ([]Collection, error)
+	FindAllGlobals(ctx context.Context, params *FindAllParams) ([]Collection, error)
+	UpdateResourceContent(ctx context.Context, collection *Collection, resourceSlug string, content map[string]any) (*Resource, error)
+	DeleteResource(ctx context.Context, resource *Resource) error
+	FindUserEmail(ctx context.Context, id int64) (string, error)
+}
+
+func NewService(collectionRepository Repository) *service {
+	return &service{
 		collectionRepository: collectionRepository,
 	}
 }
 
-type Service struct {
+type service struct {
 	collectionRepository Repository
 }
 
-func (s *Service) GetDefinition(ctx context.Context, slug string) (map[string]any, error) {
-	collection, err := s.collectionRepository.FindBySlug(ctx, slug)
-	if err != nil {
-		return nil, err
-	}
-
-	return map[string]any{
-		"slug":       slug,
-		"name":       collection.Name,
-		"fields":     json.RawMessage(collection.Fields),
-		"created_at": collection.CreatedAt,
-		"created_by": collection.CreatedBy,
-		"updated_at": collection.UpdatedAt,
-		"updated_by": collection.UpdatedBy,
-	}, nil
+func (s *service) FindBySlug(ctx context.Context, slug string) (*Collection, error) {
+	return s.collectionRepository.FindBySlug(ctx, slug)
 }
 
-func (s *Service) GetItems(ctx context.Context, slug string) ([]Item, error) {
-	exists, err := s.collectionRepository.CollectionExists(ctx, slug)
-	if err != nil {
-		return nil, err
-	}
-	if !exists {
-		return nil, ErrNotFound
-	}
-
-	return s.collectionRepository.FindItemsBySlug(ctx, slug)
+func (s *service) FindResource(ctx context.Context, collection *Collection, slug string) (*Resource, error) {
+	return s.collectionRepository.FindResource(ctx, collection, slug)
 }
 
-func (s *Service) List(ctx context.Context) ([]map[string]any, error) {
-	collections, err := s.collectionRepository.List(ctx)
-	if err != nil {
-		return nil, err
-	}
+func (s *service) FindResources(ctx context.Context, collection *Collection) ([]Resource, error) {
+	return s.collectionRepository.FindResources(ctx, collection)
+}
 
-	var result []map[string]any
-	for _, coll := range collections {
-		result = append(result, map[string]any{
-			"slug":       coll.Slug,
-			"name":       coll.Name,
-			"fields":     json.RawMessage(coll.Fields),
-			"created_at": coll.CreatedAt,
-			"created_by": coll.CreatedBy,
-			"updated_at": coll.UpdatedAt,
-			"updated_by": coll.UpdatedBy,
-		})
-	}
+func (s *service) FindAll(ctx context.Context, params *FindAllParams) ([]Collection, error) {
+	return s.collectionRepository.FindAll(ctx, params)
+}
 
-	return result, nil
+func (s *service) FindAllGlobals(ctx context.Context, params *FindAllParams) ([]Collection, error) {
+	return s.collectionRepository.FindAllGlobals(ctx, params)
+}
+
+func (s *service) UpdateResourceContent(ctx context.Context, collection *Collection, resourceSlug string, content map[string]any) (*Resource, error) {
+	return s.collectionRepository.UpdateResourceContent(ctx, collection, resourceSlug, content)
+}
+
+func (s *service) DeleteResource(ctx context.Context, resource *Resource) error {
+	return s.collectionRepository.DeleteResource(ctx, resource)
+}
+
+func (s *service) FindUserEmail(ctx context.Context, id int64) (string, error) {
+	return s.collectionRepository.FindUserEmail(ctx, id)
 }

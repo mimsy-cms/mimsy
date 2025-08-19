@@ -2,25 +2,41 @@ package collection
 
 import (
 	"encoding/json"
+	"log/slog"
 	"net/http"
+
+	"github.com/mimsy-cms/mimsy/internal/util"
 )
 
 type Handler struct {
-	Service *Service
+	Service Service
 }
 
-func NewHandler(service *Service) *Handler {
+func NewHandler(service Service) *Handler {
 	return &Handler{Service: service}
 }
 
 func (h *Handler) Definition(w http.ResponseWriter, r *http.Request) {
-	slug := r.PathValue("collectionSlug")
-	if slug == "" {
-		http.Error(w, "Missing slug", http.StatusBadRequest)
+	slug := r.PathValue("slug")
+
+	collection, err := h.Service.FindBySlug(r.Context(), slug)
+	if err != nil {
+		slog.Error("Failed to get collection definition", "slug", slug, "error", err)
+		if err == ErrNotFound {
+			http.Error(w, "Collection not found", http.StatusNotFound)
+		} else {
+			http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		}
 		return
 	}
 
-	def, err := h.Service.GetDefinition(r.Context(), slug)
+	util.JSON(w, http.StatusOK, NewCollectionResponse(collection))
+}
+
+func (h *Handler) GetResources(w http.ResponseWriter, r *http.Request) {
+	slug := r.PathValue("slug")
+
+	collection, err := h.Service.FindBySlug(r.Context(), slug)
 	if err != nil {
 		if err == ErrNotFound {
 			http.Error(w, "Collection not found", http.StatusNotFound)
@@ -30,19 +46,9 @@ func (h *Handler) Definition(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(def)
-}
-
-func (h *Handler) Items(w http.ResponseWriter, r *http.Request) {
-	slug := r.PathValue("collectionSlug")
-	if slug == "" {
-		http.Error(w, "Missing slug", http.StatusBadRequest)
-		return
-	}
-
-	items, err := h.Service.GetItems(r.Context(), slug)
+	resources, err := h.Service.FindResources(r.Context(), collection)
 	if err != nil {
+		slog.Error("Failed to get resources", "slug", slug, "error", err)
 		if err == ErrNotFound {
 			http.Error(w, "Collection not found", http.StatusNotFound)
 		} else {
@@ -51,17 +57,162 @@ func (h *Handler) Items(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(items)
+	util.JSON(w, http.StatusOK, resources)
 }
 
-func (h *Handler) List(w http.ResponseWriter, r *http.Request) {
-	collections, err := h.Service.List(r.Context())
+func (h *Handler) UpdateResource(w http.ResponseWriter, r *http.Request) {
+	slug := r.PathValue("slug")
+	resourceSlug := r.PathValue("resourceSlug")
+
+	var contentData map[string]any
+	if err := json.NewDecoder(r.Body).Decode(&contentData); err != nil {
+		http.Error(w, "Invalid JSON", http.StatusBadRequest)
+		return
+	}
+
+	collection, err := h.Service.FindBySlug(r.Context(), slug)
+	if err != nil {
+		slog.Error("Failed to get collection", "slug", slug, "error", err)
+		if err == ErrNotFound {
+			http.Error(w, "Collection not found", http.StatusNotFound)
+		} else {
+			http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		}
+		return
+	}
+
+	updatedResource, err := h.Service.UpdateResourceContent(r.Context(), collection, resourceSlug, contentData)
+	if err != nil {
+		slog.Error("Failed to update resource", "slug", slug, "resourceSlug", resourceSlug, "error", err)
+		if err == ErrNotFound {
+			http.Error(w, "Resource not found", http.StatusNotFound)
+		} else {
+			http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		}
+		return
+	}
+
+	util.JSON(w, http.StatusOK, updatedResource)
+}
+
+func (h *Handler) GetResource(w http.ResponseWriter, r *http.Request) {
+	slug := r.PathValue("slug")
+	resourceSlug := r.PathValue("resourceSlug")
+
+	collection, err := h.Service.FindBySlug(r.Context(), slug)
+	if err != nil {
+		slog.Error("Failed to get collection", "slug", slug, "error", err)
+		if err == ErrNotFound {
+			http.Error(w, "Collection not found", http.StatusNotFound)
+		} else {
+			http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		}
+		return
+	}
+
+	resource, err := h.Service.FindResource(r.Context(), collection, resourceSlug)
+	if err != nil {
+		slog.Error("Failed to get resource", "slug", slug, "resourceSlug", resourceSlug, "error", err)
+		if err == ErrNotFound {
+			http.Error(w, "Resource not found", http.StatusNotFound)
+		} else {
+			http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		}
+		return
+	}
+
+	resource.CreatedByEmail, _ = h.Service.FindUserEmail(r.Context(), resource.CreatedBy)
+	resource.UpdatedByEmail, _ = h.Service.FindUserEmail(r.Context(), resource.UpdatedBy)
+
+	util.JSON(w, http.StatusOK, resource)
+}
+
+type FindAllQueryString struct {
+	Search string `query:"q"`
+}
+
+func (h *Handler) FindAll(w http.ResponseWriter, r *http.Request) {
+	query, err := util.QueryString[FindAllQueryString](r)
+	if err != nil {
+		slog.Error("Failed to decode query parameters", "error", err)
+		http.Error(w, "Bad Request", http.StatusBadRequest)
+		return
+	}
+
+	collections, err := h.Service.FindAll(r.Context(), &FindAllParams{Search: query.Search})
 	if err != nil {
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 		return
 	}
 
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(collections)
+	response := make([]CollectionResponse, len(collections))
+	for i, collection := range collections {
+		response[i] = *NewCollectionResponse(&collection)
+	}
+
+	util.JSON(w, http.StatusOK, response)
+}
+
+type FindAllGlobalsQueryString struct {
+	Search string `query:"q"`
+}
+
+func (h *Handler) FindAllGlobals(w http.ResponseWriter, r *http.Request) {
+	query, err := util.QueryString[FindAllQueryString](r)
+	if err != nil {
+		slog.Error("Failed to decode query parameters", "error", err)
+		http.Error(w, "Bad Request", http.StatusBadRequest)
+		return
+	}
+
+	globals, err := h.Service.FindAllGlobals(r.Context(), &FindAllParams{Search: query.Search})
+	if err != nil {
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		return
+	}
+
+	response := make([]CollectionResponse, len(globals))
+	for i, global := range globals {
+		response[i] = *NewCollectionResponse(&global)
+	}
+
+	util.JSON(w, http.StatusOK, response)
+}
+
+func (h *Handler) DeleteResource(w http.ResponseWriter, r *http.Request) {
+	slug := r.PathValue("slug")
+	resourceSlug := r.PathValue("resourceSlug")
+
+	collection, err := h.Service.FindBySlug(r.Context(), slug)
+	if err != nil {
+		slog.Error("Failed to get collection", "slug", slug, "error", err)
+		if err == ErrNotFound {
+			http.Error(w, "Collection not found", http.StatusNotFound)
+		} else {
+			http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		}
+		return
+	}
+
+	resource, err := h.Service.FindResource(r.Context(), collection, resourceSlug)
+	if err != nil {
+		slog.Error("Failed to get resource", "slug", slug, "resourceSlug", resourceSlug, "error", err)
+		if err == ErrNotFound {
+			http.Error(w, "Resource not found", http.StatusNotFound)
+		} else {
+			http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		}
+		return
+	}
+
+	resource.CreatedByEmail, _ = h.Service.FindUserEmail(r.Context(), resource.CreatedBy)
+	resource.UpdatedByEmail, _ = h.Service.FindUserEmail(r.Context(), resource.UpdatedBy)
+
+	if err := h.Service.DeleteResource(r.Context(), resource); err != nil {
+		slog.Error("Failed to delete resource", "slug", slug, "resourceSlug", resourceSlug, "error", err)
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		return
+	}
+
+	w.WriteHeader(http.StatusNoContent)
 }

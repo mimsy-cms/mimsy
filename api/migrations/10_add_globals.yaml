@@ -1,0 +1,8 @@
+operations:
+  - add_column:
+      table: collection
+      column:
+        name: is_global
+        type: BOOLEAN
+        nullable: false
+        default: "false"

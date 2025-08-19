@@ -1,0 +1,33 @@
+operations:
+  - create_table:
+      columns:
+        - generated:
+            identity:
+              user_specified_values: BY DEFAULT
+          name: id
+          pk: true
+          type: bigint
+        - name: repo
+          type: text
+        - name: commit
+          type: varchar(255)
+        - name: commit_message
+          type: text
+        - name: commit_date
+          type: timestamp
+        - name: applied_migration
+          type: jsonb
+          nullable: true
+        - name: applied_at
+          nullable: true
+          type: timestamp
+        - default: "false"
+          name: is_active
+          type: boolean
+        - name: error_message
+          nullable: true
+          type: text
+        - name: manifest
+          nullable: true
+          type: jsonb
+      name: sync_status

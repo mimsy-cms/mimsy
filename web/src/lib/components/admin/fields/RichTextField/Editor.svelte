@@ -3,6 +3,12 @@
 	import { theme } from 'svelte-lexical/dist/themes/default';
 	import Toolbar from './Toolbar.svelte';
 
+	type Props = {
+		composer: Composer;
+	}
+
+	let { composer = $bindable() }: Props = $props();
+
 	const initialConfig = {
 		theme,
 		namespace: 'lexical',
@@ -13,7 +19,7 @@
 	};
 </script>
 
-<Composer {initialConfig}>
+<Composer {initialConfig} bind:this={composer}>
 	<div class="editor-shell svelte-lexical !m-0 w-full !max-w-none">
 		<Toolbar />
 		<div class="editor-container !border-gray-300">

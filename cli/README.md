@@ -59,7 +59,7 @@ msy export-schema --import ./collections/blog.ts --clear --pretty
 
 **TypeScript Example (`collections/blog.ts`):**
 ```typescript
-import { collection, fields, builtins, type Collection } from "@mimsy/sdk";
+import { collection, fields, builtins, type Collection } from "@mimsy-cms/sdk";
 
 export const Tags: Collection<any> = collection("tags", {
   name: fields.shortString({
@@ -111,7 +111,7 @@ export const Posts: Collection<any> = collection("posts", {
 
 **JavaScript Example (`collections/blog.js`):**
 ```javascript
-const { collection, fields, builtins } = require("@mimsy/sdk");
+const { collection, fields, builtins } = require("@mimsy-cms/sdk");
 
 const Tags = collection("tags", {
   name: fields.shortString({
