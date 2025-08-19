@@ -57,9 +57,7 @@ func createMockCollection() *collection.Collection {
 		Name:      "Test Collection",
 		Fields:    fieldsJSON,
 		CreatedAt: "2024-01-01T00:00:00Z",
-		CreatedBy: 0,
 		UpdatedAt: "2024-01-01T00:00:00Z",
-		UpdatedBy: 0,
 		IsGlobal:  false,
 	}
 }

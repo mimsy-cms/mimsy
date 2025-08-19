@@ -1,0 +1,9 @@
+operations:
+  - drop_column:
+      table: collection
+      column: created_by
+      down: "0"
+  - drop_column:
+      table: collection
+      column: updated_by
+      down: "0"
