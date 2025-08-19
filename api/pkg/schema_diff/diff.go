@@ -1,6 +1,9 @@
 package schema_diff
 
 import (
+	"log/slog"
+	"strings"
+
 	"github.com/mimsy-cms/mimsy/pkg/schema_generator"
 	"github.com/oapi-codegen/nullable"
 	"github.com/xataio/pgroll/pkg/migrations"
@@ -86,12 +89,21 @@ func createTableConstraint(constraint schema_generator.Constraint) *migrations.C
 			Columns: c.Columns,
 		}
 	case *schema_generator.ForeignKeyConstraint:
+		// For cross-schema references, pgroll needs just the table name
+		// when the schema is in the search path
+		refTable := strings.ReplaceAll(c.ReferenceTable, "\"", "")
+		// Remove schema prefix if it's mimsy_internal or mimsy_collections (which are in search path)
+		if strings.HasPrefix(refTable, "mimsy_internal.") {
+			refTable = strings.TrimPrefix(refTable, "mimsy_internal.")
+		} else if strings.HasPrefix(refTable, "mimsy_collections.") {
+			refTable = strings.TrimPrefix(refTable, "mimsy_collections.")
+		}
 		return &migrations.Constraint{
 			Name:    c.Name(),
 			Type:    migrations.ConstraintTypeForeignKey,
 			Columns: []string{c.Column},
 			References: &migrations.TableForeignKeyReference{
-				Table:   c.ReferenceTable,
+				Table:   refTable,
 				Columns: []string{c.ReferenceColumn},
 			},
 		}
@@ -273,13 +285,23 @@ func createConstraintOperation(tableName string, constraint schema_generator.Con
 			Down:    upDown,
 		}
 	case *schema_generator.ForeignKeyConstraint:
+		// For cross-schema references, pgroll needs just the table name
+		// when the schema is in the search path
+		refTable := strings.ReplaceAll(c.ReferenceTable, "\"", "")
+		// Remove schema prefix if it's mimsy_internal or mimsy_collections (which are in search path)
+		if strings.HasPrefix(refTable, "mimsy_internal.") {
+			refTable = strings.TrimPrefix(refTable, "mimsy_internal.")
+		} else if strings.HasPrefix(refTable, "mimsy_collections.") {
+			refTable = strings.TrimPrefix(refTable, "mimsy_collections.")
+		}
+		slog.Info("Foreign key", "originalReferenceTable", c.ReferenceTable, "adjustedReferenceTable", refTable)
 		return &migrations.OpCreateConstraint{
 			Type:    migrations.OpCreateConstraintTypeForeignKey,
 			Name:    c.Name(),
 			Table:   tableName,
 			Columns: []string{c.Column},
 			References: &migrations.TableForeignKeyReference{
-				Table:   c.ReferenceTable,
+				Table:   refTable,
 				Columns: []string{c.ReferenceColumn},
 			},
 			Up: map[string]string{
