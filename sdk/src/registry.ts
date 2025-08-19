@@ -5,24 +5,38 @@ export type RegistryEntry = Collection<any> | Global<any>;
 
 const collectionRegistry = new Map<string, RegistryEntry>();
 
+// Reserved collection names that cannot be used
+const reservedNames = new Set([
+  "user",
+  "media",
+  "collection",
+  "cron_locks",
+  "session",
+  "sync_status",
+]);
+
 export function registerCollection<T extends Schema>(
-  collection: Collection<T>,
+  collection: Collection<T>
 ): void {
+  if (reservedNames.has(collection.name)) {
+    throw new Error(`Collection name '${collection.name}' is reserved`);
+  }
   if (collectionRegistry.has(collection.name)) {
     console.warn(
-      `[Mimsy SDK] Warning: A collection with the name "${collection.name}" is already registered. It will be overwritten.`,
+      `[Mimsy SDK] Warning: A collection with the name "${collection.name}" is already registered. It will be overwritten.`
     );
   }
   collection.isGlobal = false;
   collectionRegistry.set(collection.name, collection);
 }
 
-export function registerGlobal<T extends Schema>(
-  global: Global<T>,
-): void {
+export function registerGlobal<T extends Schema>(global: Global<T>): void {
+  if (reservedNames.has(global.name)) {
+    throw new Error(`Global name '${global.name}' is reserved`);
+  }
   if (collectionRegistry.has(global.name)) {
     console.warn(
-      `[Mimsy SDK] Warning: A global with the name "${global.name}" is already registered. It will be overwritten.`,
+      `[Mimsy SDK] Warning: A global with the name "${global.name}" is already registered. It will be overwritten.`
     );
   }
   global.isGlobal = true;
