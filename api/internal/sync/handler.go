@@ -3,6 +3,7 @@ package sync
 import (
 	"log/slog"
 	"net/http"
+	"os"
 
 	"github.com/mimsy-cms/mimsy/internal/auth"
 	"github.com/mimsy-cms/mimsy/internal/cron"
@@ -51,7 +52,7 @@ func (h *Handler) Status(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	util.JSON(w, http.StatusOK, statuses)
+	util.JSON(w, http.StatusOK, NewStatusResponse(statuses, os.Getenv("GH_REPO")))
 }
 
 func (h *Handler) Jobs(w http.ResponseWriter, r *http.Request) {

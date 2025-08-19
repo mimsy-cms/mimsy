@@ -24,7 +24,7 @@ type SyncStatus struct {
 type SyncStatusRepository interface {
 	GetStatus(repo string) (*SyncStatus, error)
 	GetLastSyncedCommit(repo string) (*SyncStatus, error)
-	GetRecentStatuses(limit int) ([]*SyncStatus, error)
+	GetRecentStatuses(limit int) ([]SyncStatus, error)
 	MarkError(repo string, commitSha string, err error) error
 	CreateIfNotExists(repo string, commitSha string, commitMessage string, commitDate time.Time) error
 	SetManifest(repo string, commitSha string, manifest mimsy_schema.Schema) error
@@ -196,7 +196,7 @@ func (r *syncStatusRepository) SetManifest(repo string, commitSha string, manife
 	return nil
 }
 
-func (r *syncStatusRepository) GetRecentStatuses(limit int) ([]*SyncStatus, error) {
+func (r *syncStatusRepository) GetRecentStatuses(limit int) ([]SyncStatus, error) {
 	query := `
 		SELECT repo, commit, commit_message, commit_date, applied_migration,
 		       applied_at, is_active, error_message, manifest
@@ -210,14 +210,14 @@ func (r *syncStatusRepository) GetRecentStatuses(limit int) ([]*SyncStatus, erro
 	}
 	defer rows.Close()
 
-	var statuses []*SyncStatus
+	var statuses []SyncStatus
 	for rows.Next() {
 		status, err := scanSyncStatus(rows)
 		if err != nil {
 			return nil, fmt.Errorf("failed to scan status row: %w", err)
 		}
 
-		statuses = append(statuses, status)
+		statuses = append(statuses, *status)
 	}
 
 	if err := rows.Err(); err != nil {
