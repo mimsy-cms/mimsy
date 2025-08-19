@@ -221,11 +221,11 @@ func (s *syncProvider) SyncRepository(ctx context.Context) error {
 
 	// Now, add the collections to the main collections table
 	if err := s.migrator.UpdateCollections(ctx, &schemaStruct); err != nil {
-		return fmt.Errorf("Failed to update collections: %w", err)
+		return s.markErrorAndReturn(ctx, s.repositoryName, contents.Sha, err, "failed to update collections %s")
 	}
 	// Mark the migration as active
 	if err := s.syncStatusRepository.MarkAsActive(ctx, s.repositoryName, contents.Sha); err != nil {
-		return fmt.Errorf("failed to mark migration as active for repository %s: %w", s.repositoryName, err)
+		return s.markErrorAndReturn(ctx, s.repositoryName, contents.Sha, err, "failed to mark migration as active %s")
 	}
 
 	// Generate the diff between the schema and the active migration
