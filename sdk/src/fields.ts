@@ -28,6 +28,12 @@ export const shortString: FieldGenerator<string> = (
   ...options,
 });
 
+export const richText: FieldGenerator<string> = (options?: FieldOptions) => ({
+  _marker: fieldType,
+  type: "rich_text",
+  ...options,
+});
+
 export function relation<T extends Schema>(
   options?: {
     relatesTo: Collection<T>;

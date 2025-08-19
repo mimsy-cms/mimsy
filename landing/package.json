@@ -19,6 +19,7 @@
 	"devDependencies": {
 		"@eslint/compat": "^1.2.5",
 		"@eslint/js": "^9.18.0",
+		"@mimsy-cms/cli": "workspace:*",
 		"@playwright/test": "^1.49.1",
 		"@sveltejs/adapter-node": "^5.2.13",
 		"@sveltejs/kit": "^2.22.0",
@@ -50,7 +51,7 @@
 		]
 	},
 	"dependencies": {
-		"@mimsy-cms/cli": "^1.0.3",
+		"@mimsy-cms/sdk": "workspace:*",
 		"prismjs": "^1.30.0"
 	}
 }
