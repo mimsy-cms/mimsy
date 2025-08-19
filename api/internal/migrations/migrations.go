@@ -4,6 +4,8 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"log/slog"
+	"strings"
 
 	migrations_interface "github.com/mimsy-cms/mimsy/internal/interfaces/migrations"
 	"github.com/xataio/pgroll/pkg/backfill"
@@ -40,6 +42,12 @@ func WithSchema(schema string) OptionFn {
 	}
 }
 
+func WithSearchPath(searchPath ...string) OptionFn {
+	return func(c *runConfig) {
+		c.SearchPath = searchPath
+	}
+}
+
 // WithUnappliedMigrations sets the list of unapplied migrations.
 func WithUnappliedMigrations(migrations []*migrations.Migration) OptionFn {
 	return func(c *runConfig) {
@@ -64,6 +72,7 @@ type runConfig struct {
 	Schema string
 	// StateSchema is the name of the schema where migration state will be stored.
 	StateSchema string
+	SearchPath  []string
 
 	NewState    func(ctx context.Context, pgURL, schema string) (migrations_interface.State, error)
 	NewMigrator func(ctx context.Context, pgURL, schema string, s migrations_interface.State) (migrations_interface.Migrator, error)
@@ -92,11 +101,19 @@ func Run(ctx context.Context, config *runConfig) (int, error) {
 		return 0, err
 	}
 
+	if config.Schema != "" {
+		config.SearchPath = append([]string{config.Schema}, config.SearchPath...)
+	}
+
+	var searchPath string = strings.Join(config.SearchPath, ",")
+
+	slog.Info("Starting actual migration", "searchPath", searchPath)
+
 	var m migrations_interface.Migrator
 	if config.NewMigrator != nil {
 		m, err = config.NewMigrator(ctx, config.PgURL, config.Schema, st)
 	} else {
-		rollMigrator, rollErr := roll.New(ctx, config.PgURL, config.Schema, st.(*state.State))
+		rollMigrator, rollErr := roll.New(ctx, config.PgURL, config.Schema, st.(*state.State), roll.WithSearchPath(searchPath))
 		if rollErr != nil {
 			err = rollErr
 		} else {

@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"log/slog"
 	"os"
 
 	"github.com/mimsy-cms/mimsy/internal/migrations"
@@ -47,9 +48,17 @@ func (m *Migrator) Migrate(ctx context.Context, activeSync *SyncStatus, newSchem
 		},
 	}
 
+	data, err := json.Marshal(unrunMigrations)
+	if err != nil {
+		return fmt.Errorf("Failed to marshal unrun migrations: %w", err)
+	}
+
+	slog.Info("Unrun migrations", "data", string(data))
+
 	runConfig := migrations.NewRunConfig(
 		migrations.WithStateSchema("mimsy_collections_roll"),
 		migrations.WithSchema("mimsy_collections"),
+		migrations.WithSearchPath("mimsy_internal"),
 		migrations.WithPgURL(getPgURL()),
 		migrations.WithUnappliedMigrations(unrunMigrations),
 	)
