@@ -89,7 +89,7 @@ func (q *selectQuery) scan(row rowScanner) (*Resource, error) {
 	}
 
 	resource := Resource{Fields: map[string]any{}}
-	for i := 4; i < len(values); i++ {
+	for i := 6; i < len(values); i++ {
 		resource.Fields[q.queryFields[i]] = values[i]
 	}
 

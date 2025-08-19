@@ -18,14 +18,14 @@
 		slug: data.resource?.slug || '',
 		...Object.fromEntries(
 			Object.keys(data.definition.fields).map((fieldName) => {
-				let value =
-					data.resource?.[fieldName] ?? getDefaultValue(data.definition.fields[fieldName]);
-				if (
-					data.definition.fields[fieldName].type === 'date' &&
-					typeof value === 'string' &&
-					value
-				) {
+				const field = data.definition.fields[fieldName];
+				let value = data.resource?.[fieldName] ?? getDefaultValue(field);
+				if (field.type === 'date' && typeof value === 'string' && value) {
 					value = new Date(value);
+				} else if (field.type === 'richtext') {
+					if (!value) {
+						value = null
+					}
 				}
 				return [fieldName, value];
 			})
@@ -60,6 +60,8 @@
 				return 0;
 			case 'date':
 				return new Date();
+			case 'richtext':
+				return null;
 			default:
 				return '';
 		}
@@ -89,6 +91,24 @@
 				schemaContent.updated_by = currentUser.id;
 			}
 
+			// Log the initial schema content
+			console.log('Initial schemaContent:', schemaContent);
+
+			// Process rich text fields to ensure they're in the right format
+			Object.keys(data.definition.fields).forEach(fieldName => {
+				const field = data.definition.fields[fieldName];
+				if (field.type === 'richtext' && schemaContent[fieldName] !== undefined) {
+					console.log(`Processing richtext field ${fieldName}:`, schemaContent[fieldName]);
+					
+					// Rich text should already be in the correct format from the editor
+					// No need to transform it here since the editor handles the JSON structure
+					console.log(`Richtext field ${fieldName} ready for sending:`, schemaContent[fieldName]);
+				}
+			});
+
+			// Log the final content being sent
+			console.log('Final schemaContent being sent:', schemaContent);
+
 			const response = await fetch(
 				`/api/v1/collections/${data.definition.slug}/${resourceContent.slug}`,
 				{
@@ -100,11 +120,18 @@
 				}
 			);
 
+			// Log the response
+			console.log('Response status:', response.status);
+			console.log('Response headers:', response.headers);
+
 			if (!response.ok) {
+				const errorText = await response.text();
+				console.log('Response error text:', errorText);
 				throw new Error(`Failed to save resource: ${response.statusText}`);
 			}
 
 			const updatedResource = await response.json();
+			console.log('Updated resource received:', updatedResource);
 
 			resourceContent = {
 				...resourceContent,
@@ -113,6 +140,7 @@
 
 			success = 'Resource saved successfully!';
 		} catch (err) {
+			console.error('Save error:', err);
 			error = err instanceof Error ? err.message : 'Failed to save resource.';
 		} finally {
 			isSaving = false;
@@ -246,9 +274,9 @@
 								{fieldName}
 								{#if field.required}<span class="text-red-500">*</span>{/if}
 							</label>
-							<!-- <RichTextField
+							<RichTextField
 								bind:value={resourceContent[fieldName]} 
-							/> -->
+							/>
 						{:else if field.type === 'plaintext'}
 							<label for={fieldName}>
 								{fieldName}
