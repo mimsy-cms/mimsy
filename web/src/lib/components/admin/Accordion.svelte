@@ -11,14 +11,15 @@
 
 	type Props = {
 		text: string;
+		emptyText?: string;
 		icon: Component;
 		items: Item[];
 		onNavigate?: () => void;
 	};
 
-	let { text, icon: Icon, items, onNavigate }: Props = $props();
+	let { text, emptyText, icon: Icon, items, onNavigate }: Props = $props();
 
-	let open = $state(true);
+	let open = $state(items.length > 0);
 </script>
 
 <div class="space-y-1">
@@ -34,11 +35,15 @@
 	</button>
 
 	{#if open}
-		<div transition:slide>
+		<div transition:slide={{ duration: 80 }}>
 			<div class="space-y-1">
 				{#each items as item}
 					<MenuItem href={item.href} {onNavigate}>{item.name}</MenuItem>
 				{/each}
+
+				{#if items.length === 0}
+					<p class="px-2 text-sm text-gray-400">{emptyText}</p>
+				{/if}
 			</div>
 		</div>
 	{/if}

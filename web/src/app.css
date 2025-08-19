@@ -136,12 +136,16 @@
 	}
 }
 
+button {
+	@apply cursor-pointer;
+}
+
 body {
 	@apply bg-lilac-50 font-[inter];
 }
 
 .btn {
-	@apply cursor-pointer rounded-md bg-blue-700 px-4 py-2 font-medium text-white transition-colors duration-200 hover:bg-blue-600;
+	@apply rounded-md bg-blue-700 px-4 py-2 font-medium text-white transition-colors duration-200 hover:bg-blue-600;
 }
 
 .btn-sm {
