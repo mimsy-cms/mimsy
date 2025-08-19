@@ -6,22 +6,22 @@ A command-line interface for the Mimsy CMS SDK that provides utilities for worki
 
 ```bash
 # Install globally
-pnpm install -g @mimsy/cli
+pnpm install -g @mimsy-cms/cli
 
 # Or run directly with pnpm
-pnpm dlx @mimsy/cli
+pnpm dlx @mimsy-cms/cli
 ```
 
 ## Commands
 
-### `export-schema`
+### `update`
 
-Export collection schemas to a JSON file. This command allows you to serialize your collection definitions into a portable JSON format.
+Updates the `mimsy.schema.json` file with the current collection definitions. The `mimsy.schema.json` file is used by Mimsy as a schema reference for the structure of your collections.
 
 #### Usage
 
 ```bash
-msy export-schema [options]
+msy update [options]
 ```
 
 #### Options
@@ -35,29 +35,32 @@ msy export-schema [options]
 #### Examples
 
 **Basic usage:**
+
 ```bash
 # Export current registry to schema.json
-msy export-schema
+msy update
 
 # Export with pretty formatting
-msy export-schema --pretty
+msy update --pretty
 ```
 
 **Import collections and export:**
+
 ```bash
 # Import TypeScript collections and export
-msy export-schema --import ./collections/blog.ts --pretty --output blog-schema.json
+msy update --import ./collections/blog.ts --pretty --output blog-schema.json
 
 # Import JavaScript collections and export
-msy export-schema --import ./collections/blog.js --output blog-schema.json
+msy update --import ./collections/blog.js --output blog-schema.json
 
 # Clear registry first, then import and export
-msy export-schema --import ./collections/blog.ts --clear --pretty
+msy update --import ./collections/blog.ts --clear --pretty
 ```
 
 #### Collection File Examples
 
 **TypeScript Example (`collections/blog.ts`):**
+
 ```typescript
 import { collection, fields, builtins, type Collection } from "@mimsy-cms/sdk";
 
@@ -110,6 +113,7 @@ export const Posts: Collection<any> = collection("posts", {
 ```
 
 **JavaScript Example (`collections/blog.js`):**
+
 ```javascript
 const { collection, fields, builtins } = require("@mimsy-cms/sdk");
 
