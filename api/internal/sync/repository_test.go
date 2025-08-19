@@ -188,10 +188,6 @@ func TestSyncStatusRepository_CreateIfNotExists_NewRecord(t *testing.T) {
 		WithArgs("test-repo", "abc123").
 		WillReturnRows(sqlmock.NewRows([]string{"count"}).AddRow(0))
 
-	mock.ExpectExec(`UPDATE sync_status SET is_active = false WHERE repo = \$1`).
-		WithArgs("test-repo").
-		WillReturnResult(sqlmock.NewResult(0, 1))
-
 	mock.ExpectExec(`INSERT INTO sync_status \(repo, commit, commit_message, commit_date, is_active, is_skipped\)
 		VALUES \(\$1, \$2, \$3, \$4, false, false\)`).
 		WithArgs("test-repo", "abc123", "Test commit", commitDate).
