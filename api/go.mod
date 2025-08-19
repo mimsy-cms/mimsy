@@ -19,7 +19,6 @@ require (
 	github.com/lib/pq v1.10.9
 	github.com/ncw/swift/v2 v2.0.4
 	github.com/xataio/pgroll v0.14.0
-	go.uber.org/mock v0.5.2
 	golang.org/x/crypto v0.40.0
 )
 
