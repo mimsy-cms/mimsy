@@ -57,8 +57,7 @@
 		refreshing = false;
 	}
 
-	const activeMigration = $derived(data.statuses?.find((s) => s.is_active));
-	const errorMigrations = $derived(data.statuses?.filter((s) => s.error_message) || []);
+	const activeMigration = $derived(data.activeMigration || data.statuses?.find((s) => s.is_active));
 </script>
 
 <div class="flex flex-col gap-6">
@@ -107,26 +106,6 @@
 		</div>
 	{/if}
 
-	{#if errorMigrations.length > 0}
-		{#each errorMigrations as errorMigration (errorMigration.commit)}
-			<div class="rounded-md bg-red-50 p-4">
-				<div class="flex">
-					<AlertCircleIcon class="h-5 w-5 text-red-400" />
-					<div class="ml-3 flex-1">
-						<h3 class="text-sm font-medium text-red-800">Migration Error</h3>
-						<div class="mt-2 text-sm text-red-700">
-							<p>
-								<strong>Commit:</strong>
-								{errorMigration.commit.substring(0, 7)} - {errorMigration.commit_message}
-							</p>
-							<p class="mt-1"><strong>Error:</strong> {errorMigration.error_message}</p>
-						</div>
-					</div>
-				</div>
-			</div>
-		{/each}
-	{/if}
-
 	<div class="space-y-6">
 		<section>
 			<h2 class="mb-3 text-xl font-medium">Recent Sync History</h2>
@@ -162,10 +141,75 @@
 						</tr>
 					</thead>
 					<tbody class="divide-y divide-gray-200">
+						{#if activeMigration && !data.statuses?.find((s) => s.commit === activeMigration.commit)}
+							{@const badge = getStatusBadge(activeMigration)}
+							<tr
+								class={cn(
+									'border-l-4 hover:bg-blue-100',
+									activeMigration.error_message
+										? 'border-red-400 bg-red-50 hover:bg-red-100'
+										: 'border-blue-400 bg-blue-50'
+								)}
+							>
+								<td class="px-6 py-3 whitespace-nowrap">
+									<span
+										class={cn(
+											'inline-flex items-center gap-1 rounded-full px-2 py-1 text-xs font-semibold',
+											badge.class
+										)}
+									>
+										<badge.icon class="h-3 w-3" />
+										{badge.text}
+									</span>
+								</td>
+								<td class="px-6 py-3 text-sm whitespace-nowrap text-gray-900">
+									<a
+										href={'https://github.com/' +
+											data.repository +
+											'/commit/' +
+											activeMigration.commit}
+										class="hover:underline"
+										target="_blank"
+									>
+										<code class="rounded bg-gray-100 px-1 py-0.5 text-xs"
+											>{activeMigration.commit.substring(0, 7)}</code
+										>
+									</a>
+								</td>
+								<td class="px-6 py-3 text-sm text-gray-500">
+									{formatCommitMessage(activeMigration.commit_message)}
+								</td>
+								<td class="px-6 py-3 text-sm whitespace-nowrap text-gray-500">
+									{formatDate(activeMigration.commit_date)}
+								</td>
+								<td class="px-6 py-3 text-sm whitespace-nowrap text-gray-500">
+									{formatDate(activeMigration.applied_at)}
+								</td>
+							</tr>
+							{#if activeMigration.error_message}
+								<tr class="bg-red-50">
+									<td colspan="5" class="px-6 py-2">
+										<div class="flex items-start gap-2 text-sm text-red-700">
+											<AlertCircleIcon class="mt-0.5 h-4 w-4 flex-shrink-0 text-red-500" />
+											<div>
+												<span class="font-medium">Error:</span>
+												<span class="ml-1">{activeMigration.error_message}</span>
+											</div>
+										</div>
+									</td>
+								</tr>
+							{/if}
+						{/if}
 						{#if data.statuses && data.statuses.length > 0}
 							{#each data.statuses as status (status.commit)}
 								{@const badge = getStatusBadge(status)}
-								<tr class="hover:bg-gray-50">
+								<tr
+									class={cn(
+										'hover:bg-gray-50',
+										status.is_active && 'border-l-4 border-blue-400 bg-blue-50 hover:bg-blue-100',
+										status.error_message && 'border-l-4 border-red-400 bg-red-50 hover:bg-red-100'
+									)}
+								>
 									<td class="px-6 py-3 whitespace-nowrap">
 										<span
 											class={cn(
@@ -198,6 +242,19 @@
 										{formatDate(status.applied_at)}
 									</td>
 								</tr>
+								{#if status.error_message}
+									<tr class="bg-red-50">
+										<td colspan="5" class="px-6 py-2">
+											<div class="flex items-start gap-2 text-sm text-red-700">
+												<AlertCircleIcon class="mt-0.5 h-4 w-4 flex-shrink-0 text-red-500" />
+												<div>
+													<span class="font-medium">Error:</span>
+													<span class="ml-1">{status.error_message}</span>
+												</div>
+											</div>
+										</td>
+									</tr>
+								{/if}
 							{/each}
 						{:else}
 							<tr>

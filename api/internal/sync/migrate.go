@@ -85,22 +85,15 @@ func (m *Migrator) Migrate(ctx context.Context, activeSync *SyncStatus, newSql *
 	operations := schema_diff.Diff(*activeSql, *newSql)
 	unrunMigrations := []*pgroll_migrations.Migration{
 		{
-			Name:       fmt.Sprintf("%s (hash:%s)", commitName, func() string {
-			if len(commitHash) > 8 {
-				return commitHash[:8]
-			}
-			return commitHash
-		}()),
+			Name: fmt.Sprintf("%s", func() string {
+				if len(commitHash) > 8 {
+					return commitHash[:8]
+				}
+				return commitHash
+			}()),
 			Operations: operations,
 		},
 	}
-
-	data, err := json.Marshal(unrunMigrations)
-	if err != nil {
-		return fmt.Errorf("Failed to marshal unrun migrations: %w", err)
-	}
-
-	slog.Info("Unrun migrations", "data", string(data))
 
 	runConfig := migrations.NewRunConfig(
 		migrations.WithStateSchema("mimsy_collections_roll"),

@@ -5,7 +5,7 @@
 
 	type Props = {
 		composer: Composer;
-	}
+	};
 
 	let { composer = $bindable() }: Props = $props();
 

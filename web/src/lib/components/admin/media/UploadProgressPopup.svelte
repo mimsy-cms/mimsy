@@ -21,7 +21,7 @@
 
 {#if uploads.length > 0}
 	<div
-		class="fixed bottom-4 right-4 z-50 w-96 rounded-lg border border-gray-200 bg-white shadow-lg"
+		class="fixed right-4 bottom-4 z-50 w-96 rounded-lg border border-gray-200 bg-white shadow-lg"
 	>
 		<div class="flex items-center justify-between border-b border-gray-200 p-4">
 			<div class="flex items-center gap-2">

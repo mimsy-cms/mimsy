@@ -38,25 +38,27 @@
 	</div>
 
 	<div class="w-full overflow-hidden rounded-md border border-gray-200 bg-white">
-		<table class="w-full divide-y divide-gray-200 table-fixed">
+		<table class="w-full table-fixed divide-y divide-gray-200">
 			<thead class="bg-gray-50">
 				<tr>
 					<th
-						class="w-1/3 px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500"
+						class="w-1/3 px-6 py-3 text-left text-xs font-medium tracking-wider text-gray-500 uppercase"
 					>
 						ID
 					</th>
 					<th
-						class="w-1/3 px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500"
+						class="w-1/3 px-6 py-3 text-left text-xs font-medium tracking-wider text-gray-500 uppercase"
 					>
 						Email
 					</th>
 					<th
-						class="w-1/3 px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500"
+						class="w-1/3 px-6 py-3 text-left text-xs font-medium tracking-wider text-gray-500 uppercase"
 					>
 						Updated
 					</th>
-					<th class="w-12 px-6 py-3 text-right text-xs font-medium uppercase tracking-wider text-gray-500">
+					<th
+						class="w-12 px-6 py-3 text-right text-xs font-medium tracking-wider text-gray-500 uppercase"
+					>
 						<span class="sr-only">Actions</span>
 					</th>
 				</tr>
@@ -67,7 +69,7 @@
 						<td class="w-1/3 px-6 py-3 text-sm text-gray-500">{user.id}</td>
 						<td class="w-1/3 px-6 py-3 text-sm text-gray-500">{user.email}</td>
 						<td class="w-1/3 px-6 py-3 text-sm text-gray-500">{formatDate(user.updated_at)}</td>
-						<td class="w-12 whitespace-nowrap px-6 py-3 text-right text-sm font-medium">
+						<td class="w-12 px-6 py-3 text-right text-sm font-medium whitespace-nowrap">
 							<div class="flex items-center justify-end space-x-2">
 								<button class="text-gray-400 hover:text-gray-600">
 									<MoreVerticalIcon class="h-4 w-4" />

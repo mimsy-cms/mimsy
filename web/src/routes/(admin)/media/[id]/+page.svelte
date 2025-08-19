@@ -97,7 +97,7 @@
 	<div class="flex flex-col gap-6">
 		<div class="space-y-4">
 			<div class="flex flex-col items-center justify-between gap-4 md:flex-row">
-				<h1 class="break-all text-3xl font-semibold">{data.media.name}</h1>
+				<h1 class="text-3xl font-semibold break-all">{data.media.name}</h1>
 
 				<div class="flex justify-end gap-2">
 					<a
@@ -161,7 +161,7 @@
 
 					<div>
 						<dt class="text-sm font-medium text-gray-500">UUID</dt>
-						<dd class="mt-1 break-all text-sm text-gray-900">{data.media.uuid}</dd>
+						<dd class="mt-1 text-sm break-all text-gray-900">{data.media.uuid}</dd>
 					</div>
 				</dl>
 			</div>

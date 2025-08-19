@@ -71,3 +71,32 @@ func (h *Handler) Jobs(w http.ResponseWriter, r *http.Request) {
 
 	util.JSON(w, http.StatusOK, jobStatuses)
 }
+
+func (h *Handler) ActiveMigration(w http.ResponseWriter, r *http.Request) {
+	user := auth.RequestUser(r.Context())
+	if user == nil {
+		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		return
+	}
+
+	repo := os.Getenv("GH_REPO")
+	if repo == "" {
+		slog.Error("GH_REPO environment variable not set")
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		return
+	}
+
+	activeMigration, err := h.Repository.GetActiveMigration(repo)
+	if err != nil {
+		slog.Error("Failed to get active migration", "error", err)
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		return
+	}
+
+	if activeMigration == nil {
+		util.JSON(w, http.StatusOK, map[string]interface{}{"active_migration": nil})
+		return
+	}
+
+	util.JSON(w, http.StatusOK, map[string]interface{}{"active_migration": activeMigration})
+}

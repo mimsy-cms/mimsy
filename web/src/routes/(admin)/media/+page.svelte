@@ -30,7 +30,9 @@
 		}
 
 		if (oversizedFiles.length > 0) {
-			alert(`The following files are too large to upload (max size is 256 MB):\n\n${oversizedFiles.map(f => f.name).join('\n')}`);
+			alert(
+				`The following files are too large to upload (max size is 256 MB):\n\n${oversizedFiles.map((f) => f.name).join('\n')}`
+			);
 		}
 
 		if (validFiles.length === 0) {
@@ -121,85 +123,83 @@
 
 	<Dropzone id="dropzone" name="dropzone" onChange={handleFileDrop}>
 		{#if (data?.media?.length ?? 0) === 0}
-			<div class="flex justify-center items-center py-20 text-gray-500">
+			<div class="flex items-center justify-center py-20 text-gray-500">
 				No media uploaded yet. Drag files here or click "Upload" to add media.
 			</div>
+		{:else if layoutMode === 'grid'}
+			<div
+				class="grid grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6"
+			>
+				{#each data.media as media}
+					<MediaCard
+						href={`/media/${media.id}`}
+						url={media.url}
+						alt={media.name}
+						class="transition-transform duration-75 hover:scale-105"
+					/>
+				{/each}
+			</div>
 		{:else}
-			{#if layoutMode === 'grid'}
-				<div
-					class="grid grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6"
-				>
-					{#each data.media as media}
-						<MediaCard
-							href={`/media/${media.id}`}
-							url={media.url}
-							alt={media.name}
-							class="transition-transform duration-75 hover:scale-105"
-						/>
-					{/each}
-				</div>
-			{:else}
-				<div class="w-full overflow-hidden rounded-md border border-gray-200 bg-white">
-					<table class="w-full divide-y divide-gray-200">
-						<thead class="bg-gray-50">
-							<tr>
-								<th
-									scope="col"
-									class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500"
-								>
-									Preview
-								</th>
-								<th
-									scope="col"
-									class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500"
-								>
-									Name
-								</th>
-								<th
-									scope="col"
-									class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500"
-								>
-									Size
-								</th>
-								<th
-									scope="col"
-									class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500"
-								>
-									Updated
-								</th>
+			<div class="w-full overflow-hidden rounded-md border border-gray-200 bg-white">
+				<table class="w-full divide-y divide-gray-200">
+					<thead class="bg-gray-50">
+						<tr>
+							<th
+								scope="col"
+								class="px-6 py-3 text-left text-xs font-medium tracking-wider text-gray-500 uppercase"
+							>
+								Preview
+							</th>
+							<th
+								scope="col"
+								class="px-6 py-3 text-left text-xs font-medium tracking-wider text-gray-500 uppercase"
+							>
+								Name
+							</th>
+							<th
+								scope="col"
+								class="px-6 py-3 text-left text-xs font-medium tracking-wider text-gray-500 uppercase"
+							>
+								Size
+							</th>
+							<th
+								scope="col"
+								class="px-6 py-3 text-left text-xs font-medium tracking-wider text-gray-500 uppercase"
+							>
+								Updated
+							</th>
+						</tr>
+					</thead>
+					<tbody class="divide-y divide-gray-200">
+						{#each data.media as media}
+							<tr class="text-left hover:bg-gray-50">
+								<td class="px-6 py-3">
+									<div
+										class="flex h-12 w-12 items-center justify-center overflow-hidden rounded-md bg-gray-200"
+									>
+										<img src={media.url} alt={media.alt} />
+									</div>
+								</td>
+								<td class="px-6 py-3">
+									<a class="text-sm text-gray-900 hover:text-blue-600" href={`/media/${media.id}`}>
+										{media.name}
+									</a>
+								</td>
+								<td class="px-6 py-3 whitespace-nowrap">
+									<div class="text-sm text-gray-500">
+										{media.size}
+									</div>
+								</td>
+								<td class="px-6 py-3 whitespace-nowrap">
+									<div class="text-sm text-gray-500">
+										{media.updatedAt}
+									</div>
+								</td>
 							</tr>
-						</thead>
-						<tbody class="divide-y divide-gray-200">
-							{#each data.media as media}
-								<tr class="text-left hover:bg-gray-50">
-									<td class="px-6 py-3">
-										<div
-											class="flex h-12 w-12 items-center justify-center overflow-hidden rounded-md bg-gray-200"
-										>
-											<img src={media.url} alt={media.alt} />
-										</div>
-									</td>
-									<td class="px-6 py-3">
-										<a class="text-sm text-gray-900 hover:text-blue-600" href={`/media/${media.id}`}>
-											{media.name}
-										</a>
-									</td>
-									<td class="whitespace-nowrap px-6 py-3">
-										<div class="text-sm text-gray-500">
-											{media.size}
-										</div>
-									</td>
-									<td class="whitespace-nowrap px-6 py-3">
-										<div class="text-sm text-gray-500">
-											{media.updatedAt}
-										</div>
-									</td>
-								</tr>
-							{/each}
-						</tbody>
-					</table>
-				</div>
-			{/if}
+						{/each}
+					</tbody>
+				</table>
+			</div>
 		{/if}
 	</Dropzone>
 </div>
