@@ -33,7 +33,7 @@ func TestHandler_Status_Success(t *testing.T) {
 	mockRepo := mocks_sync.NewMockSyncStatusRepository(ctrl)
 	mockCron := mocks_cron.NewMockCronService(ctrl)
 
-	handler := sync.NewHandler(mockRepo, mockCron)
+	handler := sync.NewHandlerWithRepository(mockRepo, mockCron)
 
 	now := time.Now()
 	expectedStatuses := []sync.SyncStatus{
@@ -48,7 +48,7 @@ func TestHandler_Status_Success(t *testing.T) {
 	}
 
 	mockRepo.EXPECT().
-		GetRecentStatuses(5).
+		GetRecentStatuses(gomock.Any(), 5).
 		Return(expectedStatuses, nil).
 		Times(1)
 
@@ -75,7 +75,7 @@ func TestHandler_Status_Unauthorized(t *testing.T) {
 	mockRepo := mocks_sync.NewMockSyncStatusRepository(ctrl)
 	mockCron := mocks_cron.NewMockCronService(ctrl)
 
-	handler := sync.NewHandler(mockRepo, mockCron)
+	handler := sync.NewHandlerWithRepository(mockRepo, mockCron)
 
 	req := httptest.NewRequest("GET", "/sync/status", nil)
 	w := httptest.NewRecorder()
@@ -94,10 +94,10 @@ func TestHandler_Status_CustomLimit(t *testing.T) {
 	mockRepo := mocks_sync.NewMockSyncStatusRepository(ctrl)
 	mockCron := mocks_cron.NewMockCronService(ctrl)
 
-	handler := sync.NewHandler(mockRepo, mockCron)
+	handler := sync.NewHandlerWithRepository(mockRepo, mockCron)
 
 	mockRepo.EXPECT().
-		GetRecentStatuses(3).
+		GetRecentStatuses(gomock.Any(), 3).
 		Return([]sync.SyncStatus{}, nil).
 		Times(1)
 
@@ -119,11 +119,11 @@ func TestHandler_Status_InvalidLimit(t *testing.T) {
 	mockRepo := mocks_sync.NewMockSyncStatusRepository(ctrl)
 	mockCron := mocks_cron.NewMockCronService(ctrl)
 
-	handler := sync.NewHandler(mockRepo, mockCron)
+	handler := sync.NewHandlerWithRepository(mockRepo, mockCron)
 
 	// Should use default limit of 5 when limit is too high
 	mockRepo.EXPECT().
-		GetRecentStatuses(5).
+		GetRecentStatuses(gomock.Any(), 5).
 		Return([]sync.SyncStatus{}, nil).
 		Times(1)
 
@@ -145,10 +145,10 @@ func TestHandler_Status_RepositoryError(t *testing.T) {
 	mockRepo := mocks_sync.NewMockSyncStatusRepository(ctrl)
 	mockCron := mocks_cron.NewMockCronService(ctrl)
 
-	handler := sync.NewHandler(mockRepo, mockCron)
+	handler := sync.NewHandlerWithRepository(mockRepo, mockCron)
 
 	mockRepo.EXPECT().
-		GetRecentStatuses(5).
+		GetRecentStatuses(gomock.Any(), 5).
 		Return(nil, errors.New("database error")).
 		Times(1)
 
@@ -170,7 +170,7 @@ func TestHandler_Jobs_Success(t *testing.T) {
 	mockRepo := mocks_sync.NewMockSyncStatusRepository(ctrl)
 	mockCron := mocks_cron.NewMockCronService(ctrl)
 
-	handler := sync.NewHandler(mockRepo, mockCron)
+	handler := sync.NewHandlerWithRepository(mockRepo, mockCron)
 
 	expectedJobs := []cron.JobStatus{
 		{
@@ -203,7 +203,7 @@ func TestHandler_Jobs_Unauthorized(t *testing.T) {
 	mockRepo := mocks_sync.NewMockSyncStatusRepository(ctrl)
 	mockCron := mocks_cron.NewMockCronService(ctrl)
 
-	handler := sync.NewHandler(mockRepo, mockCron)
+	handler := sync.NewHandlerWithRepository(mockRepo, mockCron)
 
 	req := httptest.NewRequest("GET", "/sync/jobs", nil)
 	w := httptest.NewRecorder()
@@ -222,7 +222,7 @@ func TestHandler_Jobs_CronServiceError(t *testing.T) {
 	mockRepo := mocks_sync.NewMockSyncStatusRepository(ctrl)
 	mockCron := mocks_cron.NewMockCronService(ctrl)
 
-	handler := sync.NewHandler(mockRepo, mockCron)
+	handler := sync.NewHandlerWithRepository(mockRepo, mockCron)
 
 	mockCron.EXPECT().
 		GetJobStatuses(gomock.Any()).
@@ -247,7 +247,7 @@ func TestNewHandler(t *testing.T) {
 	mockRepo := mocks_sync.NewMockSyncStatusRepository(ctrl)
 	mockCron := mocks_cron.NewMockCronService(ctrl)
 
-	handler := sync.NewHandler(mockRepo, mockCron)
+	handler := sync.NewHandlerWithRepository(mockRepo, mockCron)
 
 	if handler == nil {
 		t.Error("expected handler to be created")

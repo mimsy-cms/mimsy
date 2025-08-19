@@ -1,6 +1,7 @@
 package sync_test
 
 import (
+	"context"
 	"database/sql"
 	"encoding/json"
 	"errors"
@@ -8,6 +9,7 @@ import (
 	"time"
 
 	"github.com/DATA-DOG/go-sqlmock"
+	"github.com/mimsy-cms/mimsy/internal/config"
 	"github.com/mimsy-cms/mimsy/internal/sync"
 	"github.com/mimsy-cms/mimsy/pkg/mimsy_schema"
 )
@@ -19,7 +21,7 @@ func TestNewSyncStatusRepository(t *testing.T) {
 	}
 	defer db.Close()
 
-	repo := sync.NewSyncStatusRepository(db)
+	repo := sync.NewRepository()
 	if repo == nil {
 		t.Error("Expected repository to be created")
 	}
@@ -32,7 +34,8 @@ func TestSyncStatusRepository_GetStatus_Success(t *testing.T) {
 	}
 	defer db.Close()
 
-	repo := sync.NewSyncStatusRepository(db)
+	repo := sync.NewRepository()
+	ctx := config.ContextWithDB(context.Background(), db)
 
 	now := time.Now()
 	rows := sqlmock.NewRows([]string{
@@ -52,7 +55,7 @@ func TestSyncStatusRepository_GetStatus_Success(t *testing.T) {
 		WithArgs("test-repo").
 		WillReturnRows(rows)
 
-	status, err := repo.GetStatus("test-repo")
+	status, err := repo.GetStatus(ctx, "test-repo")
 	if err != nil {
 		t.Errorf("Expected no error, got %v", err)
 	}
@@ -77,7 +80,8 @@ func TestSyncStatusRepository_GetStatus_NoRows(t *testing.T) {
 	}
 	defer db.Close()
 
-	repo := sync.NewSyncStatusRepository(db)
+	repo := sync.NewRepository()
+	ctx := config.ContextWithDB(context.Background(), db)
 
 	mock.ExpectQuery(`SELECT repo, commit, commit_message, commit_date, applied_migration,
 		       applied_at, is_active, is_skipped, error_message, manifest
@@ -87,7 +91,7 @@ func TestSyncStatusRepository_GetStatus_NoRows(t *testing.T) {
 		WithArgs("test-repo").
 		WillReturnError(sql.ErrNoRows)
 
-	status, err := repo.GetStatus("test-repo")
+	status, err := repo.GetStatus(ctx, "test-repo")
 	if err != nil {
 		t.Errorf("Expected no error, got %v", err)
 	}
@@ -108,7 +112,8 @@ func TestSyncStatusRepository_GetLastSyncedCommit_Success(t *testing.T) {
 	}
 	defer db.Close()
 
-	repo := sync.NewSyncStatusRepository(db)
+	repo := sync.NewRepository()
+	ctx := config.ContextWithDB(context.Background(), db)
 
 	now := time.Now()
 	rows := sqlmock.NewRows([]string{
@@ -129,7 +134,7 @@ func TestSyncStatusRepository_GetLastSyncedCommit_Success(t *testing.T) {
 		WithArgs("test-repo").
 		WillReturnRows(rows)
 
-	status, err := repo.GetLastSyncedCommit("test-repo")
+	status, err := repo.GetLastSyncedCommit(ctx, "test-repo")
 	if err != nil {
 		t.Errorf("Expected no error, got %v", err)
 	}
@@ -154,7 +159,8 @@ func TestSyncStatusRepository_MarkError_Success(t *testing.T) {
 	}
 	defer db.Close()
 
-	repo := sync.NewSyncStatusRepository(db)
+	repo := sync.NewRepository()
+	ctx := config.ContextWithDB(context.Background(), db)
 
 	mock.ExpectExec(`UPDATE sync_status
 		SET error_message = \$1, is_active = false
@@ -162,7 +168,7 @@ func TestSyncStatusRepository_MarkError_Success(t *testing.T) {
 		WithArgs("test error", "test-repo", "abc123").
 		WillReturnResult(sqlmock.NewResult(0, 1))
 
-	err = repo.MarkError("test-repo", "abc123", errors.New("test error"))
+	err = repo.MarkError(ctx, "test-repo", "abc123", errors.New("test error"))
 	if err != nil {
 		t.Errorf("Expected no error, got %v", err)
 	}
@@ -179,7 +185,8 @@ func TestSyncStatusRepository_CreateIfNotExists_NewRecord(t *testing.T) {
 	}
 	defer db.Close()
 
-	repo := sync.NewSyncStatusRepository(db)
+	repo := sync.NewRepository()
+	ctx := config.ContextWithDB(context.Background(), db)
 
 	commitDate := time.Now()
 
@@ -195,7 +202,7 @@ func TestSyncStatusRepository_CreateIfNotExists_NewRecord(t *testing.T) {
 
 	mock.ExpectCommit()
 
-	err = repo.CreateIfNotExists("test-repo", "abc123", "Test commit", commitDate)
+	err = repo.CreateIfNotExists(ctx, "test-repo", "abc123", "Test commit", commitDate)
 	if err != nil {
 		t.Errorf("Expected no error, got %v", err)
 	}
@@ -212,7 +219,8 @@ func TestSyncStatusRepository_CreateIfNotExists_ExistingRecord(t *testing.T) {
 	}
 	defer db.Close()
 
-	repo := sync.NewSyncStatusRepository(db)
+	repo := sync.NewRepository()
+	ctx := config.ContextWithDB(context.Background(), db)
 
 	commitDate := time.Now()
 
@@ -222,7 +230,7 @@ func TestSyncStatusRepository_CreateIfNotExists_ExistingRecord(t *testing.T) {
 		WillReturnRows(sqlmock.NewRows([]string{"count"}).AddRow(1))
 	mock.ExpectCommit()
 
-	err = repo.CreateIfNotExists("test-repo", "abc123", "Test commit", commitDate)
+	err = repo.CreateIfNotExists(ctx, "test-repo", "abc123", "Test commit", commitDate)
 	if err != nil {
 		t.Errorf("Expected no error, got %v", err)
 	}
@@ -239,7 +247,8 @@ func TestSyncStatusRepository_SetManifest_Success(t *testing.T) {
 	}
 	defer db.Close()
 
-	repo := sync.NewSyncStatusRepository(db)
+	repo := sync.NewRepository()
+	ctx := config.ContextWithDB(context.Background(), db)
 
 	schema := mimsy_schema.Schema{
 		Collections: []mimsy_schema.Collection{
@@ -262,7 +271,7 @@ func TestSyncStatusRepository_SetManifest_Success(t *testing.T) {
 		WithArgs(expectedJSON, "test-repo", "abc123").
 		WillReturnResult(sqlmock.NewResult(0, 1))
 
-	err = repo.SetManifest("test-repo", "abc123", schema)
+	err = repo.SetManifest(ctx, "test-repo", "abc123", schema)
 	if err != nil {
 		t.Errorf("Expected no error, got %v", err)
 	}
@@ -279,7 +288,8 @@ func TestSyncStatusRepository_GetRecentStatuses_Success(t *testing.T) {
 	}
 	defer db.Close()
 
-	repo := sync.NewSyncStatusRepository(db)
+	repo := sync.NewRepository()
+	ctx := config.ContextWithDB(context.Background(), db)
 
 	now := time.Now()
 	rows := sqlmock.NewRows([]string{
@@ -302,7 +312,7 @@ func TestSyncStatusRepository_GetRecentStatuses_Success(t *testing.T) {
 		WithArgs(5).
 		WillReturnRows(rows)
 
-	statuses, err := repo.GetRecentStatuses(5)
+	statuses, err := repo.GetRecentStatuses(ctx, 5)
 	if err != nil {
 		t.Errorf("Expected no error, got %v", err)
 	}
@@ -327,7 +337,8 @@ func TestSyncStatusRepository_SetAppliedMigration_Success(t *testing.T) {
 	}
 	defer db.Close()
 
-	repo := sync.NewSyncStatusRepository(db)
+	repo := sync.NewRepository()
+	ctx := config.ContextWithDB(context.Background(), db)
 
 	migration := []byte(`{"tables": []}`)
 
@@ -337,7 +348,7 @@ func TestSyncStatusRepository_SetAppliedMigration_Success(t *testing.T) {
 		WithArgs(migration, "test-repo", "abc123").
 		WillReturnResult(sqlmock.NewResult(0, 1))
 
-	err = repo.SetAppliedMigration("test-repo", "abc123", migration)
+	err = repo.SetAppliedMigration(ctx, "test-repo", "abc123", migration)
 	if err != nil {
 		t.Errorf("Expected no error, got %v", err)
 	}
@@ -354,7 +365,8 @@ func TestSyncStatusRepository_GetActiveMigration_Success(t *testing.T) {
 	}
 	defer db.Close()
 
-	repo := sync.NewSyncStatusRepository(db)
+	repo := sync.NewRepository()
+	ctx := config.ContextWithDB(context.Background(), db)
 
 	now := time.Now()
 	rows := sqlmock.NewRows([]string{
@@ -374,7 +386,7 @@ func TestSyncStatusRepository_GetActiveMigration_Success(t *testing.T) {
 		WithArgs("test-repo").
 		WillReturnRows(rows)
 
-	status, err := repo.GetActiveMigration("test-repo")
+	status, err := repo.GetActiveMigration(ctx, "test-repo")
 	if err != nil {
 		t.Errorf("Expected no error, got %v", err)
 	}
@@ -399,7 +411,8 @@ func TestSyncStatusRepository_MarkAsActive_Success(t *testing.T) {
 	}
 	defer db.Close()
 
-	repo := sync.NewSyncStatusRepository(db)
+	repo := sync.NewRepository()
+	ctx := config.ContextWithDB(context.Background(), db)
 
 	mock.ExpectExec(`UPDATE sync_status
 		SET is_active = CASE
@@ -410,7 +423,7 @@ func TestSyncStatusRepository_MarkAsActive_Success(t *testing.T) {
 		WithArgs("test-repo", "abc123").
 		WillReturnResult(sqlmock.NewResult(0, 1))
 
-	err = repo.MarkAsActive("test-repo", "abc123")
+	err = repo.MarkAsActive(ctx, "test-repo", "abc123")
 	if err != nil {
 		t.Errorf("Expected no error, got %v", err)
 	}
@@ -427,7 +440,8 @@ func TestSyncStatusRepository_MarkAsSkipped_Success(t *testing.T) {
 	}
 	defer db.Close()
 
-	repo := sync.NewSyncStatusRepository(db)
+	repo := sync.NewRepository()
+	ctx := config.ContextWithDB(context.Background(), db)
 
 	mock.ExpectExec(`UPDATE sync_status
 		SET is_skipped = true, applied_at = NOW\(\)
@@ -435,7 +449,7 @@ func TestSyncStatusRepository_MarkAsSkipped_Success(t *testing.T) {
 		WithArgs("test-repo", "abc123").
 		WillReturnResult(sqlmock.NewResult(0, 1))
 
-	err = repo.MarkAsSkipped("test-repo", "abc123")
+	err = repo.MarkAsSkipped(ctx, "test-repo", "abc123")
 	if err != nil {
 		t.Errorf("Expected no error, got %v", err)
 	}

@@ -1,11 +1,13 @@
 package sync
 
 import (
+	"context"
 	"database/sql"
 	"encoding/json"
 	"fmt"
 	"time"
 
+	"github.com/mimsy-cms/mimsy/internal/config"
 	"github.com/mimsy-cms/mimsy/pkg/mimsy_schema"
 )
 
@@ -23,29 +25,28 @@ type SyncStatus struct {
 }
 
 type SyncStatusRepository interface {
-	GetStatus(repo string) (*SyncStatus, error)
-	GetLastSyncedCommit(repo string) (*SyncStatus, error)
-	GetRecentStatuses(limit int) ([]SyncStatus, error)
-	MarkError(repo string, commitSha string, err error) error
-	CreateIfNotExists(repo string, commitSha string, commitMessage string, commitDate time.Time) error
-	SetManifest(repo string, commitSha string, manifest mimsy_schema.Schema) error
-	SetAppliedMigration(repo string, commitSha string, migration []byte) error
-	GetActiveMigration(repo string) (*SyncStatus, error)
-	MarkAsActive(repo string, commitSha string) error
-	MarkAsSkipped(repo string, commitSha string) error
+	GetStatus(ctx context.Context, repo string) (*SyncStatus, error)
+	GetLastSyncedCommit(ctx context.Context, repo string) (*SyncStatus, error)
+	GetRecentStatuses(ctx context.Context, limit int) ([]SyncStatus, error)
+	MarkError(ctx context.Context, repo string, commitSha string, err error) error
+	CreateIfNotExists(ctx context.Context, repo string, commitSha string, commitMessage string, commitDate time.Time) error
+	SetManifest(ctx context.Context, repo string, commitSha string, manifest mimsy_schema.Schema) error
+	SetAppliedMigration(ctx context.Context, repo string, commitSha string, migration []byte) error
+	GetActiveMigration(ctx context.Context, repo string) (*SyncStatus, error)
+	MarkAsActive(ctx context.Context, repo string, commitSha string) error
+	MarkAsSkipped(ctx context.Context, repo string, commitSha string) error
 }
 
 type syncStatusRepository struct {
-	db *sql.DB
 }
 
-func NewSyncStatusRepository(db *sql.DB) SyncStatusRepository {
-	return &syncStatusRepository{db: db}
+func NewRepository() SyncStatusRepository {
+	return &syncStatusRepository{}
 }
 
 // scanSyncStatus is a helper function to scan database rows into SyncStatus struct
 func scanSyncStatus(scanner interface {
-	Scan(dest ...interface{}) error
+	Scan(dest ...any) error
 }) (*SyncStatus, error) {
 	var status SyncStatus
 	var appliedMigration, manifest, errorMessage sql.NullString
@@ -87,7 +88,7 @@ func scanSyncStatus(scanner interface {
 	return &status, nil
 }
 
-func (r *syncStatusRepository) GetStatus(repo string) (*SyncStatus, error) {
+func (r *syncStatusRepository) GetStatus(ctx context.Context, repo string) (*SyncStatus, error) {
 	query := `
 		SELECT repo, commit, commit_message, commit_date, applied_migration,
 		       applied_at, is_active, is_skipped, error_message, manifest
@@ -95,7 +96,7 @@ func (r *syncStatusRepository) GetStatus(repo string) (*SyncStatus, error) {
 		WHERE repo = $1 AND is_active = true
 		LIMIT 1`
 
-	row := r.db.QueryRow(query, repo)
+	row := config.GetDB(ctx).QueryRow(query, repo)
 	status, err := scanSyncStatus(row)
 	if err != nil {
 		if err == sql.ErrNoRows {
@@ -107,7 +108,7 @@ func (r *syncStatusRepository) GetStatus(repo string) (*SyncStatus, error) {
 	return status, nil
 }
 
-func (r *syncStatusRepository) GetLastSyncedCommit(repo string) (*SyncStatus, error) {
+func (r *syncStatusRepository) GetLastSyncedCommit(ctx context.Context, repo string) (*SyncStatus, error) {
 	query := `
 		SELECT repo, commit, commit_message, commit_date, applied_migration,
 		       applied_at, is_active, is_skipped, error_message, manifest
@@ -116,7 +117,7 @@ func (r *syncStatusRepository) GetLastSyncedCommit(repo string) (*SyncStatus, er
 		ORDER BY applied_at DESC
 		LIMIT 1`
 
-	row := r.db.QueryRow(query, repo)
+	row := config.GetDB(ctx).QueryRow(query, repo)
 	status, err := scanSyncStatus(row)
 	if err != nil {
 		if err == sql.ErrNoRows {
@@ -128,13 +129,13 @@ func (r *syncStatusRepository) GetLastSyncedCommit(repo string) (*SyncStatus, er
 	return status, nil
 }
 
-func (r *syncStatusRepository) MarkError(repo string, commitSha string, err error) error {
+func (r *syncStatusRepository) MarkError(ctx context.Context, repo string, commitSha string, err error) error {
 	query := `
 		UPDATE sync_status
 		SET error_message = $1, is_active = false
 		WHERE repo = $2 AND commit = $3`
 
-	_, execErr := r.db.Exec(query, err.Error(), repo, commitSha)
+	_, execErr := config.GetDB(ctx).Exec(query, err.Error(), repo, commitSha)
 	if execErr != nil {
 		return fmt.Errorf("failed to mark error: %w", execErr)
 	}
@@ -142,39 +143,35 @@ func (r *syncStatusRepository) MarkError(repo string, commitSha string, err erro
 	return nil
 }
 
-func (r *syncStatusRepository) CreateIfNotExists(repo string, commitSha string, commitMessage string, commitDate time.Time) error {
-	tx, err := r.db.Begin()
-	if err != nil {
-		return fmt.Errorf("failed to begin transaction: %w", err)
-	}
-	defer tx.Rollback()
+func (r *syncStatusRepository) CreateIfNotExists(ctx context.Context, repo string, commitSha string, commitMessage string, commitDate time.Time) error {
+	return config.WithinTx(ctx, func(txCtx context.Context) error {
+		// Check if the (repo, commitSha) pair already exists
+		var count int
+		err := config.GetDB(txCtx).QueryRow("SELECT COUNT(*) FROM sync_status WHERE repo = $1 AND commit = $2", repo, commitSha).Scan(&count)
+		if err != nil {
+			return fmt.Errorf("failed to check existing status: %w", err)
+		}
 
-	// Check if the (repo, commitSha) pair already exists
-	var count int
-	err = tx.QueryRow("SELECT COUNT(*) FROM sync_status WHERE repo = $1 AND commit = $2", repo, commitSha).Scan(&count)
-	if err != nil {
-		return fmt.Errorf("failed to check existing status: %w", err)
-	}
+		// If it already exists, do nothing
+		if count > 0 {
+			return nil
+		}
 
-	// If it already exists, do nothing
-	if count > 0 {
-		return tx.Commit()
-	}
+		// Create new status
+		query := `
+			INSERT INTO sync_status (repo, commit, commit_message, commit_date, is_active, is_skipped)
+			VALUES ($1, $2, $3, $4, false, false)`
 
-	// Create new status
-	query := `
-		INSERT INTO sync_status (repo, commit, commit_message, commit_date, is_active, is_skipped)
-		VALUES ($1, $2, $3, $4, false, false)`
+		_, err = config.GetDB(txCtx).Exec(query, repo, commitSha, commitMessage, commitDate)
+		if err != nil {
+			return fmt.Errorf("failed to create sync status: %w", err)
+		}
 
-	_, err = tx.Exec(query, repo, commitSha, commitMessage, commitDate)
-	if err != nil {
-		return fmt.Errorf("failed to create sync status: %w", err)
-	}
-
-	return tx.Commit()
+		return nil
+	})
 }
 
-func (r *syncStatusRepository) SetManifest(repo string, commitSha string, manifest mimsy_schema.Schema) error {
+func (r *syncStatusRepository) SetManifest(ctx context.Context, repo string, commitSha string, manifest mimsy_schema.Schema) error {
 	manifestJSON, err := json.Marshal(manifest)
 	if err != nil {
 		return fmt.Errorf("failed to marshal manifest: %w", err)
@@ -185,7 +182,7 @@ func (r *syncStatusRepository) SetManifest(repo string, commitSha string, manife
 		SET manifest = $1, applied_at = NOW()
 		WHERE repo = $2 AND commit = $3`
 
-	_, err = r.db.Exec(query, manifestJSON, repo, commitSha)
+	_, err = config.GetDB(ctx).Exec(query, manifestJSON, repo, commitSha)
 	if err != nil {
 		return fmt.Errorf("failed to set manifest: %w", err)
 	}
@@ -193,7 +190,7 @@ func (r *syncStatusRepository) SetManifest(repo string, commitSha string, manife
 	return nil
 }
 
-func (r *syncStatusRepository) GetRecentStatuses(limit int) ([]SyncStatus, error) {
+func (r *syncStatusRepository) GetRecentStatuses(ctx context.Context, limit int) ([]SyncStatus, error) {
 	query := `
 		SELECT repo, commit, commit_message, commit_date, applied_migration,
 		       applied_at, is_active, is_skipped, error_message, manifest
@@ -201,7 +198,7 @@ func (r *syncStatusRepository) GetRecentStatuses(limit int) ([]SyncStatus, error
 		ORDER BY commit_date DESC
 		LIMIT $1`
 
-	rows, err := r.db.Query(query, limit)
+	rows, err := config.GetDB(ctx).Query(query, limit)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get recent statuses: %w", err)
 	}
@@ -224,13 +221,13 @@ func (r *syncStatusRepository) GetRecentStatuses(limit int) ([]SyncStatus, error
 	return statuses, nil
 }
 
-func (r *syncStatusRepository) SetAppliedMigration(repo string, commitSha string, migration []byte) error {
+func (r *syncStatusRepository) SetAppliedMigration(ctx context.Context, repo string, commitSha string, migration []byte) error {
 	query := `
 		UPDATE sync_status
 		SET applied_migration = $1
 		WHERE repo = $2 AND commit = $3`
 
-	_, err := r.db.Exec(query, migration, repo, commitSha)
+	_, err := config.GetDB(ctx).Exec(query, migration, repo, commitSha)
 	if err != nil {
 		return fmt.Errorf("failed to set applied migration: %w", err)
 	}
@@ -238,7 +235,7 @@ func (r *syncStatusRepository) SetAppliedMigration(repo string, commitSha string
 	return nil
 }
 
-func (r *syncStatusRepository) GetActiveMigration(repo string) (*SyncStatus, error) {
+func (r *syncStatusRepository) GetActiveMigration(ctx context.Context, repo string) (*SyncStatus, error) {
 	query := `
 		SELECT repo, commit, commit_message, commit_date, applied_migration,
 									applied_at, is_active, is_skipped, error_message, manifest
@@ -246,7 +243,7 @@ func (r *syncStatusRepository) GetActiveMigration(repo string) (*SyncStatus, err
 		WHERE repo = $1 AND is_active = true
 		LIMIT 1`
 
-	row := r.db.QueryRow(query, repo)
+	row := config.GetDB(ctx).QueryRow(query, repo)
 	status, err := scanSyncStatus(row)
 	if err != nil {
 		if err == sql.ErrNoRows {
@@ -258,7 +255,7 @@ func (r *syncStatusRepository) GetActiveMigration(repo string) (*SyncStatus, err
 	return status, nil
 }
 
-func (s *syncStatusRepository) MarkAsActive(repo string, commitSha string) error {
+func (r *syncStatusRepository) MarkAsActive(ctx context.Context, repo string, commitSha string) error {
 	query := `
 		UPDATE sync_status
 		SET is_active = CASE
@@ -267,7 +264,7 @@ func (s *syncStatusRepository) MarkAsActive(repo string, commitSha string) error
 		END
 		WHERE repo = $1`
 
-	_, err := s.db.Exec(query, repo, commitSha)
+	_, err := config.GetDB(ctx).Exec(query, repo, commitSha)
 	if err != nil {
 		return fmt.Errorf("failed to mark as active: %w", err)
 	}
@@ -275,13 +272,13 @@ func (s *syncStatusRepository) MarkAsActive(repo string, commitSha string) error
 	return nil
 }
 
-func (s *syncStatusRepository) MarkAsSkipped(repo string, commitSha string) error {
+func (r *syncStatusRepository) MarkAsSkipped(ctx context.Context, repo string, commitSha string) error {
 	query := `
 		UPDATE sync_status
 		SET is_skipped = true, applied_at = NOW()
 		WHERE repo = $1 AND commit = $2`
 
-	_, err := s.db.Exec(query, repo, commitSha)
+	_, err := config.GetDB(ctx).Exec(query, repo, commitSha)
 	if err != nil {
 		return fmt.Errorf("failed to mark as skipped: %w", err)
 	}
