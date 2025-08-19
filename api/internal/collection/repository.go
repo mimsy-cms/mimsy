@@ -14,6 +14,7 @@ import (
 
 	sq "github.com/Masterminds/squirrel"
 	"github.com/mimsy-cms/mimsy/internal/config"
+	"github.com/mimsy-cms/mimsy/pkg/mimsy_schema"
 )
 
 type Repository interface {
@@ -100,35 +101,6 @@ func (r Resource) MarshalJSON() ([]byte, error) {
 	return json.Marshal(transformed)
 }
 
-type Field struct {
-	Type       string         `json:"type"`
-	Label      string         `json:"label"`
-	Required   bool           `json:"required,omitempty"`
-	Default    any            `json:"default,omitempty"`
-	Options    []string       `json:"options,omitempty"`
-	Relation   *FieldRelation `json:"relation,omitempty"`
-	Validation *Validation    `json:"validation,omitempty"`
-}
-
-type Validation struct {
-	MinLength int    `json:"min_length,omitempty"`
-	MaxLength int    `json:"max_length,omitempty"`
-	Pattern   string `json:"pattern,omitempty"`
-	Min       *int   `json:"min,omitempty"`
-	Max       *int   `json:"max,omitempty"`
-}
-
-type FieldRelationType string
-
-const (
-	FieldRelationTypeManyToOne  FieldRelationType = "many-to-one"
-	FieldRelationTypeManyToMany FieldRelationType = "many-to-many"
-)
-
-type FieldRelation struct {
-	To   string
-	Type FieldRelationType
-}
 
 var ErrNotFound = errors.New("not found")
 
@@ -166,7 +138,7 @@ func (r *repository) CollectionExists(ctx context.Context, slug string) (bool, e
 }
 
 func (r *repository) FindResource(ctx context.Context, collection *Collection, slug string) (*Resource, error) {
-	fields := map[string]Field{}
+	fields := mimsy_schema.CollectionFields{}
 	if err := json.Unmarshal(collection.Fields, &fields); err != nil {
 		return nil, fmt.Errorf("failed to unmarshal fields: %w", err)
 	}
@@ -185,7 +157,7 @@ func (r *repository) FindResource(ctx context.Context, collection *Collection, s
 }
 
 func (r *repository) FindResources(ctx context.Context, collection *Collection) ([]Resource, error) {
-	fields := map[string]Field{}
+	fields := mimsy_schema.CollectionFields{}
 	if err := json.Unmarshal(collection.Fields, &fields); err != nil {
 		return nil, fmt.Errorf("failed to unmarshal fields: %w", err)
 	}

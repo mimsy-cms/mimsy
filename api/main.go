@@ -73,8 +73,9 @@ func main() {
 	cronService := initCron(db)
 
 	syncRepository := sync.NewSyncStatusRepository(db)
+	collectionRepository := collection.NewRepository()
 
-	initSync(syncRepository, cronService)
+	initSync(syncRepository, collectionRepository, cronService)
 	syncHandler := sync.NewHandler(syncRepository, cronService)
 
 	// Start the cron scheduler
@@ -87,8 +88,6 @@ func main() {
 		fmt.Println("Failed to create admin user:", err)
 		return
 	}
-
-	collectionRepository := collection.NewRepository()
 	collectionService := collection.NewService(collectionRepository)
 	collectionHandler := collection.NewHandler(collectionService)
 
@@ -199,7 +198,7 @@ func initCron(db *sql.DB) cron.CronService {
 	return cronService
 }
 
-func initSync(syncStatusRepository sync.SyncStatusRepository, cronService cron.CronService) sync.SyncProvider {
+func initSync(syncStatusRepository sync.SyncStatusRepository, collectionRepository collection.Repository, cronService cron.CronService) sync.SyncProvider {
 	slog.Info("Initializing sync service")
 
 	var pemKey string
@@ -228,6 +227,7 @@ func initSync(syncStatusRepository sync.SyncStatusRepository, cronService cron.C
 
 	syncService, err := sync.New(
 		syncStatusRepository,
+		collectionRepository,
 		string(pemKey),
 		appId,
 		os.Getenv("GH_REPO"),

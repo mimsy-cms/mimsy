@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"log/slog"
 
+	"github.com/mimsy-cms/mimsy/internal/collection"
 	"github.com/mimsy-cms/mimsy/internal/cron"
 	"github.com/mimsy-cms/mimsy/pkg/github_fetcher"
 	"github.com/mimsy-cms/mimsy/pkg/mimsy_schema"
@@ -35,7 +36,7 @@ type syncProvider struct {
 	migrator             Migrator
 }
 
-func New(syncStatusRepository SyncStatusRepository, pemKey string, appId int64, repositoryName string) (SyncProvider, error) {
+func New(syncStatusRepository SyncStatusRepository, collectionRepository collection.Repository, pemKey string, appId int64, repositoryName string) (SyncProvider, error) {
 	githubClient, err := github_fetcher.New(appId, []byte(pemKey))
 	if err != nil {
 		return nil, err
@@ -46,7 +47,7 @@ func New(syncStatusRepository SyncStatusRepository, pemKey string, appId int64, 
 		repositoryName:       repositoryName,
 		pathToProject:        "",
 		syncStatusRepository: syncStatusRepository,
-		migrator:             *NewMigrator(),
+		migrator:             *NewMigrator(collectionRepository),
 	}, nil
 }
 
@@ -141,15 +142,42 @@ func (s *syncProvider) SyncRepository(ctx context.Context) error {
 		return fmt.Errorf("failed to unmarshal schema file for repository %s: %w", s.repositoryName, err)
 	}
 
-	// once unmarshalled, set the manifest to the sync status repository
-	if err := s.syncStatusRepository.SetManifest(s.repositoryName, contents.Sha, schemaStruct); err != nil {
-		return fmt.Errorf("failed to set manifest for repository %s: %w", s.repositoryName, err)
-	}
-
-	// Get the last active migration
+	// Get the last active migration to compare schemas
 	activeMigration, err := s.syncStatusRepository.GetActiveMigration(s.repositoryName)
 	if err != nil {
 		return fmt.Errorf("failed to get last active migration for repository %s: %w", s.repositoryName, err)
+	}
+
+	// Check if the schemas are exactly the same
+	if activeMigration != nil && activeMigration.Manifest != "" {
+		var activeSchema mimsy_schema.Schema
+		if err := json.Unmarshal([]byte(activeMigration.Manifest), &activeSchema); err == nil {
+			// Compare schemas - if they're identical, mark as skipped
+			currentSchemaBytes, _ := json.Marshal(schemaStruct)
+			activeSchemaBytes, _ := json.Marshal(activeSchema)
+			
+			if string(currentSchemaBytes) == string(activeSchemaBytes) {
+				slog.Info("Schema is identical to active migration, marking as skipped", "repository", s.repositoryName, "commit", contents.Sha)
+				
+				// Set the manifest and mark as skipped
+				if err := s.syncStatusRepository.SetManifest(s.repositoryName, contents.Sha, schemaStruct); err != nil {
+					return fmt.Errorf("failed to set manifest for repository %s: %w", s.repositoryName, err)
+				}
+				
+				if err := s.syncStatusRepository.MarkAsSkipped(s.repositoryName, contents.Sha); err != nil {
+					return fmt.Errorf("failed to mark as skipped for repository %s: %w", s.repositoryName, err)
+				}
+				
+				slog.Info("Completed sync (skipped) for repository", "repository", s.repositoryName)
+				return nil
+			}
+		}
+	}
+
+	// Schemas are different, proceed with normal migration
+	// Set the manifest to the sync status repository
+	if err := s.syncStatusRepository.SetManifest(s.repositoryName, contents.Sha, schemaStruct); err != nil {
+		return fmt.Errorf("failed to set manifest for repository %s: %w", s.repositoryName, err)
 	}
 
 	// Generate the sql migration, and store it

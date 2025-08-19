@@ -4,6 +4,8 @@ import (
 	"time"
 )
 
+type CollectionFields map[string]SchemaElement
+
 type MimsyConfig struct {
 	SchemaPath string `json:"manifestPath"`
 	BasePath   string `json:"basePath"`
@@ -15,8 +17,8 @@ type Schema struct {
 }
 
 type Collection struct {
-	Name   string                   `json:"name"`
-	Schema map[string]SchemaElement `json:"schema"`
+	Name   string           `json:"name"`
+	Schema CollectionFields `json:"schema"`
 }
 
 type SchemaElement struct {
