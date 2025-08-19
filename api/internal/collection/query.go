@@ -95,9 +95,9 @@ func (q *selectQuery) scan(row rowScanner) (*Resource, error) {
 	resource.Id = values[0].(int64)
 	resource.Slug = values[1].(string)
 	resource.CreatedAt = values[2].(time.Time)
-	resource.CreatedBy = values[3].(string)
+	resource.CreatedBy = values[3].(int64)
 	resource.UpdatedAt = values[4].(time.Time)
-	resource.UpdatedBy = values[5].(string)
+	resource.UpdatedBy = values[5].(int64)
 
 	return &resource, nil
 }

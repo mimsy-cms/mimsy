@@ -77,7 +77,7 @@
 			isSaving = true;
 			error = '';
 
-			const { id, created_at, updated_at, slug, ...schemaContent } = resourceContent;
+			const { id, created_at, updated_at, updated_by_email, slug, ...schemaContent } = resourceContent;
 
 			const response = await fetch(`/api/v1/collections/${data.definition.slug}/${resourceContent.slug}`, {
 				method: 'PUT',
@@ -253,7 +253,7 @@
 				</div>
 				<div>
 					<p class="font-semibold">Created by</p>
-					<p class="text-gray-600">{data.resource.created_by}</p>
+					<p class="text-gray-600">{data.resource.created_by_email}</p>
 				</div>
 				<div>
 					<p class="font-semibold">Last modified</p>
@@ -261,7 +261,7 @@
 				</div>
 				<div>
 					<p class="font-semibold">Last modified by</p>
-					<p class="text-gray-600">{data.resource.updated_by}</p>
+					<p class="text-gray-600">{data.resource.updated_by_email}</p>
 				</div>
 			</div>
 		</div>

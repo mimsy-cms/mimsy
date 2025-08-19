@@ -25,6 +25,7 @@ type Repository interface {
 	FindAllGlobals(ctx context.Context, params *FindAllParams) ([]Collection, error)
 	UpdateResourceContent(ctx context.Context, collection *Collection, resourceSlug string, content map[string]any) (*Resource, error)
 	DeleteResource(ctx context.Context, resource *Resource) error
+	FindUserEmail(ctx context.Context, id int64) (string, error)
 }
 
 type repository struct{}
@@ -52,11 +53,15 @@ type Resource struct {
 	// CreatedAt is the timestamp when the resource was created.
 	CreatedAt time.Time
 	// CreatedBy is the identifier of the user who created the resource.
-	CreatedBy string
+	CreatedBy int64
+	// CreatedByEmail is the email address of the user who created the resource.
+	CreatedByEmail string
 	// UpdatedAt is the timestamp when the resource was last updated.
 	UpdatedAt time.Time
 	// UpdatedBy is the identifier of the user who last updated the resource.
-	UpdatedBy string
+	UpdatedBy int64
+	// UpdatedByEmail is the email address of the user who last updated the resource.
+	UpdatedByEmail string
 	// Fields is a map of field names to their values.
 	Fields map[string]any
 	// Collection is the slug of the collection this resource belongs to.
@@ -71,9 +76,9 @@ func (r Resource) MarshalJSON() ([]byte, error) {
 	transformed["id"] = r.Id
 	transformed["slug"] = r.Slug
 	transformed["created_at"] = r.CreatedAt
-	transformed["created_by"] = r.CreatedBy
+	transformed["created_by_email"] = r.CreatedByEmail
 	transformed["updated_at"] = r.UpdatedAt
-	transformed["updated_by"] = r.UpdatedBy
+	transformed["updated_by_email"] = r.UpdatedByEmail
 
 	for key, value := range r.Fields {
 		switch v := value.(type) {
@@ -300,4 +305,20 @@ func (r *repository) UpdateResourceContent(ctx context.Context, collection *Coll
 	}
 
 	return r.FindResource(ctx, collection, resourceSlug)
+}
+
+func (r *repository) FindUserEmail(ctx context.Context, id int64) (string, error) {
+	var email string
+	err := config.GetDB(ctx).QueryRowContext(ctx,
+		`SELECT email FROM "user" WHERE id = $1`,
+		id,
+	).Scan(&email)
+
+	if err == sql.ErrNoRows {
+		return "", ErrNotFound
+	} else if err != nil {
+		return "", fmt.Errorf("failed to find user email: %w", err)
+	}
+
+	return email, nil
 }
