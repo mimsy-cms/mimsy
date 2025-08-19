@@ -18,6 +18,8 @@ jobs:
       landing: ${{ steps.changes.outputs.landing }}
       api: ${{ steps.changes.outputs.api }}
       web: ${{ steps.changes.outputs.web }}
+      cli: ${{ steps.changes.outputs.cli }}
+      sdk: ${{ steps.changes.outputs.sdk }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -33,6 +35,10 @@ jobs:
               - 'api/**'
             web:
               - 'web/**'
+            cli:
+              - 'cli/**'
+            sdk:
+              - 'sdk/**'
 
   test-landing:
     runs-on: ubuntu-latest
@@ -63,6 +69,66 @@ jobs:
 
       - name: Setup playwright
         run: pnpm exec playwright install
+
+      - name: Run unit tests
+        run: pnpm test:unit
+
+  test-sdk:
+    runs-on: ubuntu-latest
+    needs: [changes]
+    if: needs.changes.outputs.sdk == 'true'
+    defaults:
+      run:
+        working-directory: sdk
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10
+          run_install: false
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: "pnpm"
+          cache-dependency-path: sdk/pnpm-lock.yaml
+
+      - name: Install dependencies
+        run: pnpm install
+
+      - name: Run unit tests
+        run: pnpm test:unit
+
+  test-cli:
+    runs-on: ubuntu-latest
+    needs: [changes]
+    if: needs.changes.outputs.cli == 'true'
+    defaults:
+      run:
+        working-directory: cli
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10
+          run_install: false
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: "pnpm"
+          cache-dependency-path: cli/pnpm-lock.yaml
+
+      - name: Install dependencies
+        run: pnpm install
 
       - name: Run unit tests
         run: pnpm test:unit
@@ -240,6 +306,8 @@ jobs:
       [
         changes,
         test-landing,
+        test-sdk,
+        test-cli,
         test-api,
         test-web,
         build-landing,
@@ -251,6 +319,14 @@ jobs:
       - name: Report status
         run: |
           if [ "${{ needs.changes.outputs.landing }}" == 'true' ] && [ "${{ needs.test-landing.result }}" != 'success' ] && [ "${{ needs.build-landing.result }}" != 'success' ]; then
+            exit 1;
+          fi
+
+          if [ "${{ needs.changes.outputs.sdk }}" == 'true' ] && [ "${{ needs.test-sdk.result }}" != 'success' ]; then
+            exit 1;
+          fi
+
+          if [ "${{ needs.changes.outputs.cli }}" == 'true' ] && [ "${{ needs.test-cli.result }}" != 'success' ]; then
             exit 1;
           fi
 
