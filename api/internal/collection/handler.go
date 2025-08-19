@@ -124,9 +124,6 @@ func (h *Handler) GetResource(w http.ResponseWriter, r *http.Request) {
 	resource.CreatedByEmail, _ = h.Service.FindUserEmail(r.Context(), resource.CreatedBy)
 	resource.UpdatedByEmail, _ = h.Service.FindUserEmail(r.Context(), resource.UpdatedBy)
 
-	// Log the email addresses for debugging
-	slog.Info("Resource email addresses", "createdBy", resource.CreatedByEmail, "updatedBy", resource.UpdatedByEmail)
-
 	util.JSON(w, http.StatusOK, resource)
 }
 

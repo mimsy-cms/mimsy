@@ -78,6 +78,7 @@ func (r Resource) MarshalJSON() ([]byte, error) {
 	transformed["created_at"] = r.CreatedAt
 	transformed["created_by_email"] = r.CreatedByEmail
 	transformed["updated_at"] = r.UpdatedAt
+	transformed["updated_by"] = r.UpdatedBy
 	transformed["updated_by_email"] = r.UpdatedByEmail
 
 	for key, value := range r.Fields {
@@ -280,8 +281,11 @@ func (r *repository) UpdateResourceContent(ctx context.Context, collection *Coll
 	b := psql.
 		Update(pq.QuoteIdentifier(collection.Slug)).
 		Where(sq.Eq{"slug": resourceSlug}).
-		Set("updated_at", sq.Expr("NOW()")).
-		Set("updated_by", ctx.Value("updated_by"))
+		Set("updated_at", sq.Expr("NOW()"))
+
+	if updatedBy, exists := content["updated_by"]; exists {
+		b = b.Set("updated_by", updatedBy)
+	}
 
 	for field, value := range content {
 		// Skip read only columns that should not be updated

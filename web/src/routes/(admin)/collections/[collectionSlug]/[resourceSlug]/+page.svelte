@@ -9,6 +9,7 @@
 	import Input from '$lib/components/Input.svelte';
 	import { env } from '$env/dynamic/public';
 	import { fi } from 'zod/v4/locales';
+	import { onMount } from 'svelte';
 
 	let { data } = $props();
 
@@ -77,7 +78,11 @@
 			isSaving = true;
 			error = '';
 
-			const { id, created_at, updated_at, updated_by_email, slug, ...schemaContent } = resourceContent;
+			const { id, created_at, updated_at, updated_by, slug, ...schemaContent } = resourceContent;
+
+			if (currentUser) {
+				schemaContent.updated_by = currentUser.id;
+			}
 
 			const response = await fetch(`/api/v1/collections/${data.definition.slug}/${resourceContent.slug}`, {
 				method: 'PUT',
@@ -112,6 +117,26 @@
 			success = '';
 		}, 5000);
 	}
+
+	let currentUser: { id: string; email: string } | null = null;
+
+	onMount(async () => {
+		try {
+			const res = await fetch('/api/v1/auth/me');
+			if (!res.ok) {
+				throw new Error('Not logged in');
+			}
+
+			currentUser = await res.json();
+		} catch (error) {
+			console.error('Error fetching current user:', error);
+		}
+
+		const response = await fetch('/api/v1/auth/me');
+		if (response.ok) {
+			currentUser = await response.json();
+		}
+	});
 </script>
 
 <div class="flex flex-col gap-6">
