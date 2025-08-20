@@ -27,6 +27,7 @@ type Repository interface {
 	FindResources(ctx context.Context, collection *Collection) ([]Resource, error)
 	FindAll(ctx context.Context, params *FindAllParams) ([]Collection, error)
 	FindAllGlobals(ctx context.Context, params *FindAllParams) ([]Collection, error)
+	CreateResource(ctx context.Context, collection *Collection, resourceSlug string, createdBy int64) (*Resource, error)
 	UpdateResourceContent(ctx context.Context, collection *Collection, resourceSlug string, content map[string]any) (*Resource, error)
 	DeleteResource(ctx context.Context, resource *Resource) error
 	FindUserEmail(ctx context.Context, id int64) (string, error)
@@ -111,7 +112,10 @@ func (r Resource) MarshalJSON() ([]byte, error) {
 	return json.Marshal(transformed)
 }
 
-var ErrNotFound = errors.New("not found")
+var (
+	ErrNotFound      = errors.New("not found")
+	ErrAlreadyExists = errors.New("already exists")
+)
 
 func (r *repository) FindBySlug(ctx context.Context, slug string) (*Collection, error) {
 	var collection Collection
@@ -211,6 +215,69 @@ func (r *repository) FindAll(ctx context.Context, params *FindAllParams) ([]Coll
 		collections = append(collections, coll)
 	}
 	return collections, nil
+}
+
+func (r *repository) CreateResource(ctx context.Context, collection *Collection, resourceSlug string, createdBy int64) (*Resource, error) {
+	fields := mimsy_schema.CollectionFields{}
+	if err := json.Unmarshal(collection.Fields, &fields); err != nil {
+		return nil, fmt.Errorf("failed to unmarshal collection fields: %w", err)
+	}
+
+	existsQuery := fmt.Sprintf(`SELECT EXISTS(SELECT 1 FROM "%s" WHERE slug = $1)`, collection.Slug)
+	var exists bool
+	if err := config.GetDB(ctx).QueryRowContext(ctx, existsQuery, resourceSlug).Scan(&exists); err != nil {
+		return nil, fmt.Errorf("failed to check if resource exists: %w", err)
+	}
+	if exists {
+		return nil, ErrAlreadyExists
+	}
+
+	psql := sq.StatementBuilder.PlaceholderFormat(sq.Dollar)
+
+	columns := []string{"slug", "created_at", "updated_at", "created_by", "updated_by"}
+	values := []any{resourceSlug, sq.Expr("NOW()"), sq.Expr("NOW()"), createdBy, createdBy}
+
+	for fieldName, fieldDef := range fields {
+		colName := pq.QuoteIdentifier(fieldName)
+
+		switch fieldDef.Type {
+		case "relation":
+			colName = pq.QuoteIdentifier(fmt.Sprintf("%s_id", fieldName))
+		}
+
+		columns = append(columns, colName)
+
+		switch fieldDef.Type {
+		case "text", "textarea", "slug":
+			values = append(values, "")
+		case "number":
+			values = append(values, 0)
+		case "boolean":
+			values = append(values, false)
+		case "richtext":
+			values = append(values, "{}")
+		case "relation", "date", "datetime":
+			values = append(values, nil)
+		default:
+			values = append(values, nil)
+		}
+	}
+
+	insertBuilder := psql.
+		Insert(pq.QuoteIdentifier(collection.Slug)).
+		Columns(columns...).
+		Values(values...)
+
+	query, args, err := insertBuilder.ToSql()
+	if err != nil {
+		return nil, fmt.Errorf("failed to build insert SQL query: %w", err)
+	}
+
+	if _, err := config.GetDB(ctx).ExecContext(ctx, query, args...); err != nil {
+		return nil, fmt.Errorf("failed to insert resource: %w", err)
+	}
+
+	return r.FindResource(ctx, collection, resourceSlug)
 }
 
 func (r *repository) FindAllGlobals(ctx context.Context, params *FindAllParams) ([]Collection, error) {

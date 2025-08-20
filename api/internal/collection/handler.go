@@ -107,6 +107,58 @@ func (h *Handler) UpdateResource(w http.ResponseWriter, r *http.Request) {
 	util.JSON(w, http.StatusOK, updatedResource)
 }
 
+type CreateResourceRequest struct {
+	Slug string `json:"slug"`
+}
+
+func (h *Handler) CreateResource(w http.ResponseWriter, r *http.Request) {
+	user := auth.RequestUser(r.Context())
+	if user == nil {
+		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		return
+	}
+
+	collectionSlug := r.PathValue("slug")
+
+	var req CreateResourceRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, "Invalid JSON", http.StatusBadRequest)
+		return
+	}
+
+	if req.Slug == "" {
+		http.Error(w, "Resource slug is required", http.StatusBadRequest)
+		return
+	}
+
+	collection, err := h.Service.FindBySlug(r.Context(), collectionSlug)
+	if err != nil {
+		slog.Error("Failed to get collection", "slug", collectionSlug, "error", err)
+		if err == ErrNotFound {
+			http.Error(w, "Collection not found", http.StatusNotFound)
+		} else {
+			http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		}
+		return
+	}
+
+	createdResource, err := h.Service.CreateResource(r.Context(), collection, req.Slug, user.ID)
+	if err != nil {
+		slog.Error("Failed to create resource", "collectionSlug", collectionSlug, "resourceSlug", req.Slug, "error", err)
+		if err == ErrAlreadyExists {
+			http.Error(w, "Resource with this slug already exists", http.StatusConflict)
+		} else {
+			http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		}
+		return
+	}
+
+	createdResource.CreatedByEmail, _ = h.Service.FindUserEmail(r.Context(), createdResource.CreatedBy)
+	createdResource.UpdatedByEmail, _ = h.Service.FindUserEmail(r.Context(), createdResource.UpdatedBy)
+
+	util.JSON(w, http.StatusCreated, createdResource)
+}
+
 func (h *Handler) GetResource(w http.ResponseWriter, r *http.Request) {
 	slug := r.PathValue("slug")
 	resourceSlug := r.PathValue("resourceSlug")

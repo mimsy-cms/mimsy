@@ -108,6 +108,7 @@ func main() {
 	v1.HandleFunc("GET /collections/{slug}", collectionHandler.GetResources)
 	v1.HandleFunc("GET /collections/{slug}/{resourceSlug}", collectionHandler.GetResource)
 	v1.HandleFunc("PUT /collections/{slug}/{resourceSlug}", collectionHandler.UpdateResource)
+	v1.HandleFunc("POST /collections/{slug}", collectionHandler.CreateResource)
 	v1.HandleFunc("GET /collections/{slug}/definition", collectionHandler.Definition)
 	v1.HandleFunc("DELETE /collections/{slug}/{resourceSlug}", collectionHandler.DeleteResource)
 	v1.HandleFunc("GET /collections/globals", collectionHandler.FindAllGlobals)
