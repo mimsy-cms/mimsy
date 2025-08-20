@@ -160,6 +160,8 @@ func (s *schemaGenerator) HandleCollection(collection mimsy_schema.Collection) (
 		s.GenerateSlugColumn(),
 		s.GenerateCreatedAtColumn(),
 		s.GenerateUpdatedAtColumn(),
+		s.GenerateCreatedByColumn(),
+		s.GenerateUpdatedByColumn(),
 	)
 
 	baseTable.Constraints = append(baseTable.Constraints,
