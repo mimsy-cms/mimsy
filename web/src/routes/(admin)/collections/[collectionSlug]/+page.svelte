@@ -1,9 +1,8 @@
 <script lang="ts">
 	import Searchbar from '$lib/components/admin/Searchbar.svelte';
 	import Plus from '@lucide/svelte/icons/plus';
-	import { enhance } from '$app/forms';
 
-	let { data, form } = $props();
+	let { data } = $props();
 
 	function formatDate(dateStr: string) {
 		const date = new Date(dateStr);
@@ -27,10 +26,10 @@
 
 	<div class="flex items-center justify-between">
 		<Searchbar id="search" name="search" class="max-w-md" />
-		
+
 		<a
 			href={`/collections/${data.collectionSlug}/create`}
-			class="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-colors"
+			class="inline-flex items-center gap-2 rounded-md bg-blue-600 px-4 py-2 text-white transition-colors hover:bg-blue-700 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 focus:outline-none"
 		>
 			<Plus size={16} />
 			Create
@@ -41,16 +40,24 @@
 		<table class="w-full table-fixed divide-y divide-gray-200">
 			<thead class="bg-gray-50">
 				<tr>
-					<th class="w-1/4 px-6 py-3 text-left text-xs font-medium tracking-wider text-gray-500 uppercase">
+					<th
+						class="w-1/4 px-6 py-3 text-left text-xs font-medium tracking-wider text-gray-500 uppercase"
+					>
 						ID
 					</th>
-					<th class="w-1/4 px-6 py-3 text-left text-xs font-medium tracking-wider text-gray-500 uppercase">
+					<th
+						class="w-1/4 px-6 py-3 text-left text-xs font-medium tracking-wider text-gray-500 uppercase"
+					>
 						Slug
 					</th>
-					<th class="w-1/4 px-6 py-3 text-left text-xs font-medium tracking-wider text-gray-500 uppercase">
+					<th
+						class="w-1/4 px-6 py-3 text-left text-xs font-medium tracking-wider text-gray-500 uppercase"
+					>
 						Created By
 					</th>
-					<th class="w-1/4 px-6 py-3 text-left text-xs font-medium tracking-wider text-gray-500 uppercase">
+					<th
+						class="w-1/4 px-6 py-3 text-left text-xs font-medium tracking-wider text-gray-500 uppercase"
+					>
 						Last updated
 					</th>
 				</tr>
@@ -71,12 +78,12 @@
 								{resource.slug}
 							</a>
 						</td>
-						<td class="whitespace-nowrap px-6 py-3">
+						<td class="px-6 py-3 whitespace-nowrap">
 							<div class="flex items-center text-sm text-gray-500">
 								{resource.created_by_email}
 							</div>
 						</td>
-						<td class="whitespace-nowrap px-6 py-3">
+						<td class="px-6 py-3 whitespace-nowrap">
 							<div class="flex items-center text-sm text-gray-500">
 								{formatDate(resource.updated_at)}
 							</div>

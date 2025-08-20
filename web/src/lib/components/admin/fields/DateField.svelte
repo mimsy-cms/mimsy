@@ -4,7 +4,6 @@
 	import CalendarIcon from '@lucide/svelte/icons/calendar';
 	import ChevronLeft from '@lucide/svelte/icons/chevron-left';
 	import ChevronRight from '@lucide/svelte/icons/chevron-right';
-	import type { Snippet } from 'svelte';
 
 	type Props = {
 		id: string;

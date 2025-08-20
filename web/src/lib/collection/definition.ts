@@ -44,7 +44,12 @@ type FieldEmail = {
 	type: 'email';
 };
 
-type Field = BaseField &
+export type Collection = {
+	name: string;
+	slug: string;
+};
+
+export type Field = BaseField &
 	(
 		| FieldSelect
 		| FieldRichText
@@ -61,5 +66,18 @@ export type CollectionDefinition = {
 	slug: string;
 	name: string;
 	created_at: string;
-	fields: Field[];
+	updated_at: string;
+	fields: {
+		[key: string]: Field;
+	};
+};
+
+export type CollectionResource = {
+	id: string;
+	slug: string;
+	created_at: string;
+	created_by: string;
+	updated_at: string;
+	updated_by: string;
+	[key: string]: string | number | boolean | Date | undefined | null;
 };

@@ -1,13 +1,9 @@
 import { redirect } from '@sveltejs/kit';
 import { env } from '$env/dynamic/public';
 import type { LayoutServerLoad } from './$types';
+import type { Collection } from '$lib/collection/definition';
 
-type Collection = {
-	name: string;
-	slug: string;
-};
-
-export const load: LayoutServerLoad = async ({ cookies, fetch, locals }) => {
+export const load: LayoutServerLoad = async ({ fetch, locals }) => {
 	if (!locals.user) {
 		throw redirect(303, '/login');
 	}

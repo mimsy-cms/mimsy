@@ -1,7 +1,7 @@
 import type { PageServerLoad, Actions } from './$types';
 import { env } from '$env/dynamic/public';
 import type { CollectionDefinition } from '$lib/collection/definition';
-import { fail, redirect, type Redirect } from '@sveltejs/kit';
+import { fail, redirect } from '@sveltejs/kit';
 
 async function fetchCollectionDefinition(
 	collectionSlug: string,
@@ -12,9 +12,7 @@ async function fetchCollectionDefinition(
 }
 
 export const load: PageServerLoad = async ({ params, fetch }) => {
-	const [definition] = await Promise.all([
-		fetchCollectionDefinition(params.collectionSlug, fetch)
-	]);
+	const [definition] = await Promise.all([fetchCollectionDefinition(params.collectionSlug, fetch)]);
 
 	return {
 		slug: params.collectionSlug,
@@ -34,18 +32,21 @@ export const actions: Actions = {
 
 		const slugPattern = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
 		if (!slugPattern.test(slug.trim())) {
-			return fail(400, { error: 'Invalid slug format. Use lowercase letters, numbers, and hyphens only.' });
+			return fail(400, {
+				error: 'Invalid slug format. Use lowercase letters, numbers, and hyphens only.'
+			});
 		}
 
-		const cookieHeader = cookies.getAll()
-			.map(cookie => `${cookie.name}=${cookie.value}`)
+		const cookieHeader = cookies
+			.getAll()
+			.map((cookie) => `${cookie.name}=${cookie.value}`)
 			.join('; ');
 
 		const response = await fetch(`${env.PUBLIC_API_URL}/v1/collections/${collectionSlug}`, {
 			method: 'POST',
 			headers: {
 				'Content-Type': 'application/json',
-				'Cookie': cookieHeader
+				Cookie: cookieHeader
 			},
 			body: JSON.stringify({ slug: slug.trim() })
 		});
