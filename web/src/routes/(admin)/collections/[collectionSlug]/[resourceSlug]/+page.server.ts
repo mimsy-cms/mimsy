@@ -1,5 +1,6 @@
 import type { PageServerLoad } from './$types';
 import { env } from '$env/dynamic/public';
+import { redirect } from '@sveltejs/kit';
 import type { CollectionDefinition } from '$lib/collection/definition';
 
 async function fetchCollectionDefinition(
@@ -22,6 +23,10 @@ async function fetchResource(
 }
 
 export const load: PageServerLoad = async ({ params, fetch }) => {
+	if (params.resourceSlug === 'create') {
+		throw redirect(307, `/collections/${params.collectionSlug}/create`);
+	}
+
 	const [definition, resource] = await Promise.all([
 		fetchCollectionDefinition(params.collectionSlug, fetch),
 		fetchResource(params.collectionSlug, params.resourceSlug, fetch)
