@@ -9,6 +9,7 @@ type Service interface {
 	FindResource(ctx context.Context, collection *Collection, slug string) (*Resource, error)
 	FindResources(ctx context.Context, collection *Collection) ([]Resource, error)
 	FindAll(ctx context.Context, params *FindAllParams) ([]Collection, error)
+	CreateResource(ctx context.Context, collection *Collection, resourceSlug string, createdBy int64) (*Resource, error)
 	FindAllGlobals(ctx context.Context, params *FindAllParams) ([]Collection, error)
 	UpdateResourceContent(ctx context.Context, collection *Collection, resourceSlug string, content map[string]any) (*Resource, error)
 	DeleteResource(ctx context.Context, resource *Resource) error
@@ -39,6 +40,10 @@ func (s *service) FindResources(ctx context.Context, collection *Collection) ([]
 
 func (s *service) FindAll(ctx context.Context, params *FindAllParams) ([]Collection, error) {
 	return s.collectionRepository.FindAll(ctx, params)
+}
+
+func (s *service) CreateResource(ctx context.Context, collection *Collection, resourceSlug string, createdBy int64) (*Resource, error) {
+	return s.collectionRepository.CreateResource(ctx, collection, resourceSlug, createdBy)
 }
 
 func (s *service) FindAllGlobals(ctx context.Context, params *FindAllParams) ([]Collection, error) {
