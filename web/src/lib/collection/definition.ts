@@ -1,6 +1,10 @@
 type BaseField = {
 	name: string;
-	label: string;
+	label?: string;
+	description?: string;
+	// We don't have a choice yet for now.
+	// eslint-disable-next-line @typescript-eslint/no-explicit-any
+	constraints?: any;
 };
 
 type FieldSelect = {
@@ -9,9 +13,7 @@ type FieldSelect = {
 
 type FieldRelation = {
 	type: 'relation';
-	relation: {
-		to: string;
-	};
+	relatesTo: string;
 };
 
 type FieldCheckbox = {
@@ -19,15 +21,15 @@ type FieldCheckbox = {
 };
 
 type FieldRichText = {
-	type: 'richtext';
+	type: 'rich_text';
 };
 
 type FieldPlainText = {
-	type: 'plaintext';
+	type: 'string';
 };
 
 type FieldDateTime = {
-	type: 'datetime';
+	type: 'date_time';
 };
 
 type FieldDate = {
