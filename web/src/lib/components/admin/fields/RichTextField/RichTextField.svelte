@@ -17,14 +17,11 @@ onMount(() => {
 		],
 		content: parseValue(value),
 		onTransaction: () => {
-			// Force re-render when content changes
 			editor = editor;
 		},
 		onUpdate: ({ editor }) => {
 			if (!isUpdatingFromExternal) {
-				// Update the bound value when editor content changes
 				const json = editor.getJSON();
-				console.log('Editor updated, new JSON:', json);
 				value = json;
 			}
 		}
@@ -57,15 +54,12 @@ function parseValue(val: any) {
 	return '<p></p>';
 }
 
-// React to external value changes
 $effect(() => {
 	if (editor && value !== undefined) {
 		const currentContent = editor.getJSON();
 		const parsedValue = parseValue(value);
 		
-		// Only update if content actually changed
 		if (JSON.stringify(currentContent) !== JSON.stringify(parsedValue)) {
-			console.log('External value changed, updating editor:', value);
 			isUpdatingFromExternal = true;
 			editor.commands.setContent(parsedValue, false);
 			isUpdatingFromExternal = false;
