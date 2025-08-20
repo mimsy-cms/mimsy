@@ -223,13 +223,12 @@ func (r *repository) CreateResource(ctx context.Context, collection *Collection,
 		return nil, fmt.Errorf("failed to unmarshal collection fields: %w", err)
 	}
 
-	existsQuery := fmt.Sprintf(`SELECT EXISTS(SELECT 1 FROM "%s" WHERE slug = $1)`, collection.Slug)
-	var exists bool
-	if err := config.GetDB(ctx).QueryRowContext(ctx, existsQuery, resourceSlug).Scan(&exists); err != nil {
-		return nil, fmt.Errorf("failed to check if resource exists: %w", err)
-	}
-	if exists {
+	_, err := r.FindResource(ctx, collection, resourceSlug)
+	if err == nil {
 		return nil, ErrAlreadyExists
+	}
+	if !errors.Is(err, ErrNotFound) {
+		return nil, fmt.Errorf("failed to check if resource exists: %w", err)
 	}
 
 	psql := sq.StatementBuilder.PlaceholderFormat(sq.Dollar)

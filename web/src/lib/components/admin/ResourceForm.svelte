@@ -178,6 +178,7 @@
 <div class="flex flex-col gap-6">
 	<div class="flex items-center justify-between">
 		<h1 class="text-4xl font-medium">{data.definition.name}</h1>
+
 		<div class="flex gap-2">
             {#if mode === 'edit'}
                 <button

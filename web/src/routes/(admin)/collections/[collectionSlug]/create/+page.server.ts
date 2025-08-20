@@ -55,7 +55,7 @@ export const actions: Actions = {
 			console.error('API Error:', response.status, errorText);
 
 			if (response.status === 409) {
-				return fail(409, { error: 'Resource already exists' });
+				return fail(409, { error: 'Resource with that slug already exists' });
 			} else if (response.status === 401) {
 				return fail(401, { error: 'You are not authorized to create resources' });
 			} else if (response.status === 404) {
