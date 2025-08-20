@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"log/slog"
 	"slices"
+	"strings"
 	"time"
 
 	"github.com/lib/pq"
@@ -90,6 +91,17 @@ func (r Resource) MarshalJSON() ([]byte, error) {
 				transformed[key] = string(v)
 			} else {
 				transformed[key] = jsonObject
+			}
+		case string:
+			if (strings.HasPrefix(v, "{") && strings.HasSuffix(v, "}")) || (strings.HasPrefix(v, "[") && strings.HasSuffix(v, "]")) {
+				var jsonObject any
+				if err := json.Unmarshal([]byte(v), &jsonObject); err == nil {
+					transformed[key] = jsonObject
+				} else {
+					transformed[key] = v
+				}
+			} else {
+				transformed[key] = v
 			}
 		default:
 			transformed[key] = value
@@ -245,6 +257,12 @@ func (r *repository) DeleteResource(ctx context.Context, resource *Resource) err
 }
 
 func (r *repository) UpdateResourceContent(ctx context.Context, collection *Collection, resourceSlug string, content map[string]any) (*Resource, error) {
+	// Parse collection fields to identify rich text fields
+	fields := mimsy_schema.CollectionFields{}
+	if err := json.Unmarshal(collection.Fields, &fields); err != nil {
+		return nil, fmt.Errorf("failed to unmarshal collection fields: %w", err)
+	}
+
 	psql := sq.StatementBuilder.PlaceholderFormat(sq.Dollar)
 
 	b := psql.
@@ -256,13 +274,30 @@ func (r *repository) UpdateResourceContent(ctx context.Context, collection *Coll
 		b = b.Set("updated_by", updatedBy)
 	}
 
+	fieldsUpdated := 0
 	for field, value := range content {
 		// Skip read only columns that should not be updated
 		if slices.Contains(readOnlyColumns, field) {
 			continue
 		}
 
-		b = b.Set(pq.QuoteIdentifier(field), value)
+		// Skip updated_by as we handled it above
+		if field == "updated_by" {
+			continue
+		}
+
+		if fieldDef, exists := fields[field]; exists && fieldDef.Type == "richtext" {
+			jsonValue, err := json.Marshal(value)
+			if err != nil {
+				return nil, fmt.Errorf("failed to marshal richtext field %q: %w", field, err)
+			}
+
+			b = b.Set(pq.QuoteIdentifier(field), string(jsonValue))
+			fieldsUpdated++
+		} else {
+			b = b.Set(pq.QuoteIdentifier(field), value)
+			fieldsUpdated++
+		}
 	}
 
 	query, args, err := b.ToSql()
@@ -270,7 +305,8 @@ func (r *repository) UpdateResourceContent(ctx context.Context, collection *Coll
 		return nil, fmt.Errorf("failed to build update SQL query: %w", err)
 	}
 
-	if _, err := config.GetDB(ctx).ExecContext(ctx, query, args...); err != nil {
+	_, err = config.GetDB(ctx).ExecContext(ctx, query, args...)
+	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, ErrNotFound
 		}

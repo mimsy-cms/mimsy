@@ -6,9 +6,8 @@
 	import PlainTextField from '$lib/components/admin/fields/PlainTextField.svelte';
 	import RichTextField from '$lib/components/admin/fields/RichTextField/RichTextField.svelte';
 	import SelectField from '$lib/components/admin/fields/SelectField.svelte';
+	import Error from '$lib/components/Error.svelte';
 	import Input from '$lib/components/Input.svelte';
-	import { env } from '$env/dynamic/public';
-	import { fi } from 'zod/v4/locales';
 	import { onMount } from 'svelte';
 
 	let { data } = $props();
@@ -18,39 +17,23 @@
 		slug: data.resource?.slug || '',
 		...Object.fromEntries(
 			Object.keys(data.definition.fields).map((fieldName) => {
-				let value =
-					data.resource?.[fieldName] ?? getDefaultValue(data.definition.fields[fieldName]);
-				if (
-					data.definition.fields[fieldName].type === 'date' &&
-					typeof value === 'string' &&
-					value
-				) {
+				const field = data.definition.fields[fieldName];
+				let value = data.resource?.[fieldName] ?? getDefaultValue(field);
+				if (field.type === 'date' && typeof value === 'string' && value) {
 					value = new Date(value);
+				} else if (field.type === 'richtext') {
+					if (!value) {
+						value = null
+					}
 				}
 				return [fieldName, value];
 			})
 		)
 	});
 
-	// Form for adding new content fields
-	let showAddFieldForm = $state(false);
-	let newFieldName = $state('');
-	let newFieldValue = $state('');
-	let newFieldType = $state('plaintext');
-
 	let isSaving = $state(false);
 	let error = $state('');
 	let success = $state('');
-
-	const fieldTypes = [
-		{ value: 'plaintext', label: 'Text' },
-		{ value: 'number', label: 'Number' },
-		{ value: 'checkbox', label: 'Checkbox' },
-		{ value: 'date', label: 'Date' },
-		{ value: 'email', label: 'Email' },
-		{ value: 'richtext', label: 'Rich Text' },
-		{ value: 'select', label: 'Select' }
-	];
 
 	function getDefaultValue(field: any) {
 		switch (field.type) {
@@ -60,16 +43,11 @@
 				return 0;
 			case 'date':
 				return new Date();
+			case 'richtext':
+				return null;
 			default:
 				return '';
 		}
-	}
-
-	function guessFieldType(value: any): string {
-		if (typeof value === 'boolean') return 'checkbox';
-		if (typeof value === 'number') return 'number';
-		if (typeof value === 'string' && value.match(/^\d{4}-\d{2}-\d{2}/)) return 'date';
-		return 'plaintext';
 	}
 
 	function formatDate(dateStr: string): string {
@@ -83,10 +61,61 @@
 			isSaving = true;
 			error = '';
 
-			const { id, created_at, updated_at, updated_by, slug, ...schemaContent } = resourceContent;
+			const { id, created_at, updated_at, updated_by, slug, ...schemaContent }: { [key: string]: any } = resourceContent;
 
 			if (currentUser) {
 				schemaContent.updated_by = currentUser.id;
+			}
+
+			Object.keys(data.definition.fields).forEach(fieldName => {
+				const field = data.definition.fields[fieldName];
+				if (field.type === 'richtext' && schemaContent[fieldName] !== undefined) {
+					// Rich text should already be in the correct format from the editor
+					// No need to transform it here since the editor handles the JSON structure
+				}
+			});
+
+			const validationErrors: string[] = [];
+
+			for (const [fieldName, field] of Object.entries(data.definition.fields)) {
+				const value = schemaContent[fieldName];
+				switch (field.type) {
+					case 'number':
+						if (typeof value !== 'number' || isNaN(value)) {
+							validationErrors.push(`"${fieldName}" must be a number.`);
+						}
+						break;
+					case 'date':
+						if (!(value instanceof Date) || isNaN(value.getTime())) {
+							validationErrors.push(`"${fieldName}" must be a date.`);
+						}
+						break;
+					case 'richtext':
+						if (typeof value !== 'object' || value === null) {
+							validationErrors.push(`"${fieldName}" must be text.`);
+						}
+						break;
+					case 'checkbox':
+						if (typeof value !== 'boolean') {
+							validationErrors.push(`"${fieldName}" must be a boolean.`);
+						}
+						break;
+					case 'email':
+						if (typeof value !== 'string' || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)) {
+							validationErrors.push(`"${fieldName}" must be an email address.`);
+						}
+						break;
+					case 'plaintext':
+						if (typeof value !== 'string') {
+							validationErrors.push(`"${fieldName}" must be text.`);
+						}
+				}
+			}
+
+			if (validationErrors.length > 0) {
+				error = validationErrors.join('\n');
+				isSaving = false;
+				return;
 			}
 
 			const response = await fetch(
@@ -113,17 +142,11 @@
 
 			success = 'Resource saved successfully!';
 		} catch (err) {
+			console.error('Save error:', err);
 			error = err instanceof Error ? err.message : 'Failed to save resource.';
 		} finally {
 			isSaving = false;
 		}
-	}
-
-	function clearMessages() {
-		setTimeout(() => {
-			error = '';
-			success = '';
-		}, 5000);
 	}
 
 	let currentUser: { id: string; email: string } | null = null;
@@ -163,7 +186,11 @@
 
 	{#if error}
 		<div class="rounded border border-red-400 bg-red-100 px-4 py-3 text-red-700">
-			{error}
+			<ul class="list-disc pl-5 space-y-1">
+				{#each error.split('\n') as err}
+					<li>{err}</li>
+				{/each}
+			</ul>
 		</div>
 	{/if}
 
@@ -246,9 +273,9 @@
 								{fieldName}
 								{#if field.required}<span class="text-red-500">*</span>{/if}
 							</label>
-							<!-- <RichTextField
+							<RichTextField
 								bind:value={resourceContent[fieldName]} 
-							/> -->
+							/>
 						{:else if field.type === 'plaintext'}
 							<label for={fieldName}>
 								{fieldName}
