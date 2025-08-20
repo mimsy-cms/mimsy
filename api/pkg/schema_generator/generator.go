@@ -57,10 +57,62 @@ func (s *schemaGenerator) GenerateSlugColumn() Column {
 	}
 }
 
+func (s *schemaGenerator) GenerateCreatedAtColumn() Column {
+	return Column{
+		Name:         "created_at",
+		Type:         "timestamptz",
+		IsNotNull:    true,
+		DefaultValue: "CURRENT_TIMESTAMP",
+	}
+}
+
+func (s *schemaGenerator) GenerateUpdatedAtColumn() Column {
+	return Column{
+		Name:         "updated_at",
+		Type:         "timestamptz",
+		IsNotNull:    true,
+		DefaultValue: "CURRENT_TIMESTAMP",
+	}
+}
+
+func (s *schemaGenerator) GenerateCreatedByColumn() Column {
+	return Column{
+		Name:      "created_by",
+		Type:      "bigint",
+		IsNotNull: true,
+	}
+}
+
+func (s *schemaGenerator) GenerateUpdatedByColumn() Column {
+	return Column{
+		Name:      "updated_by",
+		Type:      "bigint",
+		IsNotNull: true,
+	}
+}
+
 func (s *schemaGenerator) GenerateSlugConstraint(collection *mimsy_schema.Collection) Constraint {
 	return &UniqueConstraint{
 		Table: collection.Name,
 		Key:   "slug",
+	}
+}
+
+func (s *schemaGenerator) GenerateCreatedByConstraint(collection *mimsy_schema.Collection) Constraint {
+	return &ForeignKeyConstraint{
+		Table:           collection.Name,
+		Column:          "created_by",
+		ReferenceTable:  "user",
+		ReferenceColumn: "id",
+	}
+}
+
+func (s *schemaGenerator) GenerateUpdatedByConstraint(collection *mimsy_schema.Collection) Constraint {
+	return &ForeignKeyConstraint{
+		Table:           collection.Name,
+		Column:          "updated_by",
+		ReferenceTable:  "user",
+		ReferenceColumn: "id",
 	}
 }
 
@@ -106,11 +158,15 @@ func (s *schemaGenerator) HandleCollection(collection mimsy_schema.Collection) (
 	baseTable.Columns = append(baseTable.Columns,
 		s.GenerateIdColumn(),
 		s.GenerateSlugColumn(),
+		s.GenerateCreatedAtColumn(),
+		s.GenerateUpdatedAtColumn(),
 	)
 
 	baseTable.Constraints = append(baseTable.Constraints,
 		s.GenerateIdConstraint(&collection),
 		s.GenerateSlugConstraint(&collection),
+		s.GenerateCreatedByConstraint(&collection),
+		s.GenerateUpdatedByConstraint(&collection),
 	)
 
 	schema := SqlSchema{
