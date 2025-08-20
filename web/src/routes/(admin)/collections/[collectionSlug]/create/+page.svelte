@@ -3,4 +3,6 @@
   export let data: import('../create/$types.js').PageData;
 </script>
 
-<ResourceForm {data} slugEditable={false} />
+<form method="POST" use:enhance>
+  <ResourceForm {data} slugEditable={true} mode="create" />
+</form>
