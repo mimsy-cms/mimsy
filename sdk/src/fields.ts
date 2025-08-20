@@ -1,12 +1,18 @@
-import { Media, MediaValue } from "./builtins";
+import { BuiltIn, BuiltInValue, Media, MediaValue } from "./builtins";
 import { type Collection, type Schema } from "./collection";
 
 // To make declaration of fields out of this file more difficult.
 const fieldType: unique symbol = Symbol();
 
-type FieldOptions = any;
+type FieldOptions<Constraints = {}> = {
+  label?: string;
+  description?: string;
+  constraints?: Constraints & { required?: boolean };
+};
 
-type FieldGenerator<T> = (options?: FieldOptions) => Field<T>;
+type FieldGenerator<T, Constraints = {}> = (
+  options?: FieldOptions<Constraints>,
+) => Field<T>;
 
 type UnfetchedRelation<T extends Schema> = {
   id: string;
@@ -20,9 +26,13 @@ export type Field<T> = {
   type: string;
 };
 
-export const shortString: FieldGenerator<string> = (
-  options?: FieldOptions,
-) => ({
+export const shortString: FieldGenerator<
+  string,
+  {
+    minLength?: number;
+    maxLength?: number;
+  }
+> = (options) => ({
   _marker: fieldType,
   type: "string",
   ...options,
@@ -34,9 +44,42 @@ export const richText: FieldGenerator<string> = (options?: FieldOptions) => ({
   ...options,
 });
 
-export function relation<T extends Schema>(
-  options?: {
-    relatesTo: Collection<T>;
+export const checkbox: FieldGenerator<boolean> = (options?: FieldOptions) => ({
+  _marker: fieldType,
+  type: "checkbox",
+  ...options,
+});
+
+export const dateTime: FieldGenerator<Date> = (options?: FieldOptions) => ({
+  _marker: fieldType,
+  type: "date_time",
+  ...options,
+});
+
+export const number: FieldGenerator<
+  number,
+  {
+    min?: number;
+    max?: number;
+  }
+> = (options) => ({
+  _marker: fieldType,
+  type: "number",
+  ...options,
+});
+
+export const email: FieldGenerator<string> = (options?: FieldOptions) => ({
+  _marker: fieldType,
+  type: "email",
+  ...options,
+});
+
+export function relation<
+  T extends Schema | BuiltInValue,
+  R = T extends BuiltInValue ? BuiltIn<T> : Collection<T>,
+>(
+  options: {
+    relatesTo: R;
   } & FieldOptions,
 ): Field<UnfetchedRelation<T>> {
   return {

@@ -16,14 +16,14 @@ const reservedNames = new Set([
 ]);
 
 export function registerCollection<T extends Schema>(
-  collection: Collection<T>
+  collection: Collection<T>,
 ): void {
   if (reservedNames.has(collection.name)) {
     throw new Error(`Collection name '${collection.name}' is reserved`);
   }
   if (collectionRegistry.has(collection.name)) {
     console.warn(
-      `[Mimsy SDK] Warning: A collection with the name "${collection.name}" is already registered. It will be overwritten.`
+      `[Mimsy SDK] Warning: A collection with the name "${collection.name}" is already registered. It will be overwritten.`,
     );
   }
   collection.isGlobal = false;
@@ -36,7 +36,7 @@ export function registerGlobal<T extends Schema>(global: Global<T>): void {
   }
   if (collectionRegistry.has(global.name)) {
     console.warn(
-      `[Mimsy SDK] Warning: A global with the name "${global.name}" is already registered. It will be overwritten.`
+      `[Mimsy SDK] Warning: A global with the name "${global.name}" is already registered. It will be overwritten.`,
     );
   }
   global.isGlobal = true;

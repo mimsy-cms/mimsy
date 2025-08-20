@@ -1,4 +1,4 @@
-import type { PageServerLoad, Actions } from './$types';
+import type { PageServerLoad } from './$types';
 import { env } from '$env/dynamic/public';
 
 type Resource = {
@@ -26,4 +26,3 @@ export const load: PageServerLoad = async ({ params, fetch }) => {
 		resources
 	};
 };
-

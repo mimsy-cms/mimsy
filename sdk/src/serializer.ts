@@ -1,7 +1,7 @@
-import { Field } from './fields';
-import { Collection, Schema } from './collection';
-import { BuiltInValue } from './builtins';
-import { getAllCollections } from './registry';
+import { Field } from "./fields";
+import { Collection, Schema } from "./collection";
+import { BuiltInValue } from "./builtins";
+import { getAllCollections } from "./registry";
 
 type SerializedField = {
   type: string;
@@ -15,7 +15,7 @@ type SerializedSchema = {
 
 type SerializedCollection = {
   name: string;
-  schema: SerializedSchema | { type: 'builtin'; name: string };
+  schema: SerializedSchema | { type: "builtin"; name: string };
 };
 
 function serializeField(field: Field<any>): SerializedField {
@@ -44,12 +44,14 @@ function serializeField(field: Field<any>): SerializedField {
   return result;
 }
 
-function serializeSchema(schema: Schema): SerializedSchema | { type: 'builtin'; name: string } {
+function serializeSchema(
+  schema: Schema,
+): SerializedSchema | { type: "builtin"; name: string } {
   const asBuiltIn = schema as BuiltInValue;
   if (asBuiltIn._marker) {
     // This is a built-in type. We need a way to get its name.
     // Assuming the built-in object has a 'name' property.
-    return { type: 'builtin', name: (schema as any).name };
+    return { type: "builtin", name: (schema as any).name };
   }
 
   const serialized: SerializedSchema = {};
@@ -66,10 +68,10 @@ export function exportSchema(): {
   const collections = getAllCollections();
 
   return {
-    collections: collections.map(coll => ({
+    collections: collections.map((coll) => ({
       name: coll.name,
-      schema: serializeSchema(coll.schema)
+      schema: serializeSchema(coll.schema),
     })),
-    generatedAt: new Date().toISOString()
+    generatedAt: new Date().toISOString(),
   };
 }

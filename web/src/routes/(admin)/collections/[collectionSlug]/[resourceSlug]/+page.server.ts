@@ -1,7 +1,7 @@
 import type { PageServerLoad } from './$types';
 import { env } from '$env/dynamic/public';
 import { redirect } from '@sveltejs/kit';
-import type { CollectionDefinition } from '$lib/collection/definition';
+import type { CollectionDefinition, CollectionResource } from '$lib/collection/definition';
 
 async function fetchCollectionDefinition(
 	collectionSlug: string,
@@ -15,7 +15,7 @@ async function fetchResource(
 	collectionSlug: string,
 	resourceSlug: string,
 	fetch: typeof globalThis.fetch
-): Promise<any> {
+): Promise<CollectionResource> {
 	const response = await fetch(
 		`${env.PUBLIC_API_URL}/v1/collections/${collectionSlug}/${resourceSlug}`
 	);

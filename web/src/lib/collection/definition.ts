@@ -1,6 +1,10 @@
 type BaseField = {
 	name: string;
-	label: string;
+	label?: string;
+	description?: string;
+	// We don't have a choice yet for now.
+	// eslint-disable-next-line @typescript-eslint/no-explicit-any
+	constraints?: any;
 };
 
 type FieldSelect = {
@@ -9,9 +13,7 @@ type FieldSelect = {
 
 type FieldRelation = {
 	type: 'relation';
-	relation: {
-		to: string;
-	};
+	relatesTo: string;
 };
 
 type FieldCheckbox = {
@@ -19,15 +21,15 @@ type FieldCheckbox = {
 };
 
 type FieldRichText = {
-	type: 'richtext';
+	type: 'rich_text';
 };
 
 type FieldPlainText = {
-	type: 'plaintext';
+	type: 'string';
 };
 
 type FieldDateTime = {
-	type: 'datetime';
+	type: 'date_time';
 };
 
 type FieldDate = {
@@ -42,7 +44,12 @@ type FieldEmail = {
 	type: 'email';
 };
 
-type Field = BaseField &
+export type Collection = {
+	name: string;
+	slug: string;
+};
+
+export type Field = BaseField &
 	(
 		| FieldSelect
 		| FieldRichText
@@ -59,5 +66,18 @@ export type CollectionDefinition = {
 	slug: string;
 	name: string;
 	created_at: string;
-	fields: Field[];
+	updated_at: string;
+	fields: {
+		[key: string]: Field;
+	};
+};
+
+export type CollectionResource = {
+	id: string;
+	slug: string;
+	created_at: string;
+	created_by: string;
+	updated_at: string;
+	updated_by: string;
+	[key: string]: string | number | boolean | Date | undefined | null;
 };
