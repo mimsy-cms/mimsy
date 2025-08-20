@@ -10,9 +10,9 @@ type FieldOptions<Constraints = {}> = {
   constraints?: Constraints & { required?: boolean };
 };
 
-type FieldGenerator<T, Constraints = {}, AdditionalOptions = {}> = (
-  options?: FieldOptions<Constraints> & AdditionalOptions,
-) => Field<T, AdditionalOptions>;
+type FieldGenerator<T, Constraints = {}> = (
+  options?: FieldOptions<Constraints>,
+) => Field<T>;
 
 type UnfetchedRelation<T extends Schema> = {
   id: string;
@@ -21,10 +21,10 @@ type UnfetchedRelation<T extends Schema> = {
 
 type UnfetchedMultiRelation<T extends Schema> = UnfetchedRelation<T>[];
 
-export type Field<T, AdditionalOptions = {}> = {
+export type Field<T> = {
   _marker: typeof fieldType;
   type: string;
-} & AdditionalOptions;
+};
 
 export const shortString: FieldGenerator<
   string,
@@ -81,7 +81,7 @@ export function relation<
   options: {
     relatesTo: R;
   } & FieldOptions,
-): Field<UnfetchedRelation<T>, { relatesTo: R }> {
+): Field<UnfetchedRelation<T>> {
   return {
     _marker: fieldType,
     type: "relation",
