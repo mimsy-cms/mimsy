@@ -41,6 +41,21 @@ func (m *MockService) EXPECT() *MockServiceMockRecorder {
 	return m.recorder
 }
 
+// CreateResource mocks base method.
+func (m *MockService) CreateResource(ctx context.Context, arg1 *collection.Collection, resourceSlug string, createdBy int64) (*collection.Resource, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "CreateResource", ctx, arg1, resourceSlug, createdBy)
+	ret0, _ := ret[0].(*collection.Resource)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// CreateResource indicates an expected call of CreateResource.
+func (mr *MockServiceMockRecorder) CreateResource(ctx, arg1, resourceSlug, createdBy any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateResource", reflect.TypeOf((*MockService)(nil).CreateResource), ctx, arg1, resourceSlug, createdBy)
+}
+
 // DeleteResource mocks base method.
 func (m *MockService) DeleteResource(ctx context.Context, resource *collection.Resource) error {
 	m.ctrl.T.Helper()
