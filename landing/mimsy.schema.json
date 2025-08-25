@@ -94,7 +94,7 @@
 		{
 			"name": "header",
 			"schema": {
-				"contents": {
+				"content": {
 					"type": "string",
 					"options": {
 						"description": "The contents of the header",
