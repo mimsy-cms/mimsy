@@ -1,6 +1,25 @@
 <script lang="ts">
 	import ResourceForm from '$lib/components/admin/ResourceForm.svelte';
+	import { superForm } from 'sveltekit-superforms';
+
 	const { data } = $props();
+
+	const { form, message, enhance } = superForm(data.form);
 </script>
 
-<ResourceForm {data} slugEditable={false} />
+{#if $message}
+	<div class="mb-4 rounded border border-red-400 bg-red-100 px-4 py-3 text-red-700">
+		{$message}
+	</div>
+{/if}
+
+<form method="POST" use:enhance>
+	<ResourceForm
+		{form}
+		definition={data.definition}
+		resource={data.resource}
+		createdBy={data.createdBy}
+		updatedBy={data.updatedBy}
+		slugEditable={false}
+	/>
+</form>

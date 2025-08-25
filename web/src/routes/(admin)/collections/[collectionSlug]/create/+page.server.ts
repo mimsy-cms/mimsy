@@ -2,6 +2,9 @@ import type { PageServerLoad, Actions } from './$types';
 import { env } from '$env/dynamic/public';
 import type { CollectionDefinition } from '$lib/collection/definition';
 import { fail, redirect } from '@sveltejs/kit';
+import { superValidate } from 'sveltekit-superforms';
+import { zod } from 'sveltekit-superforms/adapters';
+import z from 'zod';
 
 async function fetchCollectionDefinition(
 	collectionSlug: string,
@@ -12,44 +15,33 @@ async function fetchCollectionDefinition(
 }
 
 export const load: PageServerLoad = async ({ params, fetch }) => {
-	const [definition] = await Promise.all([fetchCollectionDefinition(params.collectionSlug, fetch)]);
+	const form = await superValidate(zod(createSchema));
+	const definition = await fetchCollectionDefinition(params.collectionSlug, fetch);
 
 	return {
 		slug: params.collectionSlug,
+		form,
 		definition
 	};
 };
 
+const createSchema = z.record(z.string(), z.any());
+
 export const actions: Actions = {
-	create: async ({ request, params, fetch }) => {
+	default: async ({ request, params, fetch }) => {
 		const collectionSlug = params.collectionSlug;
-		const data = await request.formData();
-		const slug = data.get('slug') as string;
 
-		if (!slug || slug.trim() === '') {
-			return { error: 'Slug is required' };
+		const form = await superValidate(request, zod(createSchema), { strict: false });
+		if (!form.valid) {
+			return fail(400, { form });
 		}
-
-		const slugPattern = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
-		if (!slugPattern.test(slug.trim())) {
-			return fail(400, {
-				error: 'Invalid slug format. Use lowercase letters, numbers, and hyphens only.'
-			});
-		}
-
-		const body: Record<string, any> = {};
-		for (const [key, value] of data.entries()) {
-			body[key] = value;
-		}
-
-		console.log(body);
 
 		const response = await fetch(`${env.PUBLIC_API_URL}/v1/collections/${collectionSlug}`, {
 			method: 'POST',
 			headers: {
 				'Content-Type': 'application/json'
 			},
-			body: JSON.stringify(body)
+			body: JSON.stringify(form.data)
 		});
 
 		if (!response.ok) {
