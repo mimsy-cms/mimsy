@@ -77,9 +77,9 @@ const INITIAL_COLLECTIONS_CONTENT = `
 `;
 
 const INITIAL_SCHEMA_TS_CONTENT = `
-import { collection, fields, builtins, type Collection } from "@mimsy-cms/sdk";
+import { collection, fields, builtins } from "@mimsy-cms/sdk";
 
-export const Tags: Collection<any> = collection("tags", {
+export const Tags = collection("tags", {
   name: fields.shortString({
     description: "The name of the tag",
     constraints: {
@@ -96,7 +96,7 @@ export const Tags: Collection<any> = collection("tags", {
   }),
 });
 
-export const Posts: Collection<any> = collection("posts", {
+export const Posts = collection("posts", {
   title: fields.shortString({
     description: "The title of the post",
     constraints: {
@@ -247,7 +247,7 @@ export async function initAction(): Promise<void> {
         basePath,
       },
       null,
-      2
+      2,
     );
     writeFileSync(configPath, configContent, "utf8");
     console.log(`✅ Created: ${configPath}`);
@@ -272,7 +272,7 @@ export async function initAction(): Promise<void> {
         console.warn(
           `⚠️  Warning: Failed to create git hook: ${
             hookError instanceof Error ? hookError.message : hookError
-          }`
+          }`,
         );
       }
     }
@@ -281,17 +281,20 @@ export async function initAction(): Promise<void> {
     console.log("🎉 Mimsy project initialized successfully!");
     console.log();
     console.log("📋 Next steps:");
-    console.log("1. Define your collections in the typescript schema file");
-    console.log("2. Use 'msy update' to update the mimsy json schema");
+    console.log(
+      "1. Install the SDK using 'npm install @mimsy/sdk' (or using your preferred package manager)",
+    );
+    console.log("2. Define your collections in the typescript schema file");
+    console.log("3. Use 'msy update' to update the mimsy json schema");
     if (answers.createGitHook) {
       console.log(
-        "3. Your schema will automatically update on git commits! 🎉"
+        "3. Your schema will automatically update on git commits! 🎉",
       );
     }
   } catch (error) {
     console.error(
       "❌ Failed to initialize project:",
-      error instanceof Error ? error.message : error
+      error instanceof Error ? error.message : error,
     );
     process.exit(1);
   }
