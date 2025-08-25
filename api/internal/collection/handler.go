@@ -95,19 +95,12 @@ func (h *Handler) UpdateResource(w http.ResponseWriter, r *http.Request) {
 
 	updatedResource, err := h.Service.UpdateResourceContent(r.Context(), collection, resourceSlug, contentData)
 	if err != nil {
-		if err == ErrNotFound {
-			createdResource, createErr := h.Service.CreateResource(r.Context(), collection, resourceSlug, user.ID, contentData)
-			if createErr != nil {
-				slog.Error("Failed to create resource", "slug", slug, "resourceSlug", resourceSlug, "error", createErr)
-				http.Error(w, "Internal Server Error", http.StatusInternalServerError)
-				return
-			}
-			util.JSON(w, http.StatusCreated, createdResource)
-			return
-		}
-
 		slog.Error("Failed to update resource", "slug", slug, "resourceSlug", resourceSlug, "error", err)
-		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		if err == ErrNotFound {
+			http.Error(w, "Resource not found", http.StatusNotFound)
+		} else {
+			http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		}
 		return
 	}
 
