@@ -92,12 +92,12 @@
 			"isGlobal": false
 		},
 		{
-			"name": "footer",
+			"name": "header",
 			"schema": {
 				"contents": {
 					"type": "rich_text",
 					"options": {
-						"description": "The contents of the footer",
+						"description": "The contents of the header",
 						"constraints": {
 							"required": true
 						}
