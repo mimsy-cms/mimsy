@@ -115,15 +115,17 @@ func (h *Handler) CreateResource(w http.ResponseWriter, r *http.Request) {
 
 	collectionSlug := r.PathValue("slug")
 
-	var req CreateResourceRequest
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+	var fields map[string]any
+	if err := json.NewDecoder(r.Body).Decode(&fields); err != nil {
+		slog.Error("Failed to decode resource content", "error", err)
 		http.Error(w, "Invalid JSON", http.StatusBadRequest)
 		return
 	}
 
-	var contentData map[string]any
-	if err := json.NewDecoder(r.Body).Decode(&contentData); err != nil {
-		http.Error(w, "Invalid JSON", http.StatusBadRequest)
+	slug, ok := fields["slug"].(string)
+	if !ok || slug == "" {
+		slog.Error("Failed to get slug from request")
+		http.Error(w, "Invalid slug", http.StatusBadRequest)
 		return
 	}
 
@@ -138,9 +140,9 @@ func (h *Handler) CreateResource(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	createdResource, err := h.Service.CreateResource(r.Context(), collection, req.Slug, user.ID, contentData)
+	createdResource, err := h.Service.CreateResource(r.Context(), collection, slug, user.ID, fields)
 	if err != nil {
-		slog.Error("Failed to create resource", "collectionSlug", collectionSlug, "resourceSlug", req.Slug, "error", err)
+		slog.Error("Failed to create resource", "collectionSlug", collectionSlug, "resourceSlug", slug, "error", err)
 		if err == ErrAlreadyExists {
 			http.Error(w, "Resource with this slug already exists", http.StatusConflict)
 		} else {

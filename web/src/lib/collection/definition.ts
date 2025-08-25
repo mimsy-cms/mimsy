@@ -1,10 +1,12 @@
 type BaseField = {
 	name: string;
 	label?: string;
-	description?: string;
-	// We don't have a choice yet for now.
 	// eslint-disable-next-line @typescript-eslint/no-explicit-any
-	constraints?: any;
+	options: {
+		// TODO: Replace any with proper constraints type
+		constraints?: any;
+		description?: string;
+	};
 };
 
 type FieldSelect = {
