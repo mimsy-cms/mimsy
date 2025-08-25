@@ -354,7 +354,7 @@ func TestUpdateResource_Success(t *testing.T) {
 		Return(mockCollection, nil)
 
 	mockService.EXPECT().
-		UpdateResourceContent(gomock.Any(), mockCollection, "test-resource", contentData).
+		UpdateResource(gomock.Any(), mockCollection, "test-resource", contentData).
 		Return(mockResource, nil)
 
 	reqBody := `{"title":"Updated Title","content":"Updated Content"}`
@@ -437,7 +437,7 @@ func TestUpdateResource_ResourceNotFound(t *testing.T) {
 		Return(mockCollection, nil)
 
 	mockService.EXPECT().
-		UpdateResourceContent(gomock.Any(), mockCollection, "nonexistent", contentData).
+		UpdateResource(gomock.Any(), mockCollection, "nonexistent", contentData).
 		Return(nil, collection.ErrNotFound)
 
 	reqBody := `{"title":"Updated Title"}`

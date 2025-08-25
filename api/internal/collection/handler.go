@@ -88,7 +88,7 @@ func (h *Handler) UpdateResource(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	updatedResource, err := h.Service.UpdateResourceContent(r.Context(), collection, resourceSlug, contentData)
+	updatedResource, err := h.Service.UpdateResource(r.Context(), collection, resourceSlug, contentData)
 	if err != nil {
 		slog.Error("Failed to update resource", "slug", slug, "resourceSlug", resourceSlug, "error", err)
 		if err == ErrNotFound {
@@ -118,11 +118,6 @@ func (h *Handler) CreateResource(w http.ResponseWriter, r *http.Request) {
 	var req CreateResourceRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		http.Error(w, "Invalid JSON", http.StatusBadRequest)
-		return
-	}
-
-	if req.Slug == "" {
-		http.Error(w, "Resource slug is required", http.StatusBadRequest)
 		return
 	}
 
