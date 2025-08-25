@@ -69,9 +69,9 @@ func TestGeneratorOneToMany(t *testing.T) {
 							},
 						},
 					},
-					"author": {
+					"foo": {
 						Type:      "relation",
-						RelatesTo: "test_data",
+						RelatesTo: "foo",
 						Options: &mimsy_schema.SchemaElementOptions{
 							Constraints: &mimsy_schema.SchemaElementConstraints{
 								Required: true,
@@ -100,14 +100,14 @@ func TestGeneratorOneToMany(t *testing.T) {
 			"updated_by" bigint NOT NULL,
 			"title" varchar NOT NULL,
 
-			"author_id" bigint NOT NULL,
-			"author_slug" varchar GENERATED ALWAYS AS (SELECT slug FROM mimsy_collections."test_data" WHERE id = "author_id") STORED,
+			"foo_id" bigint NOT NULL,
+			"foo_slug" varchar GENERATED ALWAYS AS (SELECT slug FROM mimsy_collections."foo" WHERE id = "foo_id") STORED,
 
 	        CONSTRAINT pk__posts PRIMARY KEY ("id"),
 	        CONSTRAINT uq__posts__slug UNIQUE ("slug"),
 			CONSTRAINT fk__posts__created_by__user FOREIGN KEY ("created_by") REFERENCES user ("id"),
 			CONSTRAINT fk__posts__updated_by__user FOREIGN KEY ("updated_by") REFERENCES user ("id"),
-	        CONSTRAINT fk__posts__author_id__test_data FOREIGN KEY ("author_id") REFERENCES mimsy_collections."test_data" ("id")
+	        CONSTRAINT fk__posts__foo_id__foo FOREIGN KEY ("foo_id") REFERENCES mimsy_collections."foo" ("id")
         );`,
 	)
 	if diff != "" {
@@ -161,7 +161,6 @@ func TestGeneratorOneToManyBuiltin(t *testing.T) {
 			"title" varchar NOT NULL,
 
 			"author_id" bigint NOT NULL,
-			"author_slug" varchar GENERATED ALWAYS AS (SELECT slug FROM mimsy_internal."user" WHERE id = "author_id") STORED,
 
 	        CONSTRAINT pk__posts PRIMARY KEY ("id"),
 	        CONSTRAINT uq__posts__slug UNIQUE ("slug"),
@@ -366,7 +365,6 @@ func TestGeneratorExample(t *testing.T) {
 		    "created_at" timestamptz NOT NULL DEFAULT CURRENT_TIMESTAMP,
 		    "title" varchar NOT NULL,
 		    "author_id" bigint,
-		    "author_slug" varchar GENERATED ALWAYS AS (SELECT slug FROM mimsy_internal."user" WHERE id = "author_id") STORED,
 		    CONSTRAINT pk__post PRIMARY KEY ("id"),
 		    CONSTRAINT uq__post__slug UNIQUE ("slug"),
 			CONSTRAINT fk__post__created_by__user FOREIGN KEY ("created_by") REFERENCES user ("id"),

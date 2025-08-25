@@ -39,8 +39,13 @@ func GetSimpleTableName(relationName string) (string, error) {
 			return "", errors.New("unknown builtin reference")
 		}
 	} else {
-		return fmt.Sprintf("%s", relationName), nil
+		return relationName, nil
 	}
+}
+
+// IsBuiltin returns whether the collection is a builtin mimsy collection or not.
+func IsBuiltin(name string) bool {
+	return regexp.MustCompile(`<builtins\.[a-zA-Z0-9]+>`).MatchString(name)
 }
 
 func RemoveSchemaFromReference(relationName string) string {
@@ -50,7 +55,7 @@ func RemoveSchemaFromReference(relationName string) string {
 }
 
 func (dc *DatabaseCollection) GetCollectionTableName() string {
-	return fmt.Sprintf("%s", dc.collection.Name)
+	return dc.collection.Name
 }
 
 func (dc *DatabaseCollection) GetFieldRelationTableName(field string) (string, error) {

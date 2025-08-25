@@ -13,7 +13,7 @@ type FieldSelect = {
 	type: 'select';
 };
 
-type FieldRelation = {
+export type FieldRelation = {
 	type: 'relation';
 	relatesTo: string;
 };

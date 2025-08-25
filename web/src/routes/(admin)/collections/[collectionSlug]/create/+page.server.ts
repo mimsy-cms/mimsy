@@ -25,7 +25,9 @@ export const load: PageServerLoad = async ({ params, fetch }) => {
 	};
 };
 
-const createSchema = z.record(z.string(), z.any());
+const createSchema = z
+	.record(z.string(), z.any())
+	.refine((f) => /^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(f.slug), { message: 'Invalid slug format' });
 
 export const actions: Actions = {
 	default: async ({ request, params, fetch }) => {
