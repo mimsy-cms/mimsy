@@ -1,10 +1,12 @@
 type BaseField = {
 	name: string;
 	label?: string;
-	description?: string;
-	// We don't have a choice yet for now.
 	// eslint-disable-next-line @typescript-eslint/no-explicit-any
-	constraints?: any;
+	options: {
+		// TODO: Replace any with proper constraints type
+		constraints?: any;
+		description?: string;
+	};
 };
 
 type FieldSelect = {
@@ -76,8 +78,8 @@ export type CollectionResource = {
 	id: string;
 	slug: string;
 	created_at: string;
-	created_by: string;
+	created_by: number;
 	updated_at: string;
-	updated_by: string;
+	updated_by: number;
 	[key: string]: string | number | boolean | Date | undefined | null;
 };

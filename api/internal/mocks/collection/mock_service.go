@@ -139,32 +139,17 @@ func (mr *MockServiceMockRecorder) FindResources(ctx, collection interface{}) *g
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "FindResources", reflect.TypeOf((*MockService)(nil).FindResources), ctx, collection)
 }
 
-// FindUserEmail mocks base method.
-func (m *MockService) FindUserEmail(ctx context.Context, id int64) (string, error) {
+// UpdateResource mocks base method.
+func (m *MockService) UpdateResource(ctx context.Context, arg1 *collection.Collection, resourceSlug string, content map[string]any) (*collection.Resource, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "FindUserEmail", ctx, id)
-	ret0, _ := ret[0].(string)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// FindUserEmail indicates an expected call of FindUserEmail.
-func (mr *MockServiceMockRecorder) FindUserEmail(ctx, id interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "FindUserEmail", reflect.TypeOf((*MockService)(nil).FindUserEmail), ctx, id)
-}
-
-// UpdateResourceContent mocks base method.
-func (m *MockService) UpdateResourceContent(ctx context.Context, arg1 *collection.Collection, resourceSlug string, content map[string]any) (*collection.Resource, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "UpdateResourceContent", ctx, arg1, resourceSlug, content)
+	ret := m.ctrl.Call(m, "UpdateResource", ctx, arg1, resourceSlug, content)
 	ret0, _ := ret[0].(*collection.Resource)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
-// UpdateResourceContent indicates an expected call of UpdateResourceContent.
-func (mr *MockServiceMockRecorder) UpdateResourceContent(ctx, collection, resourceSlug, content interface{}) *gomock.Call {
+// UpdateResource indicates an expected call of UpdateResource.
+func (mr *MockServiceMockRecorder) UpdateResource(ctx, collection, resourceSlug, content interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateResourceContent", reflect.TypeOf((*MockService)(nil).UpdateResourceContent), ctx, collection, resourceSlug, content)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateResource", reflect.TypeOf((*MockService)(nil).UpdateResource), ctx, collection, resourceSlug, content)
 }
