@@ -7,6 +7,7 @@
   "module": "dist/index.js",
   "types": "dist/index.d.ts",
   "scripts": {
+    "prepare": "node --run build",
     "dev": "nodemon",
     "prepublishOnly": "pnpm i && node --run build",
     "build": "node --run validate-typescript && node --run build:clean && node --run generate-dist",
