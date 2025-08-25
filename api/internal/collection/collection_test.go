@@ -64,15 +64,13 @@ func createMockCollection() *collection.Collection {
 
 func createMockResource() *collection.Resource {
 	return &collection.Resource{
-		Id:             1,
-		Slug:           "test-resource",
-		CreatedAt:      time.Now(),
-		CreatedBy:      1,
-		CreatedByEmail: "admin@example.com",
-		UpdatedAt:      time.Now(),
-		UpdatedBy:      1,
-		UpdatedByEmail: "admin@example.com",
-		Collection:     "test-collection",
+		Id:         1,
+		Slug:       "test-resource",
+		CreatedAt:  time.Now(),
+		CreatedBy:  1,
+		UpdatedAt:  time.Now(),
+		UpdatedBy:  1,
+		Collection: "test-collection",
 		Fields: map[string]any{
 			"title":   "Test Title",
 			"content": "Test Content",
@@ -193,14 +191,6 @@ func TestGetResources_Success(t *testing.T) {
 		FindResources(gomock.Any(), mockCollection).
 		Return(mockResources, nil)
 
-	mockService.EXPECT().
-		FindUserEmail(gomock.Any(), mockResources[0].CreatedBy).
-		Return("admin@example.com", nil)
-
-	mockService.EXPECT().
-		FindUserEmail(gomock.Any(), mockResources[0].UpdatedBy).
-		Return("admin@example.com", nil)
-
 	req := httptest.NewRequest("GET", "/collections/test-collection/resources", nil)
 	req.SetPathValue("slug", "test-collection")
 
@@ -289,14 +279,6 @@ func TestGetResource_Success(t *testing.T) {
 	mockService.EXPECT().
 		FindResource(gomock.Any(), mockCollection, "test-resource").
 		Return(mockResource, nil)
-
-	mockService.EXPECT().
-		FindUserEmail(gomock.Any(), mockResource.CreatedBy).
-		Return("admin@example.com", nil)
-
-	mockService.EXPECT().
-		FindUserEmail(gomock.Any(), mockResource.UpdatedBy).
-		Return("admin@example.com", nil)
 
 	req := httptest.NewRequest("GET", "/collections/test-collection/resources/test-resource", nil)
 	req.SetPathValue("slug", "test-collection")
@@ -497,14 +479,6 @@ func TestDeleteResource_Success(t *testing.T) {
 		Return(mockResource, nil)
 
 	mockService.EXPECT().
-		FindUserEmail(gomock.Any(), mockResource.CreatedBy).
-		Return("admin@example.com", nil)
-
-	mockService.EXPECT().
-		FindUserEmail(gomock.Any(), mockResource.UpdatedBy).
-		Return("admin@example.com", nil)
-
-	mockService.EXPECT().
 		DeleteResource(gomock.Any(), mockResource).
 		Return(nil)
 
@@ -572,14 +546,6 @@ func TestDeleteResource_DeleteError(t *testing.T) {
 	mockService.EXPECT().
 		FindResource(gomock.Any(), mockCollection, "test-resource").
 		Return(mockResource, nil)
-
-	mockService.EXPECT().
-		FindUserEmail(gomock.Any(), mockResource.CreatedBy).
-		Return("admin@example.com", nil)
-
-	mockService.EXPECT().
-		FindUserEmail(gomock.Any(), mockResource.UpdatedBy).
-		Return("admin@example.com", nil)
 
 	mockService.EXPECT().
 		DeleteResource(gomock.Any(), mockResource).

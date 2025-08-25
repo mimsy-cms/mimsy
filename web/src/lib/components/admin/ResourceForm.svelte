@@ -11,6 +11,7 @@
 	import PlainTextField from '$lib/components/admin/fields/PlainTextField.svelte';
 	import RichTextField from '$lib/components/admin/fields/RichTextField/RichTextField.svelte';
 	import Input from '$lib/components/Input.svelte';
+	import type { User } from '$lib/types/user';
 	import { onMount } from 'svelte';
 
 	const {
@@ -20,18 +21,20 @@
 		data: {
 			definition: CollectionDefinition;
 			resource?: CollectionResource;
+			createdBy: User;
+			updatedBy: User;
 		};
 		slugEditable: boolean;
 	} = $props();
 
 	// Parse existing content and schema-defined fields
-	let resourceContent: CollectionResource = $state({
-		id: data.resource?.id || '',
-		slug: data.resource?.slug || '',
-		created_at: data.resource?.created_at || '',
-		updated_at: data.resource?.updated_at || '',
-		created_by: data.resource?.created_by || '',
-		updated_by: data.resource?.updated_by || '',
+	let resourceContent: Partial<CollectionResource> = $state({
+		id: data.resource?.id,
+		slug: data.resource?.slug,
+		created_at: data.resource?.created_at,
+		updated_at: data.resource?.updated_at,
+		created_by: data.resource?.created_by,
+		updated_by: data.resource?.updated_by,
 		...Object.fromEntries(
 			Object.keys(data.definition.fields).map((fieldName) => {
 				const field = data.definition.fields[fieldName as string];
@@ -79,9 +82,14 @@
 			isSaving = true;
 			error = '';
 
-			// eslint-disable-next-line @typescript-eslint/no-unused-vars
-			const { id, created_at, updated_at, updated_by, slug, ...schemaContent }: CollectionResource =
-				resourceContent;
+			const {
+				id,
+				created_at,
+				updated_at,
+				updated_by,
+				slug,
+				...schemaContent
+			}: Partial<CollectionResource> = resourceContent;
 
 			if (currentUser) {
 				schemaContent.updated_by = currentUser.id;
@@ -319,7 +327,7 @@
 				</div>
 				<div>
 					<p class="font-semibold">Created by</p>
-					<p class="text-gray-600">{data.resource?.created_by_email ?? ''}</p>
+					<p class="text-gray-600">{data.createdBy?.email ?? ''}</p>
 				</div>
 				<div>
 					<p class="font-semibold">Last modified</p>
@@ -329,7 +337,7 @@
 				</div>
 				<div>
 					<p class="font-semibold">Last modified by</p>
-					<p class="text-gray-600">{data.resource?.updated_by_email ?? ''}</p>
+					<p class="text-gray-600">{data.updatedBy?.email ?? ''}</p>
 				</div>
 			</div>
 		</div>

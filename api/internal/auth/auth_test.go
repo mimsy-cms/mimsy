@@ -93,7 +93,7 @@ func TestLogin_Success(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
-	mockRepo := mocks.NewMockAuthRepository(ctrl)
+	mockRepo := mocks.NewMockRepository(ctrl)
 
 	authService := auth.NewService(mockRepo)
 	handler := auth.NewHandler(authService)
@@ -124,7 +124,7 @@ func TestLogin_Failure_WrongPassword(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
-	mockRepo := mocks.NewMockAuthRepository(ctrl)
+	mockRepo := mocks.NewMockRepository(ctrl)
 
 	authService := auth.NewService(mockRepo)
 	handler := auth.NewHandler(authService)
@@ -151,7 +151,7 @@ func TestLogin_Failure_UserNotFound(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
-	mockRepo := mocks.NewMockAuthRepository(ctrl)
+	mockRepo := mocks.NewMockRepository(ctrl)
 
 	authService := auth.NewService(mockRepo)
 	handler := auth.NewHandler(authService)
@@ -171,7 +171,7 @@ func TestLogin_Failure_InvalidRequest(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
-	mockRepo := mocks.NewMockAuthRepository(ctrl)
+	mockRepo := mocks.NewMockRepository(ctrl)
 
 	authService := auth.NewService(mockRepo)
 	handler := auth.NewHandler(authService)
@@ -191,7 +191,7 @@ func TestLogin_Failure_DatabaseError(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
-	mockRepo := mocks.NewMockAuthRepository(ctrl)
+	mockRepo := mocks.NewMockRepository(ctrl)
 	authService := auth.NewService(mockRepo)
 	handler := auth.NewHandler(authService)
 
@@ -213,7 +213,7 @@ func TestLogin_Failure_SessionCleanupError(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
-	mockRepo := mocks.NewMockAuthRepository(ctrl)
+	mockRepo := mocks.NewMockRepository(ctrl)
 	authService := auth.NewService(mockRepo)
 	handler := auth.NewHandler(authService)
 
@@ -246,7 +246,7 @@ func TestLogin_Failure_SessionInsertError(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
-	mockRepo := mocks.NewMockAuthRepository(ctrl)
+	mockRepo := mocks.NewMockRepository(ctrl)
 	authService := auth.NewService(mockRepo)
 	handler := auth.NewHandler(authService)
 
@@ -287,7 +287,7 @@ func TestLogout_Success(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
-	mockRepo := mocks.NewMockAuthRepository(ctrl)
+	mockRepo := mocks.NewMockRepository(ctrl)
 	authService := auth.NewService(mockRepo)
 	handler := auth.NewHandler(authService)
 
@@ -316,7 +316,7 @@ func TestLogout_Failure_NoSessionCookie(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
-	mockRepo := mocks.NewMockAuthRepository(ctrl)
+	mockRepo := mocks.NewMockRepository(ctrl)
 	authService := auth.NewService(mockRepo)
 	handler := auth.NewHandler(authService)
 
@@ -337,7 +337,7 @@ func TestLogout_Failure_DatabaseError(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
-	mockRepo := mocks.NewMockAuthRepository(ctrl)
+	mockRepo := mocks.NewMockRepository(ctrl)
 	authService := auth.NewService(mockRepo)
 	handler := auth.NewHandler(authService)
 
@@ -366,7 +366,7 @@ func TestChangePassword_Success(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
-	mockRepo := mocks.NewMockAuthRepository(ctrl)
+	mockRepo := mocks.NewMockRepository(ctrl)
 	authService := auth.NewService(mockRepo)
 	handler := auth.NewHandler(authService)
 
@@ -404,7 +404,7 @@ func TestChangePassword_Failure_WrongOldPassword(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
-	mockRepo := mocks.NewMockAuthRepository(ctrl)
+	mockRepo := mocks.NewMockRepository(ctrl)
 	authService := auth.NewService(mockRepo)
 	handler := auth.NewHandler(authService)
 
@@ -445,7 +445,7 @@ func TestChangePassword_Failure_InvalidRequest(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
-	mockRepo := mocks.NewMockAuthRepository(ctrl)
+	mockRepo := mocks.NewMockRepository(ctrl)
 	authService := auth.NewService(mockRepo)
 	handler := auth.NewHandler(authService)
 
@@ -471,7 +471,7 @@ func TestChangePassword_Failure_DatabaseError(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
-	mockRepo := mocks.NewMockAuthRepository(ctrl)
+	mockRepo := mocks.NewMockRepository(ctrl)
 	authService := auth.NewService(mockRepo)
 	handler := auth.NewHandler(authService)
 
@@ -507,7 +507,7 @@ func TestChangePassword_Failure_MissingUser(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
-	mockRepo := mocks.NewMockAuthRepository(ctrl)
+	mockRepo := mocks.NewMockRepository(ctrl)
 	authService := auth.NewService(mockRepo)
 	handler := auth.NewHandler(authService)
 
@@ -529,7 +529,7 @@ func TestCreateAdminUser_Success(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
-	mockRepo := mocks.NewMockAuthRepository(ctrl)
+	mockRepo := mocks.NewMockRepository(ctrl)
 	authService := auth.NewService(mockRepo)
 
 	mockRepo.EXPECT().
@@ -551,7 +551,7 @@ func TestCreateAdminUser_Failure_UserCountError(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
-	mockRepo := mocks.NewMockAuthRepository(ctrl)
+	mockRepo := mocks.NewMockRepository(ctrl)
 	authService := auth.NewService(mockRepo)
 
 	mockRepo.EXPECT().
@@ -569,7 +569,7 @@ func TestCreateAdminUser_Failure_UserInsertError(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
-	mockRepo := mocks.NewMockAuthRepository(ctrl)
+	mockRepo := mocks.NewMockRepository(ctrl)
 	authService := auth.NewService(mockRepo)
 
 	mockRepo.EXPECT().
@@ -591,7 +591,7 @@ func TestCreateAdminUser_Failure_UserAlreadyExists(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
-	mockRepo := mocks.NewMockAuthRepository(ctrl)
+	mockRepo := mocks.NewMockRepository(ctrl)
 	authService := auth.NewService(mockRepo)
 
 	mockRepo.EXPECT().

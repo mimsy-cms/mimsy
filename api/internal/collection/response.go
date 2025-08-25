@@ -19,3 +19,6 @@ func NewCollectionResponse(c *Collection) *CollectionResponse {
 		UpdatedAt: c.UpdatedAt,
 	}
 }
+
+type ResourceResponse struct {
+}

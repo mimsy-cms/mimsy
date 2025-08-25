@@ -147,3 +147,25 @@ func (s *handler) GetUsers(w http.ResponseWriter, r *http.Request) {
 
 	util.JSON(w, http.StatusOK, users)
 }
+
+func (s *handler) FindUser(w http.ResponseWriter, r *http.Request) {
+	user := RequestUser(r.Context())
+	if user == nil {
+		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		return
+	}
+
+	id, err := util.PathInt(r, "id")
+	if err != nil {
+		http.Error(w, "Invalid user id", http.StatusBadRequest)
+		return
+	}
+
+	u, err := s.authService.FindUserById(r.Context(), id)
+	if err != nil {
+		http.Error(w, "Failed to retrieve user", http.StatusInternalServerError)
+		return
+	}
+
+	util.JSON(w, http.StatusOK, u)
+}

@@ -117,6 +117,7 @@ func main() {
 	v1.HandleFunc("GET /media/{id}", mediaHandler.GetById)
 	v1.HandleFunc("DELETE /media/{id}", mediaHandler.Delete)
 	v1.HandleFunc("GET /users", authHandler.GetUsers)
+	v1.HandleFunc("GET /users/{id}", authHandler.FindUser)
 	v1.HandleFunc("GET /sync/status", syncHandler.Status)
 	v1.HandleFunc("GET /sync/jobs", syncHandler.Jobs)
 	v1.HandleFunc("GET /sync/active-migration", syncHandler.ActiveMigration)

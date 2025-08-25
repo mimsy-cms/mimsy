@@ -76,8 +76,8 @@ export type CollectionResource = {
 	id: string;
 	slug: string;
 	created_at: string;
-	created_by: string;
+	created_by: number;
 	updated_at: string;
-	updated_by: string;
+	updated_by: number;
 	[key: string]: string | number | boolean | Date | undefined | null;
 };

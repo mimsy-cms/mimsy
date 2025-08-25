@@ -2,6 +2,7 @@ import type { PageServerLoad } from './$types';
 import { env } from '$env/dynamic/public';
 import { redirect } from '@sveltejs/kit';
 import type { CollectionDefinition, CollectionResource } from '$lib/collection/definition';
+import type { User } from '$lib/types/user';
 
 async function fetchCollectionDefinition(
 	collectionSlug: string,
@@ -22,6 +23,11 @@ async function fetchResource(
 	return response.json();
 }
 
+async function fetchUser(id: number, fetch: typeof globalThis.fetch): Promise<User> {
+	const response = await fetch(`${env.PUBLIC_API_URL}/v1/users/${id}`);
+	return response.json();
+}
+
 export const load: PageServerLoad = async ({ params, fetch }) => {
 	if (params.resourceSlug === 'create') {
 		throw redirect(307, `/collections/${params.collectionSlug}/create`);
@@ -32,9 +38,16 @@ export const load: PageServerLoad = async ({ params, fetch }) => {
 		fetchResource(params.collectionSlug, params.resourceSlug, fetch)
 	]);
 
+	const [createdBy, updatedBy] = await Promise.all([
+		fetchUser(resource.created_by, fetch),
+		fetchUser(resource.updated_by, fetch)
+	]);
+
 	return {
 		slug: params.collectionSlug,
 		definition,
-		resource
+		resource,
+		createdBy,
+		updatedBy
 	};
 };
