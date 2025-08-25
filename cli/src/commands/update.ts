@@ -3,6 +3,7 @@ import { exportSchema, clearRegistry } from "@mimsy-cms/sdk";
 import { writeFileSync, existsSync } from "fs";
 import { resolve } from "path";
 import { version } from "../version";
+import { locateProject } from "$src/utils/locate";
 
 export interface UpdateOptions {
   clear: boolean;
@@ -14,7 +15,18 @@ export async function updateAction(options: UpdateOptions): Promise<void> {
       clearRegistry();
     }
 
-    const collectionsPath = resolve(process.cwd(), "src/lib/collections.ts");
+    let projectPath;
+    try {
+      projectPath = locateProject();
+    } catch (error) {
+      console.error("❌ Could not find a mimsy project: ", error);
+      console.info(
+        "   If you want to create a new project, use the `init` command.",
+      );
+      process.exit(1);
+    }
+
+    const collectionsPath = resolve(projectPath, "src/lib/collections.ts");
 
     if (!existsSync(collectionsPath)) {
       console.error(
@@ -41,16 +53,10 @@ export async function updateAction(options: UpdateOptions): Promise<void> {
     }
 
     const schema = exportSchema();
-    const outputPath = resolve(process.cwd(), "mimsy.schema.json");
-
-    const header = [
-      `// Updated at: ${new Date().toISOString()}`,
-      `// Version: @mimsy-cms/cli@${version}`,
-      "",
-    ].join("\n");
+    const outputPath = resolve(projectPath, "mimsy.schema.json");
 
     const jsonContent = JSON.stringify(schema, null, 2);
-    const fileContent = header + jsonContent;
+    const fileContent = jsonContent;
 
     writeFileSync(outputPath, fileContent, "utf8");
 

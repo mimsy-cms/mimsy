@@ -3,6 +3,8 @@ import { createProgram } from "../src/index";
 import { version } from "../src/version";
 import { Command } from "commander";
 
+vi.mock("$src/utils/locate");
+
 describe("CLI integration tests", () => {
   let consoleSpy: ReturnType<typeof vi.spyOn>;
   let processExitSpy: any;
@@ -37,6 +39,10 @@ describe("CLI integration tests", () => {
 
   it("should show error when collections file is missing", async () => {
     const errorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+    const { locateProject } = await import("$src/utils/locate");
+    const mockLocateProject = vi.mocked(locateProject);
+    
+    mockLocateProject.mockReturnValue("/test/project");
     program.exitOverride();
 
     try {
