@@ -29,69 +29,70 @@ type Repository interface {
 	UserExists(ctx context.Context, email string) (bool, error)
 	GetUserBySessionToken(ctx context.Context, token string) (*User, error)
 	GetUsers(ctx context.Context) ([]User, error)
+	FindUserById(ctx context.Context, id int64) (*User, error)
 }
 
-type repositoy struct{}
+type repository struct{}
 
 func NewRepository() Repository {
-	return &repositoy{}
+	return &repository{}
 }
 
-func (r *repositoy) CountUsers(ctx context.Context) (int, error) {
+func (r *repository) CountUsers(ctx context.Context) (int, error) {
 	var count int
 	err := config.GetDB(ctx).QueryRowContext(ctx, `SELECT COUNT(*) FROM "user"`).Scan(&count)
 	return count, err
 }
 
-func (r *repositoy) InsertUser(ctx context.Context, email, password string, isAdmin, mustChange bool) error {
+func (r *repository) InsertUser(ctx context.Context, email, password string, isAdmin, mustChange bool) error {
 	_, err := config.GetDB(ctx).ExecContext(ctx,
 		`INSERT INTO "user" (email, password, is_admin, must_change_password, created_at, updated_at) VALUES ($1, $2, $3, $4, $5, $6)`,
 		email, password, isAdmin, mustChange, time.Now(), time.Now())
 	return err
 }
 
-func (r *repositoy) GetUserByEmail(ctx context.Context, email string) (*User, error) {
+func (r *repository) GetUserByEmail(ctx context.Context, email string) (*User, error) {
 	var u User
 	err := config.GetDB(ctx).QueryRowContext(ctx, `SELECT id, email, password, is_admin, must_change_password, created_at, updated_at FROM "user" WHERE email = $1`, email).
 		Scan(&u.ID, &u.Email, &u.PasswordHash, &u.IsAdmin, &u.MustChangePassword, &u.CreatedAt, &u.UpdatedAt)
 	return &u, err
 }
 
-func (r *repositoy) DeleteExpiredSessions(ctx context.Context) error {
+func (r *repository) DeleteExpiredSessions(ctx context.Context) error {
 	_, err := config.GetDB(ctx).ExecContext(ctx, `DELETE FROM session WHERE expires_at < NOW()`)
 	return err
 }
 
-func (r *repositoy) CreateSession(ctx context.Context, token string, userID int64, expiresAt time.Time) error {
+func (r *repository) CreateSession(ctx context.Context, token string, userID int64, expiresAt time.Time) error {
 	_, err := config.GetDB(ctx).ExecContext(ctx,
 		`INSERT INTO session (id, user_id, expires_at) VALUES ($1, $2, $3)`,
 		token, userID, expiresAt)
 	return err
 }
 
-func (r *repositoy) DeleteSession(ctx context.Context, token string) error {
+func (r *repository) DeleteSession(ctx context.Context, token string) error {
 	_, err := config.GetDB(ctx).ExecContext(ctx, `DELETE FROM session WHERE id = $1`, token)
 	return err
 }
 
-func (r *repositoy) GetUserPassword(ctx context.Context, userID int64) (string, error) {
+func (r *repository) GetUserPassword(ctx context.Context, userID int64) (string, error) {
 	var hash string
 	err := config.GetDB(ctx).QueryRowContext(ctx, `SELECT password FROM "user" WHERE id = $1`, userID).Scan(&hash)
 	return hash, err
 }
 
-func (r *repositoy) UpdatePassword(ctx context.Context, userID int64, newHash string) error {
+func (r *repository) UpdatePassword(ctx context.Context, userID int64, newHash string) error {
 	_, err := config.GetDB(ctx).ExecContext(ctx, `UPDATE "user" SET password = $1, must_change_password = FALSE, updated_at = $2 WHERE id = $3`, newHash, time.Now(), userID)
 	return err
 }
 
-func (r *repositoy) UserExists(ctx context.Context, email string) (bool, error) {
+func (r *repository) UserExists(ctx context.Context, email string) (bool, error) {
 	var exists bool
 	err := config.GetDB(ctx).QueryRowContext(ctx, `SELECT EXISTS(SELECT 1 FROM "user" WHERE email=$1)`, email).Scan(&exists)
 	return exists, err
 }
 
-func (r *repositoy) GetUserBySessionToken(ctx context.Context, token string) (*User, error) {
+func (r *repository) GetUserBySessionToken(ctx context.Context, token string) (*User, error) {
 	var user User
 	var userID int
 
@@ -113,7 +114,7 @@ func (r *repositoy) GetUserBySessionToken(ctx context.Context, token string) (*U
 	return &user, nil
 }
 
-func (r *repositoy) GetUsers(ctx context.Context) ([]User, error) {
+func (r *repository) GetUsers(ctx context.Context) ([]User, error) {
 	rows, err := config.GetDB(ctx).QueryContext(ctx, `SELECT id, email, password, is_admin, must_change_password, created_at, updated_at FROM "user"`)
 	if err != nil {
 		return nil, err
@@ -130,4 +131,11 @@ func (r *repositoy) GetUsers(ctx context.Context) ([]User, error) {
 	}
 
 	return users, rows.Err()
+}
+
+func (r *repository) FindUserById(ctx context.Context, id int64) (*User, error) {
+	var u User
+	err := config.GetDB(ctx).QueryRowContext(ctx, `SELECT id, email, password, is_admin, must_change_password, created_at, updated_at FROM "user" WHERE id = $1`, id).
+		Scan(&u.ID, &u.Email, &u.PasswordHash, &u.IsAdmin, &u.MustChangePassword, &u.CreatedAt, &u.UpdatedAt)
+	return &u, err
 }

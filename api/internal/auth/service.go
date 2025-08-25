@@ -31,6 +31,7 @@ type Service interface {
 	Register(ctx context.Context, req CreateUserRequest) error
 	GetUserBySessionToken(ctx context.Context, sessionToken string) (*User, error)
 	GetUsers(ctx context.Context) ([]User, error)
+	FindUserById(ctx context.Context, id int64) (*User, error)
 }
 
 func (s *service) GetUserBySessionToken(ctx context.Context, sessionToken string) (*User, error) {
@@ -167,4 +168,8 @@ func (s *service) GetUsers(ctx context.Context) ([]User, error) {
 		return nil, fmt.Errorf("failed to retrieve users: %w", err)
 	}
 	return users, nil
+}
+
+func (s *service) FindUserById(ctx context.Context, id int64) (*User, error) {
+	return s.authRepository.FindUserById(ctx, id)
 }
