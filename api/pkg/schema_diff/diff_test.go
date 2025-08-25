@@ -111,17 +111,18 @@ func TestDiffColumnTypeChange(t *testing.T) {
 		},
 	}
 
-	diff := schema_diff.Diff(oldSchema, newSchema)
-	if len(diff) != 1 {
-		t.Errorf("expected 1 operation (alter column), got %d", len(diff))
+	diff := schema_diff.DiffWithSkipped(oldSchema, newSchema)
+	if len(diff.Operations) != 0 {
+		t.Errorf("expected 0 operations due to skipped type change, got %d", len(diff.Operations))
 	}
 
-	if op, ok := diff[0].(*migrations.OpAlterColumn); ok {
-		if op.Table != "users" || op.Column != "name" || *op.Type != "text" {
-			t.Errorf("expected alter column operation for 'name' in 'users' to change type to 'text', got %s.%s with type %s", op.Table, op.Column, *op.Type)
-		}
-	} else {
-		t.Errorf("expected operation to be OpAlterColumn, got %T", diff[0])
+	if len(diff.SkippedOperations) != 1 {
+		t.Errorf("expected 1 skipped operation due to type change, got %d", len(diff.SkippedOperations))
+	}
+
+	skipped := diff.SkippedOperations[0]
+	if skipped.Type != "alter_column_type" || skipped.Table != "users" || skipped.Column != "name" {
+		t.Errorf("expected skipped operation for 'name' in 'users' to be 'alter_column_type', got %s.%s with type %s", skipped.Table, skipped.Column, skipped.Type)
 	}
 }
 
