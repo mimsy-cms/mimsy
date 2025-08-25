@@ -27,7 +27,7 @@ type Repository interface {
 	FindResources(ctx context.Context, collection *Collection) ([]Resource, error)
 	FindAll(ctx context.Context, params *FindAllParams) ([]Collection, error)
 	FindAllGlobals(ctx context.Context, params *FindAllParams) ([]Collection, error)
-	CreateResource(ctx context.Context, collection *Collection, resourceSlug string, createdBy int64) (*Resource, error)
+	CreateResource(ctx context.Context, collection *Collection, resourceSlug string, createdBy int64, content map[string]any) (*Resource, error)
 	UpdateResourceContent(ctx context.Context, collection *Collection, resourceSlug string, content map[string]any) (*Resource, error)
 	DeleteResource(ctx context.Context, resource *Resource) error
 	FindUserEmail(ctx context.Context, id int64) (string, error)
@@ -217,7 +217,7 @@ func (r *repository) FindAll(ctx context.Context, params *FindAllParams) ([]Coll
 	return collections, nil
 }
 
-func (r *repository) CreateResource(ctx context.Context, collection *Collection, resourceSlug string, createdBy int64) (*Resource, error) {
+func (r *repository) CreateResource(ctx context.Context, collection *Collection, resourceSlug string, createdBy int64, content map[string]any) (*Resource, error) {
 	fields := mimsy_schema.CollectionFields{}
 	if err := json.Unmarshal(collection.Fields, &fields); err != nil {
 		return nil, fmt.Errorf("failed to unmarshal collection fields: %w", err)
@@ -245,21 +245,7 @@ func (r *repository) CreateResource(ctx context.Context, collection *Collection,
 		}
 
 		columns = append(columns, colName)
-
-		switch fieldDef.Type {
-		case "text", "textarea", "slug":
-			values = append(values, "")
-		case "number":
-			values = append(values, 0)
-		case "boolean":
-			values = append(values, false)
-		case "richtext":
-			values = append(values, "{}")
-		case "relation", "date", "datetime":
-			values = append(values, nil)
-		default:
-			values = append(values, nil)
-		}
+		values = append(values, content[fieldName])
 	}
 
 	insertBuilder := psql.

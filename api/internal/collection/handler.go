@@ -95,12 +95,19 @@ func (h *Handler) UpdateResource(w http.ResponseWriter, r *http.Request) {
 
 	updatedResource, err := h.Service.UpdateResourceContent(r.Context(), collection, resourceSlug, contentData)
 	if err != nil {
-		slog.Error("Failed to update resource", "slug", slug, "resourceSlug", resourceSlug, "error", err)
 		if err == ErrNotFound {
-			http.Error(w, "Resource not found", http.StatusNotFound)
-		} else {
-			http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+			createdResource, createErr := h.Service.CreateResource(r.Context(), collection, resourceSlug, user.ID, contentData)
+			if createErr != nil {
+				slog.Error("Failed to create resource", "slug", slug, "resourceSlug", resourceSlug, "error", createErr)
+				http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+				return
+			}
+			util.JSON(w, http.StatusCreated, createdResource)
+			return
 		}
+
+		slog.Error("Failed to update resource", "slug", slug, "resourceSlug", resourceSlug, "error", err)
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 		return
 	}
 
@@ -131,6 +138,12 @@ func (h *Handler) CreateResource(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	var contentData map[string]any
+	if err := json.NewDecoder(r.Body).Decode(&contentData); err != nil {
+		http.Error(w, "Invalid JSON", http.StatusBadRequest)
+		return
+	}
+
 	collection, err := h.Service.FindBySlug(r.Context(), collectionSlug)
 	if err != nil {
 		slog.Error("Failed to get collection", "slug", collectionSlug, "error", err)
@@ -142,7 +155,7 @@ func (h *Handler) CreateResource(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	createdResource, err := h.Service.CreateResource(r.Context(), collection, req.Slug, user.ID)
+	createdResource, err := h.Service.CreateResource(r.Context(), collection, req.Slug, user.ID, contentData)
 	if err != nil {
 		slog.Error("Failed to create resource", "collectionSlug", collectionSlug, "resourceSlug", req.Slug, "error", err)
 		if err == ErrAlreadyExists {
