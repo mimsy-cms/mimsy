@@ -21,7 +21,7 @@ export const load: PageServerLoad = async ({ params, fetch }) => {
 };
 
 export const actions: Actions = {
-	create: async ({ request, params, fetch, cookies }) => {
+	create: async ({ request, params, fetch }) => {
 		const collectionSlug = params.collectionSlug;
 		const data = await request.formData();
 		const slug = data.get('slug') as string;
@@ -37,18 +37,19 @@ export const actions: Actions = {
 			});
 		}
 
-		const cookieHeader = cookies
-			.getAll()
-			.map((cookie) => `${cookie.name}=${cookie.value}`)
-			.join('; ');
+		const body: Record<string, any> = {};
+		for (const [key, value] of data.entries()) {
+			body[key] = value;
+		}
+
+		console.log(body);
 
 		const response = await fetch(`${env.PUBLIC_API_URL}/v1/collections/${collectionSlug}`, {
 			method: 'POST',
 			headers: {
-				'Content-Type': 'application/json',
-				Cookie: cookieHeader
+				'Content-Type': 'application/json'
 			},
-			body: JSON.stringify({ slug: slug.trim() })
+			body: JSON.stringify(body)
 		});
 
 		if (!response.ok) {
