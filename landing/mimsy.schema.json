@@ -95,7 +95,7 @@
 			"name": "header",
 			"schema": {
 				"contents": {
-					"type": "rich_text",
+					"type": "string",
 					"options": {
 						"description": "The contents of the header",
 						"constraints": {
