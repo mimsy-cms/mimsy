@@ -21,7 +21,7 @@ import (
 type Repository interface {
 	FindBySlug(ctx context.Context, slug string) (*Collection, error)
 	CollectionExists(ctx context.Context, slug string) (bool, error)
-	CreateCollection(ctx context.Context, slug string, name string, fieldsJson []byte) error
+	CreateCollection(ctx context.Context, slug string, name string, fieldsJson []byte, isGlobal bool) error
 	UpdateCollection(ctx context.Context, slug string, name string, fieldsJson []byte) error
 	FindResource(ctx context.Context, collection *Collection, slug string) (*Resource, error)
 	FindResources(ctx context.Context, collection *Collection) ([]Resource, error)
@@ -120,7 +120,7 @@ var (
 func (r *repository) FindBySlug(ctx context.Context, slug string) (*Collection, error) {
 	var collection Collection
 	err := config.GetDB(ctx).QueryRowContext(ctx,
-		`SELECT slug, name, fields, created_at, updated_at FROM "collection" WHERE slug = $1`,
+		`SELECT slug, name, fields, created_at, updated_at, is_global FROM "collection" WHERE slug = $1`,
 		slug,
 	).Scan(
 		&collection.Slug,
@@ -128,6 +128,7 @@ func (r *repository) FindBySlug(ctx context.Context, slug string) (*Collection, 
 		&collection.Fields,
 		&collection.CreatedAt,
 		&collection.UpdatedAt,
+		&collection.IsGlobal,
 	)
 
 	if err == sql.ErrNoRows {
@@ -384,15 +385,31 @@ func (r *repository) FindUserEmail(ctx context.Context, id int64) (string, error
 	return email, nil
 }
 
-func (r *repository) CreateCollection(ctx context.Context, slug string, name string, fieldsJson []byte) error {
+func (r *repository) CreateCollection(ctx context.Context, slug string, name string, fieldsJson []byte, isGlobal bool) error {
 	query := `
 		INSERT INTO "collection" (slug, name, fields, created_at, updated_at, is_global)
-		VALUES ($1, $2, $3, NOW(), NOW(), false)
+		VALUES ($1, $2, $3, NOW(), NOW(), $4)
 	`
 
-	_, err := config.GetDB(ctx).ExecContext(ctx, query, slug, name, fieldsJson)
+	_, err := config.GetDB(ctx).ExecContext(ctx, query, slug, name, fieldsJson, isGlobal)
 	if err != nil {
 		return fmt.Errorf("failed to insert collection: %w", err)
+	}
+
+	// If the collection is a global, initialise its resource
+	if isGlobal {
+		collection, err := r.FindBySlug(ctx, slug)
+		if err != nil {
+			return fmt.Errorf("failed to find newly created collection: %w", err)
+		}
+
+		userID := int64(1)
+		content := make(map[string]any)
+
+		_, err = r.CreateResource(ctx, collection, slug, userID, content)
+		if err != nil {
+			return fmt.Errorf("failed to create resource for global collection: %w", err)
+		}
 	}
 
 	return nil

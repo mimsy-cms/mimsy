@@ -17,8 +17,9 @@ type Schema struct {
 }
 
 type Collection struct {
-	Name   string           `json:"name"`
-	Schema CollectionFields `json:"schema"`
+	Name     string           `json:"name"`
+	Schema   CollectionFields `json:"schema"`
+	IsGlobal bool             `json:"isGlobal,omitempty"`
 }
 
 type SchemaElement struct {
