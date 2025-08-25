@@ -95,13 +95,16 @@ func (h *Handler) UpdateResource(w http.ResponseWriter, r *http.Request) {
 
 	updatedResource, err := h.Service.UpdateResourceContent(r.Context(), collection, resourceSlug, contentData)
 	if err != nil {
-		slog.Error("Failed to update resource", "slug", slug, "resourceSlug", resourceSlug, "error", err)
 		if err == ErrNotFound {
-			http.Error(w, "Resource not found", http.StatusNotFound)
-		} else {
-			http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+			createdResource, createErr := h.Service.CreateResource(r.Context(), collection, resourceSlug, user.ID, contentData)
+			if createErr != nil {
+				slog.Error("Failed to create resource", "slug", slug, "resourceSlug", resourceSlug, "error", createErr)
+				http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+				return
+			}
+			util.JSON(w, http.StatusCreated, createdResource)
+			return
 		}
-		return
 	}
 
 	util.JSON(w, http.StatusOK, updatedResource)
@@ -178,6 +181,10 @@ func (h *Handler) GetResource(w http.ResponseWriter, r *http.Request) {
 			http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 		}
 		return
+	}
+
+	if collection.IsGlobal {
+		resourceSlug = slug
 	}
 
 	resource, err := h.Service.FindResource(r.Context(), collection, resourceSlug)

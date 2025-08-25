@@ -17,7 +17,7 @@
 	let globals = $derived(
 		(data.globals ?? []).map((global) => ({
 			name: global.name,
-			href: `/collections/${global.slug}`
+			href: `/globals/${global.slug}`
 		}))
 	);
 </script>

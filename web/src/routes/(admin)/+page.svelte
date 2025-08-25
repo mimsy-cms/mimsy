@@ -66,7 +66,7 @@
 			<li class="contents">
 				<a
 					class="min-w-64 rounded-md border border-gray-200 bg-white px-3 py-2 hover:bg-gray-50"
-					href={`/collections/${global.slug}`}
+					href={`/globals/${global.slug}`}
 				>
 					<span class="text-xl font-medium">{global.name}</span>
 				</a>
