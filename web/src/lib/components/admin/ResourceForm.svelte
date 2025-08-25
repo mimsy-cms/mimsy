@@ -13,6 +13,7 @@
 	import Input from '$lib/components/Input.svelte';
 	import type { User } from '$lib/types/user';
 	import type { SuperFormData } from 'sveltekit-superforms/client';
+	import RelationshipField from './fields/RelationshipField.svelte';
 
 	const {
 		definition,
@@ -116,6 +117,9 @@
 								{#if isRequired(field)}<span class="text-red-500">*</span>{/if}
 							</label>
 							<PlainTextField id={fieldName} name={fieldName} bind:value={$form[fieldName]} />
+						{:else if field.type === 'relation'}
+							{@const name = `${fieldName}_id`}
+							<RelationshipField label={fieldName} {name} {field} bind:value={$form[fieldName]} />
 						{:else}
 							<p class="text-red-500">Unsupported field type: {field.type}</p>
 						{/if}

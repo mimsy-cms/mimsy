@@ -3,7 +3,7 @@ import { onMount } from 'svelte';
 import { Editor } from '@tiptap/core';
 import StarterKit from '@tiptap/starter-kit';
 
-let { value = $bindable(''), ...props } = $props();
+let { value = $bindable(), ...props } = $props();
 
 let element: HTMLElement;
 let editor: Editor;
