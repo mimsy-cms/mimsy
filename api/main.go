@@ -105,6 +105,7 @@ func main() {
 	v1.HandleFunc("POST /auth/register", authHandler.Register)
 	v1.HandleFunc("GET /auth/me", authHandler.Me)
 	v1.HandleFunc("GET /collections", collectionHandler.FindAll)
+	v1.HandleFunc("GET /globals/{slug}", collectionHandler.GetResource)
 	v1.HandleFunc("GET /collections/{slug}", collectionHandler.GetResources)
 	v1.HandleFunc("GET /collections/{slug}/{resourceSlug}", collectionHandler.GetResource)
 	v1.HandleFunc("PUT /collections/{slug}/{resourceSlug}", collectionHandler.UpdateResource)

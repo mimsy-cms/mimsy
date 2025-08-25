@@ -49,7 +49,7 @@ func TestMigrator_GenerateSchema_Success(t *testing.T) {
 	}
 
 	sqlSchema, err := migrator.GenerateSchema(context.Background(), schema)
-	
+
 	// The actual schema generation would depend on the schema_generator implementation
 	// For now, we just verify the method doesn't crash and returns something
 	if err != nil {
@@ -94,7 +94,7 @@ func TestMigrator_UpdateCollections_NewCollection(t *testing.T) {
 		Times(1)
 
 	mockCollectionRepo.EXPECT().
-		CreateCollection(gomock.Any(), "posts", "posts", expectedSchema).
+		CreateCollection(gomock.Any(), "posts", "posts", expectedSchema, false).
 		Return(nil).
 		Times(1)
 
@@ -177,7 +177,7 @@ func TestMigrator_UpdateCollections_MultipleCollections(t *testing.T) {
 
 	postsSchema, _ := json.Marshal(schema.Collections[0].Schema)
 	mockCollectionRepo.EXPECT().
-		CreateCollection(gomock.Any(), "posts", "posts", postsSchema).
+		CreateCollection(gomock.Any(), "posts", "posts", postsSchema, false).
 		Return(nil).
 		Times(1)
 
@@ -257,7 +257,7 @@ func TestMigrator_UpdateCollections_CreateCollectionError(t *testing.T) {
 
 	expectedSchema, _ := json.Marshal(schema.Collections[0].Schema)
 	mockCollectionRepo.EXPECT().
-		CreateCollection(gomock.Any(), "posts", "posts", expectedSchema).
+		CreateCollection(gomock.Any(), "posts", "posts", expectedSchema, false).
 		Return(errors.New("create error")).
 		Times(1)
 
@@ -332,7 +332,7 @@ func TestMigrator_Migrate_NoActiveMigration(t *testing.T) {
 	// This test would require setting up environment variables and pgroll
 	// For now, we'll test that the method handles nil activeSync properly
 	err := migrator.Migrate(context.Background(), nil, newSql, "Initial migration", "abc123")
-	
+
 	// This will likely fail due to missing environment setup, but we can verify
 	// that it attempts to process the nil activeSync correctly
 	if err != nil {
@@ -381,7 +381,7 @@ func TestMigrator_Migrate_WithActiveMigration(t *testing.T) {
 
 	// This would also fail without proper environment setup
 	err := migrator.Migrate(context.Background(), activeSync, newSql, "Add title column", "new456")
-	
+
 	if err != nil {
 		t.Logf("Migration failed as expected in test environment: %v", err)
 	}
@@ -414,7 +414,7 @@ func TestMigrator_Migrate_InvalidActiveMigrationJSON(t *testing.T) {
 	}
 
 	err := migrator.Migrate(context.Background(), activeSync, newSql, "Test migration", "new456")
-	
+
 	if err == nil {
 		t.Error("Expected error for invalid JSON, got nil")
 	}

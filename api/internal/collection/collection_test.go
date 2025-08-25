@@ -432,6 +432,10 @@ func TestUpdateResource_ResourceNotFound(t *testing.T) {
 	mockCollection := createMockCollection()
 	contentData := map[string]any{"title": "Updated Title"}
 
+	createdResource := &collection.Resource{
+		Slug: "nonexistent",
+	}
+
 	mockService.EXPECT().
 		FindBySlug(gomock.Any(), "test-collection").
 		Return(mockCollection, nil)
@@ -439,6 +443,10 @@ func TestUpdateResource_ResourceNotFound(t *testing.T) {
 	mockService.EXPECT().
 		UpdateResource(gomock.Any(), mockCollection, "nonexistent", contentData).
 		Return(nil, collection.ErrNotFound)
+
+	mockService.EXPECT().
+		CreateResource(gomock.Any(), mockCollection, "nonexistent", user.ID, contentData).
+		Return(createdResource, nil)
 
 	reqBody := `{"title":"Updated Title"}`
 	req := newJSONRequest(t, "PUT", "/collections/test-collection/resources/nonexistent", reqBody)
@@ -449,8 +457,17 @@ func TestUpdateResource_ResourceNotFound(t *testing.T) {
 
 	w := executeRequest(http.HandlerFunc(handler.UpdateResource), req, t)
 
-	if w.Code != http.StatusNotFound {
-		t.Fatalf("expected status Not Found, got %v", w.Code)
+	if w.Code != http.StatusCreated {
+		t.Fatalf("expected status Created, got %v", w.Code)
+	}
+
+	var got collection.Resource
+	if err := json.Unmarshal(w.Body.Bytes(), &got); err != nil {
+		t.Fatalf("failed to unmarshal response: %v", err)
+	}
+
+	if got.Slug != createdResource.Slug {
+		t.Errorf("expected slug %q, got %q", createdResource.Slug, got.Slug)
 	}
 }
 

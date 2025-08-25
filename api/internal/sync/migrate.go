@@ -62,7 +62,7 @@ func (m *Migrator) UpdateCollections(ctx context.Context, schema *mimsy_schema.S
 			slog.Info("Updated collection", "slug", slug, "name", collection.Name)
 		} else {
 			// Create new collection
-			if err := m.collectionRepository.CreateCollection(ctx, slug, collection.Name, fieldsJson); err != nil {
+			if err := m.collectionRepository.CreateCollection(ctx, slug, collection.Name, fieldsJson, collection.IsGlobal); err != nil {
 				return fmt.Errorf("Failed to create collection %s: %w", slug, err)
 			}
 			slog.Info("Created collection", "slug", slug, "name", collection.Name)
