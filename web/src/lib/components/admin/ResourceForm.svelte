@@ -170,7 +170,7 @@
 	}
 
 	function isRequired(field: Field): boolean {
-		return isRequired(field) ?? false;
+		return false;
 	}
 
 	let currentUser: { id: string; email: string } | null = null;
