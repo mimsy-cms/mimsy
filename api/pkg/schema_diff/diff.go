@@ -45,11 +45,19 @@ func createTableOperation(table *schema_generator.Table) migrations.Operation {
 			defaultValue = &column.DefaultValue
 		}
 
+		var generated *migrations.ColumnGenerated
+		if column.IsPrimaryKey {
+			generated = &migrations.ColumnGenerated{
+				Identity: &migrations.ColumnGeneratedIdentity{UserSpecifiedValues: "BY DEFAULT"},
+			}
+		}
+
 		columns[i] = migrations.Column{
-			Name:     column.Name,
-			Type:     column.Type,
-			Nullable: column.IsNotNull,
-			Default:  defaultValue,
+			Name:      column.Name,
+			Type:      column.Type,
+			Nullable:  column.IsNotNull,
+			Default:   defaultValue,
+			Generated: generated,
 		}
 	}
 
