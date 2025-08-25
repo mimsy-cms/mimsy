@@ -111,17 +111,18 @@ func TestDiffColumnTypeChange(t *testing.T) {
 		},
 	}
 
-	diff := schema_diff.Diff(oldSchema, newSchema)
-	if len(diff) != 1 {
-		t.Errorf("expected 1 operation (alter column), got %d", len(diff))
+	diff := schema_diff.DiffWithSkipped(oldSchema, newSchema)
+	if len(diff.Operations) != 0 {
+		t.Errorf("expected 0 operations due to skipped type change, got %d", len(diff.Operations))
 	}
 
-	if op, ok := diff[0].(*migrations.OpAlterColumn); ok {
-		if op.Table != "users" || op.Column != "name" || *op.Type != "text" {
-			t.Errorf("expected alter column operation for 'name' in 'users' to change type to 'text', got %s.%s with type %s", op.Table, op.Column, *op.Type)
-		}
-	} else {
-		t.Errorf("expected operation to be OpAlterColumn, got %T", diff[0])
+	if len(diff.SkippedOperations) != 1 {
+		t.Errorf("expected 1 skipped operation due to type change, got %d", len(diff.SkippedOperations))
+	}
+
+	skipped := diff.SkippedOperations[0]
+	if skipped.Type != "alter_column_type" || skipped.Table != "users" || skipped.Column != "name" {
+		t.Errorf("expected skipped operation for 'name' in 'users' to be 'alter_column_type', got %s.%s with type %s", skipped.Table, skipped.Column, skipped.Type)
 	}
 }
 
@@ -261,25 +262,18 @@ func TestDefaultValueChange(t *testing.T) {
 		},
 	}
 
-	diff := schema_diff.Diff(oldSchema, newSchema)
-	if len(diff) != 1 {
-		t.Errorf("expected 1 operation (alter column default value), got %d", len(diff))
+	diff := schema_diff.DiffWithSkipped(oldSchema, newSchema)
+	if len(diff.Operations) != 0 {
+		t.Errorf("expected 0 operations due to skipped value change, got %d", len(diff.Operations))
 	}
 
-	if op, ok := diff[0].(*migrations.OpAlterColumn); ok {
-		if op.Default == nil {
-			t.Errorf("expected default value to be 'Jane Doe', got %v", op.Default)
-		}
-	} else {
-		t.Errorf("expected operation to be OpAlterColumn, got %T", diff[0])
+	if len(diff.SkippedOperations) != 1 {
+		t.Errorf("expected 1 skipped operation due to value change, got %d", len(diff.SkippedOperations))
 	}
 
-	if op, ok := diff[0].(*migrations.OpAlterColumn); ok {
-		if op.Default == nil {
-			t.Errorf("expected default value to be 'Jane Doe', got %v", op.Default)
-		}
-	} else {
-		t.Errorf("expected operation to be OpAlterColumn, got %T", diff[0])
+	skipped := diff.SkippedOperations[0]
+	if skipped.Type != "alter_column_default" || skipped.Table != "users" || skipped.Column != "name" {
+		t.Errorf("expected skipped operation for 'name' in 'users' to be 'alter_column_default', got %s.%s with type %s", skipped.Table, skipped.Column, skipped.Type)
 	}
 }
 
@@ -308,21 +302,21 @@ func TestDiffAddDefaultValue(t *testing.T) {
 		},
 	}
 
-	diff := schema_diff.Diff(oldSchema, newSchema)
-	if len(diff) != 1 {
-		t.Errorf("expected 1 operation (add default value), got %d", len(diff))
+	diff := schema_diff.DiffWithSkipped(oldSchema, newSchema)
+	if len(diff.Operations) != 0 {
+		t.Errorf("expected 0 operations due to skipped default value change, got %d", len(diff.Operations))
 	}
 
-	if op, ok := diff[0].(*migrations.OpAlterColumn); ok {
-		if op.Default == nil {
-			t.Errorf("expected default value to be 'Default Name', got %v", op.Default)
-		}
-		value, err := op.Default.Get()
-		if err != nil || value != "Default Name" {
-			t.Errorf("expected default value to be 'Default Name', got %v", value)
-		}
-	} else {
-		t.Errorf("expected operation to be OpAlterColumn, got %T", diff[0])
+	if len(diff.SkippedOperations) != 1 {
+		t.Errorf("expected 1 skipped operation due to default value change, got %d", len(diff.SkippedOperations))
+	}
+
+	skipped := diff.SkippedOperations[0]
+	if skipped.Type != "alter_column_default" || skipped.Table != "users" || skipped.Column != "name" {
+		t.Errorf("expected skipped operation for 'name' in 'users' to be 'alter_column_default', got %s.%s with type %s", skipped.Table, skipped.Column, skipped.Type)
+	}
+	if skipped.NewValue != "Default Name" {
+		t.Errorf("expected skipped operation for 'name' in 'users' to have new value 'Default Name', got %v", skipped.NewValue)
 	}
 }
 
@@ -351,17 +345,18 @@ func TestDiffRemoveDefaultValue(t *testing.T) {
 		},
 	}
 
-	diff := schema_diff.Diff(oldSchema, newSchema)
-	if len(diff) != 1 {
-		t.Errorf("expected 1 operation (remove default value), got %d", len(diff))
+	diff := schema_diff.DiffWithSkipped(oldSchema, newSchema)
+	if len(diff.Operations) != 0 {
+		t.Errorf("expected 0 operations due to skipped default value removal, got %d", len(diff.Operations))
 	}
 
-	if op, ok := diff[0].(*migrations.OpAlterColumn); ok {
-		if op.Default == nil {
-			t.Errorf("expected default value to be removed, got %v", op.Default)
-		}
-	} else {
-		t.Errorf("expected operation to be OpAlterColumn, got %T", diff[0])
+	if len(diff.SkippedOperations) != 1 {
+		t.Errorf("expected 1 skipped operation due to default value removal, got %d", len(diff.SkippedOperations))
+	}
+
+	skipped := diff.SkippedOperations[0]
+	if skipped.Type != "alter_column_default" || skipped.Table != "users" || skipped.Column != "name" {
+		t.Errorf("expected skipped operation for 'name' in 'users' to be 'alter_column_default', got %s.%s with type %s", skipped.Table, skipped.Column, skipped.Type)
 	}
 }
 
@@ -390,17 +385,18 @@ func TestDiffColumnNullableChange(t *testing.T) {
 		},
 	}
 
-	diff := schema_diff.Diff(oldSchema, newSchema)
-	if len(diff) != 1 {
-		t.Errorf("expected 1 operation (alter column nullable), got %d", len(diff))
+	diff := schema_diff.DiffWithSkipped(oldSchema, newSchema)
+	if len(diff.Operations) != 0 {
+		t.Errorf("expected 0 operations due to skipped column nullable change, got %d", len(diff.Operations))
 	}
 
-	if op, ok := diff[0].(*migrations.OpAlterColumn); ok {
-		if op.Table != "users" || op.Column != "name" || op.Nullable == nil || *op.Nullable != false {
-			t.Errorf("expected alter column operation for 'name' in 'users' to change nullable to false, got %s.%s with nullable %v", op.Table, op.Column, *op.Nullable)
-		}
-	} else {
-		t.Errorf("expected operation to be OpAlterColumn, got %T", diff[0])
+	if len(diff.SkippedOperations) != 1 {
+		t.Errorf("expected 1 skipped operation due to column nullable change, got %d", len(diff.SkippedOperations))
+	}
+
+	skipped := diff.SkippedOperations[0]
+	if skipped.Type != "alter_column_nullability" || skipped.Table != "users" || skipped.Column != "name" {
+		t.Errorf("expected skipped operation for 'name' in 'users' to be 'alter_column_nullability', got %s.%s with type %s", skipped.Table, skipped.Column, skipped.Type)
 	}
 }
 
