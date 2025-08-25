@@ -87,16 +87,14 @@ func (m *Migrator) Migrate(ctx context.Context, activeSync *SyncStatus, newSql *
 	skippedAlterations := checkForSkippedAlterations(*activeSql, *newSql)
 
 	if len(skippedAlterations) > 0 {
-		warningMsg := fmt.Sprintf("Skipped %d column alterations that could break existing data: %s",
-			len(skippedAlterations),
-			formatSkippedAlterations(skippedAlterations))
+		warningMsg := fmt.Sprintf("Skipped %d alterations", len(skippedAlterations))
 
-		slog.Warn("Column alterations skipped",
-			"count", len(skippedAlterations),
-			"details", skippedAlterations,
-			"commit", commitHash)
-
-		_ = warningMsg
+		// Throw an error if there are any skipped alterations
+		return &SkippedAlterationsError{
+			Message:     warningMsg,
+			Alterations: skippedAlterations,
+			CommitHash:  commitHash,
+		}
 	}
 
 	unrunMigrations := []*pgroll_migrations.Migration{
@@ -142,6 +140,16 @@ func (m *Migrator) Migrate(ctx context.Context, activeSync *SyncStatus, newSql *
 	}
 
 	return nil
+}
+
+type SkippedAlterationsError struct {
+	Message     string              `json:"message"`
+	Alterations []SkippedAlteration `json:"alterations"`
+	CommitHash  string              `json:"commit_hash"`
+}
+
+func (e *SkippedAlterationsError) Error() string {
+	return fmt.Sprintf("%s %s", e.Message, formatSkippedAlterations(e.Alterations))
 }
 
 type SkippedAlteration struct {
