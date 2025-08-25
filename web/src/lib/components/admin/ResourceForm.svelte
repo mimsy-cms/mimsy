@@ -92,11 +92,7 @@
 								{fieldName}
 								{#if isRequired(field)}<span class="text-red-500">*</span>{/if}
 							</label>
-							<NumberField
-								id={fieldName}
-								name={fieldName}
-								bind:value={$form[fieldName]}
-							/>
+							<NumberField id={fieldName} name={fieldName} bind:value={$form[fieldName]} />
 						{:else if field.type === 'checkbox'}
 							<label for={fieldName}>
 								{fieldName}

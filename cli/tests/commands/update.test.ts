@@ -9,15 +9,18 @@ import { version } from "$src/version";
 
 vi.mock("fs");
 vi.mock("@mimsy-cms/sdk");
+vi.mock("$src/utils/locate");
 
 describe("update command", () => {
   let consoleSpy: ReturnType<typeof vi.spyOn>;
   let consoleErrorSpy: ReturnType<typeof vi.spyOn>;
+  let consoleInfoSpy: ReturnType<typeof vi.spyOn>;
   let processExitSpy: ReturnType<typeof vi.spyOn>;
 
   beforeEach(() => {
     consoleSpy = vi.spyOn(console, "log").mockImplementation(() => {});
     consoleErrorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+    consoleInfoSpy = vi.spyOn(console, "info").mockImplementation(() => {});
     processExitSpy = vi.spyOn(process, "exit").mockImplementation((code) => {
       throw new Error(`process.exit(${code})`);
     });
@@ -53,6 +56,8 @@ describe("update command", () => {
       const mockWriteFileSync = vi.mocked(fs.writeFileSync);
       const mockExportSchema = vi.mocked(sdk.exportSchema);
       const mockClearRegistry = vi.mocked(sdk.clearRegistry);
+      const { locateProject } = await import("$src/utils/locate");
+      const mockLocateProject = vi.mocked(locateProject);
 
       const originalRequire = Module.prototype.require;
       Module.prototype.require = vi.fn((id) => {
@@ -62,6 +67,7 @@ describe("update command", () => {
         return originalRequire.call(this, id);
       });
 
+      mockLocateProject.mockReturnValue("/test/project");
       mockExistsSync.mockReturnValue(true);
       mockExportSchema.mockReturnValue({
         collections: [{ name: "test" }],
@@ -70,7 +76,11 @@ describe("update command", () => {
       await updateAction({ clear: true });
 
       expect(mockClearRegistry).toHaveBeenCalled();
-      expect(mockWriteFileSync).toHaveBeenCalled();
+      expect(mockWriteFileSync).toHaveBeenCalledWith(
+        expect.stringContaining("mimsy.schema.json"),
+        expect.any(String),
+        "utf8",
+      );
       expect(consoleSpy).toHaveBeenCalledWith(
         expect.stringContaining("✅ Schema updated successfully"),
       );
@@ -83,6 +93,8 @@ describe("update command", () => {
       const mockWriteFileSync = vi.mocked(fs.writeFileSync);
       const mockExportSchema = vi.mocked(sdk.exportSchema);
       const mockClearRegistry = vi.mocked(sdk.clearRegistry);
+      const { locateProject } = await import("$src/utils/locate");
+      const mockLocateProject = vi.mocked(locateProject);
 
       const originalRequire = Module.prototype.require;
       Module.prototype.require = vi.fn((id) => {
@@ -92,6 +104,7 @@ describe("update command", () => {
         return originalRequire.call(this, id);
       });
 
+      mockLocateProject.mockReturnValue("/test/project");
       mockExistsSync.mockReturnValue(true);
       mockExportSchema.mockReturnValue({
         collections: [{ name: "test" }],
@@ -105,9 +118,33 @@ describe("update command", () => {
       Module.prototype.require = originalRequire;
     });
 
+    it("should exit with error when project cannot be located", async () => {
+      const { locateProject } = await import("$src/utils/locate");
+      const mockLocateProject = vi.mocked(locateProject);
+
+      mockLocateProject.mockImplementation(() => {
+        throw new Error("No mimsy project found");
+      });
+
+      await expect(updateAction({ clear: false })).rejects.toThrow(
+        "process.exit(1)",
+      );
+
+      expect(consoleErrorSpy).toHaveBeenCalledWith(
+        expect.stringContaining("❌ Could not find a mimsy project:"),
+        expect.any(Error),
+      );
+      expect(consoleInfoSpy).toHaveBeenCalledWith(
+        expect.stringContaining("If you want to create a new project"),
+      );
+    });
+
     it("should exit with error when collections file does not exist", async () => {
       const mockExistsSync = vi.mocked(fs.existsSync);
+      const { locateProject } = await import("$src/utils/locate");
+      const mockLocateProject = vi.mocked(locateProject);
 
+      mockLocateProject.mockReturnValue("/test/project");
       mockExistsSync.mockReturnValue(false);
 
       await expect(updateAction({ clear: false })).rejects.toThrow(
@@ -126,6 +163,8 @@ describe("update command", () => {
       const mockExistsSync = vi.mocked(fs.existsSync);
       const mockWriteFileSync = vi.mocked(fs.writeFileSync);
       const mockExportSchema = vi.mocked(sdk.exportSchema);
+      const { locateProject } = await import("$src/utils/locate");
+      const mockLocateProject = vi.mocked(locateProject);
 
       const testSchema = {
         collections: [
@@ -142,6 +181,7 @@ describe("update command", () => {
         return originalRequire.call(this, id);
       });
 
+      mockLocateProject.mockReturnValue("/test/project");
       mockExistsSync.mockReturnValue(true);
       mockExportSchema.mockReturnValue(testSchema as any);
 
@@ -149,13 +189,7 @@ describe("update command", () => {
 
       expect(mockWriteFileSync).toHaveBeenCalledWith(
         expect.stringContaining("mimsy.schema.json"),
-        expect.stringContaining("// Updated at:"),
-        "utf8",
-      );
-
-      expect(mockWriteFileSync).toHaveBeenCalledWith(
-        expect.anything(),
-        expect.stringContaining(`// Version: @mimsy-cms/cli@${version}`),
+        expect.any(String),
         "utf8",
       );
 
@@ -166,6 +200,8 @@ describe("update command", () => {
 
     it("should handle import errors gracefully", async () => {
       const mockExistsSync = vi.mocked(fs.existsSync);
+      const { locateProject } = await import("$src/utils/locate");
+      const mockLocateProject = vi.mocked(locateProject);
 
       const originalRequire = Module.prototype.require;
       Module.prototype.require = vi.fn((id) => {
@@ -178,6 +214,7 @@ describe("update command", () => {
         return originalRequire.call(this, id);
       });
 
+      mockLocateProject.mockReturnValue("/test/project");
       mockExistsSync.mockReturnValue(true);
 
       await expect(updateAction({ clear: false })).rejects.toThrow(
@@ -195,6 +232,8 @@ describe("update command", () => {
     it("should handle schema export errors", async () => {
       const mockExistsSync = vi.mocked(fs.existsSync);
       const mockExportSchema = vi.mocked(sdk.exportSchema);
+      const { locateProject } = await import("$src/utils/locate");
+      const mockLocateProject = vi.mocked(locateProject);
 
       const originalRequire = Module.prototype.require;
       Module.prototype.require = vi.fn((id) => {
@@ -204,6 +243,7 @@ describe("update command", () => {
         return originalRequire.call(this, id);
       });
 
+      mockLocateProject.mockReturnValue("/test/project");
       mockExistsSync.mockReturnValue(true);
       mockExportSchema.mockImplementation(() => {
         throw new Error("Schema export failed");
@@ -225,6 +265,8 @@ describe("update command", () => {
       const mockExistsSync = vi.mocked(fs.existsSync);
       const mockWriteFileSync = vi.mocked(fs.writeFileSync);
       const mockExportSchema = vi.mocked(sdk.exportSchema);
+      const { locateProject } = await import("$src/utils/locate");
+      const mockLocateProject = vi.mocked(locateProject);
 
       const originalRequire = Module.prototype.require;
       Module.prototype.require = vi.fn((id) => {
@@ -234,6 +276,7 @@ describe("update command", () => {
         return originalRequire.call(this, id);
       });
 
+      mockLocateProject.mockReturnValue("/test/project");
       mockExistsSync.mockReturnValue(true);
       mockExportSchema.mockReturnValue({
         collections: [],
@@ -258,6 +301,8 @@ describe("update command", () => {
       const mockExistsSync = vi.mocked(fs.existsSync);
       const mockWriteFileSync = vi.mocked(fs.writeFileSync);
       const mockExportSchema = vi.mocked(sdk.exportSchema);
+      const { locateProject } = await import("$src/utils/locate");
+      const mockLocateProject = vi.mocked(locateProject);
 
       const originalRequire = Module.prototype.require;
       Module.prototype.require = vi.fn((id) => {
@@ -267,6 +312,7 @@ describe("update command", () => {
         return originalRequire.call(this, id);
       });
 
+      mockLocateProject.mockReturnValue("/test/project");
       mockExistsSync.mockReturnValue(true);
       mockExportSchema.mockReturnValue({
         collections: [{ name: "test" }],

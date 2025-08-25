@@ -90,7 +90,22 @@
 				}
 			},
 			"isGlobal": false
+		},
+		{
+			"name": "header",
+			"schema": {
+				"contents": {
+					"type": "string",
+					"options": {
+						"description": "The contents of the header",
+						"constraints": {
+							"required": true
+						}
+					}
+				}
+			},
+			"isGlobal": true
 		}
 	],
-	"generatedAt": "2025-08-19T15:57:26.770Z"
+	"generatedAt": "2025-08-25T10:20:26.770Z"
 }
