@@ -1,11 +1,11 @@
 package schema_diff
 
 import (
+	"fmt"
 	"log/slog"
 	"strings"
 
 	"github.com/mimsy-cms/mimsy/pkg/schema_generator"
-	"github.com/oapi-codegen/nullable"
 	"github.com/xataio/pgroll/pkg/migrations"
 )
 
@@ -147,30 +147,8 @@ func processColumnChanges(table, oldTable *schema_generator.Table) []migrations.
 }
 
 func createAlterColumnOperation(tableName string, column schema_generator.Column, oldColumn *schema_generator.Column) migrations.Operation {
-	if column.Type != oldColumn.Type {
-		return &migrations.OpAlterColumn{
-			Table:  tableName,
-			Column: column.Name,
-			Type:   &column.Type,
-		}
-	}
-
-	if column.IsNotNull != oldColumn.IsNotNull {
-		return &migrations.OpAlterColumn{
-			Table:    tableName,
-			Column:   column.Name,
-			Nullable: &column.IsNotNull,
-		}
-	}
-
-	if column.DefaultValue != oldColumn.DefaultValue {
-		return &migrations.OpAlterColumn{
-			Table:   tableName,
-			Column:  column.Name,
-			Default: nullable.NewNullableWithValue(column.DefaultValue),
-		}
-	}
-
+	// TODO: fix broken alter column migration command
+	slog.Error(fmt.Sprintf("Alter column operation not allowed for table %s, column %s", tableName, column.Name))
 	return nil
 }
 
