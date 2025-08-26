@@ -1,16 +1,28 @@
 <script lang="ts">
 	import ResourceForm from '$lib/components/admin/ResourceForm.svelte';
+	import FlashMessage from '$lib/components/FlashMessage.svelte';
 	import { superForm } from 'sveltekit-superforms';
+	import { getMessageType } from '$lib/utils/messageTypes';
+	import { getFlash } from 'sveltekit-flash-message';
+	import { page } from '$app/stores';
 
 	const { data } = $props();
-
-	const { form, message, enhance } = superForm(data.form);
+	const { form, message, enhance, submitting } = superForm(data.form);
+	const flash = getFlash(page);
 </script>
 
+{#if $flash}
+	<FlashMessage 
+		message={$flash.message} 
+		type={$flash.type} 
+	/>
+{/if}
+
 {#if $message}
-	<div class="mb-4 rounded border border-red-400 bg-red-100 px-4 py-3 text-red-700">
-		{$message}
-	</div>
+	<FlashMessage 
+		message={$message} 
+		type={getMessageType($form, $message)} 
+	/>
 {/if}
 
 <form method="POST" use:enhance>
@@ -21,5 +33,6 @@
 		createdBy={data.createdBy}
 		updatedBy={data.updatedBy}
 		slugEditable={false}
+		submitting={$submitting}
 	/>
 </form>

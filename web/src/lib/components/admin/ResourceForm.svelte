@@ -21,14 +21,17 @@
 		createdBy,
 		updatedBy,
 		slugEditable = true,
-		form
+		form,
+		submitting = false
 	}: {
 		definition: CollectionDefinition;
 		resource?: CollectionResource;
 		createdBy?: User;
 		updatedBy?: User;
 		slugEditable: boolean;
+		submitting?: boolean;
 		form: SuperFormData<{
+			// eslint-disable-next-line @typescript-eslint/no-explicit-any
 			[field: string]: any;
 		}>;
 	} = $props();
@@ -47,9 +50,11 @@
 		<h1 class="text-4xl font-medium">{definition.name}</h1>
 		<div class="flex gap-2">
 			<button
-				class="rounded bg-blue-500 px-4 py-2 text-white hover:bg-blue-600 disabled:opacity-50"
+				type="submit"
+				disabled={submitting}
+				class="rounded bg-blue-500 px-4 py-2 text-white hover:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed"
 			>
-				Save Resource
+				{submitting ? 'Saving...' : 'Save Resource'}
 			</button>
 		</div>
 	</div>
