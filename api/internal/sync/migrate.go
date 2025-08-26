@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"log/slog"
 	"os"
-	"strings"
 
 	"github.com/mimsy-cms/mimsy/internal/collection"
 	"github.com/mimsy-cms/mimsy/internal/migrations"
@@ -82,7 +81,7 @@ func (m *Migrator) Migrate(ctx context.Context, activeSync *SyncStatus, newSql *
 		return fmt.Errorf("Failed to unmarshal active schema: %w", err)
 	}
 
-	// Make the diff operation and check for skipped alterations
+	// Make the diff operation
 	operations := schema_diff.Diff(*activeSql, *newSql)
 
 	unrunMigrations := []*pgroll_migrations.Migration{
@@ -104,11 +103,6 @@ func (m *Migrator) Migrate(ctx context.Context, activeSync *SyncStatus, newSql *
 
 	slog.Info("Pending Migrations", "migrations", unrunMigrations)
 
-	if len(operations) == 0 {
-		slog.Info("No migrations operations to run", "commit", commitHash)
-		return nil
-	}
-
 	runConfig := migrations.NewRunConfig(
 		migrations.WithStateSchema("mimsy_collections_roll"),
 		migrations.WithSchema("mimsy_collections"),
@@ -121,103 +115,11 @@ func (m *Migrator) Migrate(ctx context.Context, activeSync *SyncStatus, newSql *
 
 	if err != nil {
 		return fmt.Errorf("Failed to run migrations: %w (Migrations: %s)", err, string(data))
-	}
-
-	if count == 0 && len(skippedAlterations) == 0 {
+	} else if count == 0 {
 		return fmt.Errorf("No migrations were run")
 	}
 
 	return nil
-}
-
-type SkippedAlterationsError struct {
-	Message     string              `json:"message"`
-	Alterations []SkippedAlteration `json:"alterations"`
-	CommitHash  string              `json:"commit_hash"`
-}
-
-func (e *SkippedAlterationsError) Error() string {
-	return fmt.Sprintf("%s %s", e.Message, formatSkippedAlterations(e.Alterations))
-}
-
-type SkippedAlteration struct {
-	Table      string `json:"table"`
-	Column     string `json:"column"`
-	ChangeType string `json:"change_type"`
-	OldValue   string `json:"old_value"`
-	NewValue   string `json:"new_value"`
-	Reason     string `json:"reason"`
-}
-
-func checkForSkippedAlterations(oldSchema, newSchema schema_generator.SqlSchema) []SkippedAlteration {
-	var skipped []SkippedAlteration
-
-	for _, newTable := range newSchema.Tables {
-		oldTable, exists := oldSchema.GetTable(newTable.Name)
-		if !exists {
-			continue
-		}
-
-		for _, newColumn := range newTable.Columns {
-			oldColumn, exists := oldTable.GetColumn(newColumn.Name)
-			if !exists {
-				continue
-			}
-
-			if newColumn.Type != oldColumn.Type {
-				skipped = append(skipped, SkippedAlteration{
-					Table:      newTable.Name,
-					Column:     newColumn.Name,
-					ChangeType: "type",
-					OldValue:   oldColumn.Type,
-					NewValue:   newColumn.Type,
-					Reason:     "Type changes are disabled to prevent data loss",
-				})
-			}
-
-			if newColumn.IsNotNull != oldColumn.IsNotNull {
-				skipped = append(skipped, SkippedAlteration{
-					Table:      newTable.Name,
-					Column:     newColumn.Name,
-					ChangeType: "nullability",
-					OldValue:   fmt.Sprintf("nullable=%t", !oldColumn.IsNotNull),
-					NewValue:   fmt.Sprintf("nullable=%t", !newColumn.IsNotNull),
-					Reason:     "Nullability changes are disabled to prevent constraint violations",
-				})
-			}
-
-			if newColumn.DefaultValue != oldColumn.DefaultValue {
-				skipped = append(skipped, SkippedAlteration{
-					Table:      newTable.Name,
-					Column:     newColumn.Name,
-					ChangeType: "default",
-					OldValue:   oldColumn.DefaultValue,
-					NewValue:   newColumn.DefaultValue,
-					Reason:     "Default value changes are disabled",
-				})
-			}
-		}
-	}
-
-	return skipped
-}
-
-func formatSkippedAlterations(skipped []SkippedAlteration) string {
-	if len(skipped) == 0 {
-		return ""
-	}
-
-	summary := make(map[string]int)
-	for _, alt := range skipped {
-		summary[alt.ChangeType]++
-	}
-
-	var parts []string
-	for changeType, count := range summary {
-		parts = append(parts, fmt.Sprintf("%d %s changes", count, changeType))
-	}
-
-	return fmt.Sprintf("[%s]", strings.Join(parts, ", "))
 }
 
 // TODO(Red): Remove this, and modify the migration system to take this as a config.

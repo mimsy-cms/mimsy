@@ -9,54 +9,20 @@ import (
 	"github.com/xataio/pgroll/pkg/migrations"
 )
 
-type DiffResult struct {
-	Operations        []migrations.Operation
-	SkippedOperations []SkippedOperation
-}
-
-type SkippedOperation struct {
-	Type     string `json:"type"`
-	Table    string `json:"table"`
-	Column   string `json:"column,omitempty"`
-	Reason   string `json:"reason"`
-	OldValue string `json:"old_value,omitempty"`
-	NewValue string `json:"new_value,omitempty"`
-}
-
-func DiffWithSkipped(oldSchema schema_generator.SqlSchema, newSchema schema_generator.SqlSchema) DiffResult {
+func Diff(oldSchema schema_generator.SqlSchema, newSchema schema_generator.SqlSchema) []migrations.Operation {
 	operations := []migrations.Operation{}
-	skippedOps := []SkippedOperation{}
 
-	tableOps, tableSkipped := processTableChangesWithSkipped(oldSchema, newSchema)
-	operations = append(operations, tableOps...)
-	skippedOps = append(skippedOps, tableSkipped...)
-
+	operations = append(operations, processTableChanges(oldSchema, newSchema)...)
 	operations = append(operations, processConstraintChanges(oldSchema, newSchema)...)
 	operations = append(operations, processDroppedTables(oldSchema, newSchema)...)
 	operations = append(operations, processDroppedColumns(oldSchema, newSchema)...)
 	operations = append(operations, processDroppedConstraints(oldSchema, newSchema)...)
 
-	return DiffResult{
-		Operations:        operations,
-		SkippedOperations: skippedOps,
-	}
+	return operations
 }
 
-func Diff(oldSchema schema_generator.SqlSchema, newSchema schema_generator.SqlSchema) []migrations.Operation {
-	result := DiffWithSkipped(oldSchema, newSchema)
-
-	if len(result.SkippedOperations) > 0 {
-		slog.Warn("Column alterations skipped during diff",
-			"count", len(result.SkippedOperations),
-			"skipped", result.SkippedOperations)
-	}
-
-	return result.Operations
-}
-
-func processTableChangesWithSkipped(oldSchema, newSchema schema_generator.SqlSchema) ([]migrations.Operation, []SkippedOperation) {
+func processTableChanges(oldSchema, newSchema schema_generator.SqlSchema) []migrations.Operation {
 	operations := []migrations.Operation{}
-	skippedOps := []SkippedOperation{}
 
 	for _, table := range newSchema.Tables {
 		oldTable, exists := oldSchema.GetTable(table.Name)
@@ -65,12 +31,10 @@ func processTableChangesWithSkipped(oldSchema, newSchema schema_generator.SqlSch
 			continue
 		}
 
-		columnOps, columnSkipped := processColumnChangesWithSkipped(table, oldTable)
-		operations = append(operations, columnOps...)
-		skippedOps = append(skippedOps, columnSkipped...)
+		operations = append(operations, processColumnChanges(table, oldTable)...)
 	}
 
-	return operations, skippedOps
+	return operations
 }
 
 func createTableOperation(table *schema_generator.Table) migrations.Operation {
@@ -156,9 +120,8 @@ func createTableConstraint(constraint schema_generator.Constraint) *migrations.C
 	}
 }
 
-func processColumnChangesWithSkipped(table, oldTable *schema_generator.Table) ([]migrations.Operation, []SkippedOperation) {
+func processColumnChanges(table, oldTable *schema_generator.Table) []migrations.Operation {
 	operations := []migrations.Operation{}
-	skippedOps := []SkippedOperation{}
 
 	for _, column := range table.Columns {
 		oldColumn, exists := oldTable.GetColumn(column.Name)
@@ -175,45 +138,12 @@ func processColumnChangesWithSkipped(table, oldTable *schema_generator.Table) ([
 			continue
 		}
 
-		if column.Type != oldColumn.Type {
-			skippedOps = append(skippedOps, SkippedOperation{
-				Type:     "alter_column_type",
-				Table:    table.Name,
-				Column:   column.Name,
-				Reason:   "Type changes are disabled to prevent data loss",
-				OldValue: oldColumn.Type,
-				NewValue: column.Type,
-			})
-		}
-
-		if column.IsNotNull != oldColumn.IsNotNull {
-			skippedOps = append(skippedOps, SkippedOperation{
-				Type:     "alter_column_nullability",
-				Table:    table.Name,
-				Column:   column.Name,
-				Reason:   "Nullability changes are disabled to prevent constraint violations",
-				OldValue: fmt.Sprintf("nullable=%t", !oldColumn.IsNotNull),
-				NewValue: fmt.Sprintf("nullable=%t", !column.IsNotNull),
-			})
-		}
-
-		if column.DefaultValue != oldColumn.DefaultValue {
-			skippedOps = append(skippedOps, SkippedOperation{
-				Type:     "alter_column_default",
-				Table:    table.Name,
-				Column:   column.Name,
-				Reason:   "Default value changes are disabled",
-				OldValue: oldColumn.DefaultValue,
-				NewValue: column.DefaultValue,
-			})
-		}
-
 		if alterOp := createAlterColumnOperation(table.Name, column, oldColumn); alterOp != nil {
 			operations = append(operations, alterOp)
 		}
 	}
 
-	return operations, skippedOps
+	return operations
 }
 
 func createAlterColumnOperation(tableName string, column schema_generator.Column, oldColumn *schema_generator.Column) migrations.Operation {
