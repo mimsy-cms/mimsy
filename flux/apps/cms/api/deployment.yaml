@@ -20,7 +20,7 @@ spec:
         - name: regcred
       containers:
         - name: api
-          image: ghcr.io/mimsy-cms/api:20250826-074428-298c6b3 # {"$imagepolicy": "mimsy:api"}
+          image: ghcr.io/mimsy-cms/api:20250826-084425-061bc37 # {"$imagepolicy": "mimsy:api"}
           envFrom:
             - secretRef:
                 name: api-secrets
