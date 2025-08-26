@@ -2,7 +2,9 @@
 
 ## Introduction
 
-Reasons the project is/was "necessary"
+As an example of an existing CMS, WordPress is extremely customisable and therefore very complex to setup and apply to varying projects.
+
+Mimsy aims to provide a similar service but with the following qualities
 	- Quick and easy setup phase
 	- Seamless deployments with no downtime
 	- Single source of truth to simplify modifications
