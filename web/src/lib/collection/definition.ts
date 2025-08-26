@@ -1,9 +1,10 @@
 type BaseField = {
 	name: string;
 	label?: string;
-	// eslint-disable-next-line @typescript-eslint/no-explicit-any
+
 	options: {
 		// TODO: Replace any with proper constraints type
+		// eslint-disable-next-line @typescript-eslint/no-explicit-any
 		constraints?: any;
 		description?: string;
 	};

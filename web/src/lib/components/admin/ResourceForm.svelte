@@ -29,6 +29,7 @@
 		updatedBy?: User;
 		slugEditable: boolean;
 		form: SuperFormData<{
+			// eslint-disable-next-line @typescript-eslint/no-explicit-any
 			[field: string]: any;
 		}>;
 	} = $props();
