@@ -42,13 +42,12 @@
 		
 		switch (field.relatesTo) {
 			case '<builtins.user>':
-				items = resources.map((r: any) => ({ 
-					value: r.id, 
-					label: r.email 
-				}));
+				// eslint-disable-next-line @typescript-eslint/no-explicit-any
+				items = (resources ?? []).map((r: any) => ({ value: r.id, label: r.email }));
 				break;
 			case '<builtins.media>':
-				items = resources.map((r: any) => ({ 
+				// eslint-disable-next-line @typescript-eslint/no-explicit-any
+				items = (resources ?? []).map((r: any) => ({ 
 					value: r.id, 
 					label: r.name,
 					url: r.url,
@@ -56,10 +55,8 @@
 				}));
 				break;
 			default:
-				items = resources.map((r: any) => ({ 
-					value: r.id, 
-					label: r.slug 
-				}));
+				// eslint-disable-next-line @typescript-eslint/no-explicit-any
+				items = resources.map((r: any) => ({ value: r.id, label: r.slug }));
 		}
 		
 		if (value) {

@@ -4,6 +4,10 @@ import { type Collection, type Schema } from "./collection";
 // To make declaration of fields out of this file more difficult.
 const fieldType: unique symbol = Symbol();
 
+export type CollectionOrBuiltin<T extends Schema> = T extends BuiltInValue
+  ? BuiltIn<T>
+  : Collection<T>;
+
 type FieldOptions<Constraints = {}> = {
   label?: string;
   description?: string;
@@ -14,12 +18,13 @@ type FieldGenerator<T, Constraints = {}> = (
   options?: FieldOptions<Constraints>,
 ) => Field<T>;
 
-type UnfetchedRelation<T extends Schema> = {
+export type UnfetchedRelation<T extends CollectionOrBuiltin<any>> = {
+  _collection: T;
   id: string;
-  name: string;
 };
 
-type UnfetchedMultiRelation<T extends Schema> = UnfetchedRelation<T>[];
+export type UnfetchedMultiRelation<T extends CollectionOrBuiltin<any>> =
+  UnfetchedRelation<T>[];
 
 export type Field<T> = {
   _marker: typeof fieldType;
@@ -74,14 +79,11 @@ export const email: FieldGenerator<string> = (options?: FieldOptions) => ({
   ...options,
 });
 
-export function relation<
-  T extends Schema | BuiltInValue,
-  R = T extends BuiltInValue ? BuiltIn<T> : Collection<T>,
->(
+export function relation<R extends CollectionOrBuiltin<any>>(
   options: {
     relatesTo: R;
   } & FieldOptions,
-): Field<UnfetchedRelation<T>> {
+): Field<UnfetchedRelation<R>> {
   return {
     _marker: fieldType,
     type: "relation",
@@ -89,9 +91,9 @@ export function relation<
   };
 }
 
-export function multiRelation<T extends Schema>(
+export function multiRelation<T extends CollectionOrBuiltin<any>>(
   options?: {
-    relatesTo: Collection<T>;
+    relatesTo: T;
   } & FieldOptions,
 ): Field<UnfetchedMultiRelation<T>> {
   return {
