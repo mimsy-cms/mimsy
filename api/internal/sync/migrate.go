@@ -83,6 +83,7 @@ func (m *Migrator) Migrate(ctx context.Context, activeSync *SyncStatus, newSql *
 
 	// Make the diff operation
 	operations := schema_diff.Diff(*activeSql, *newSql)
+
 	unrunMigrations := []*pgroll_migrations.Migration{
 		{
 			Name: fmt.Sprintf("%s", func() string {
