@@ -237,6 +237,9 @@ func (r *repository) CreateResource(ctx context.Context, collection *Collection,
 		switch fieldDef.Type {
 		case "relation":
 			colName = pq.QuoteIdentifier(fmt.Sprintf("%s_id", fieldName))
+		case "multi_relation":
+			// TODO: Add support for multi relation
+			continue
 		}
 
 		columns = append(columns, colName)
