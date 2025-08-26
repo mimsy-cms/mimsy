@@ -28,7 +28,7 @@ type Repository interface {
 	FindAll(ctx context.Context, params *FindAllParams) ([]Collection, error)
 	FindAllGlobals(ctx context.Context, params *FindAllParams) ([]Collection, error)
 	CreateResource(ctx context.Context, collection *Collection, resourceSlug string, createdBy int64, content map[string]any) (*Resource, error)
-	UpdateResource(ctx context.Context, collection *Collection, resourceSlug string, content map[string]any) (*Resource, error)
+	UpdateResource(ctx context.Context, collection *Collection, resourceSlug string, updatedBy int64, content map[string]any) (*Resource, error)
 	DeleteResource(ctx context.Context, resource *Resource) error
 }
 
@@ -232,18 +232,18 @@ func (r *repository) CreateResource(ctx context.Context, collection *Collection,
 	values := []any{resourceSlug, sq.Expr("NOW()"), sq.Expr("NOW()"), createdBy, createdBy}
 
 	for fieldName, fieldDef := range fields {
-		colName := pq.QuoteIdentifier(fieldName)
+		colName := fieldName
 
 		switch fieldDef.Type {
 		case "relation":
-			colName = pq.QuoteIdentifier(fmt.Sprintf("%s_id", fieldName))
+			colName = fmt.Sprintf("%s_id", fieldName)
 		case "multi_relation":
 			// TODO: Add support for multi relation
 			continue
 		}
 
-		columns = append(columns, colName)
-		values = append(values, content[fieldName])
+		columns = append(columns, pq.QuoteIdentifier(colName))
+		values = append(values, content[colName])
 	}
 
 	insertBuilder := psql.
@@ -306,7 +306,7 @@ func (r *repository) DeleteResource(ctx context.Context, resource *Resource) err
 	return nil
 }
 
-func (r *repository) UpdateResource(ctx context.Context, collection *Collection, resourceSlug string, content map[string]any) (*Resource, error) {
+func (r *repository) UpdateResource(ctx context.Context, collection *Collection, resourceSlug string, updatedBy int64, content map[string]any) (*Resource, error) {
 	// Parse collection fields to identify rich text fields
 	fields := mimsy_schema.CollectionFields{}
 	if err := json.Unmarshal(collection.Fields, &fields); err != nil {
@@ -318,21 +318,12 @@ func (r *repository) UpdateResource(ctx context.Context, collection *Collection,
 	b := psql.
 		Update(pq.QuoteIdentifier(collection.Slug)).
 		Where(sq.Eq{"slug": resourceSlug}).
-		Set("updated_at", sq.Expr("NOW()"))
+		Set("updated_at", sq.Expr("NOW()")).
+		Set("updated_by", updatedBy)
 
-	if updatedBy, exists := content["updated_by"]; exists {
-		b = b.Set("updated_by", updatedBy)
-	}
-
-	fieldsUpdated := 0
 	for field, value := range content {
 		// Skip read only columns that should not be updated
 		if slices.Contains(readOnlyColumns, field) {
-			continue
-		}
-
-		// Skip updated_by as we handled it above
-		if field == "updated_by" {
 			continue
 		}
 
@@ -343,10 +334,8 @@ func (r *repository) UpdateResource(ctx context.Context, collection *Collection,
 			}
 
 			b = b.Set(pq.QuoteIdentifier(field), string(jsonValue))
-			fieldsUpdated++
 		} else {
 			b = b.Set(pq.QuoteIdentifier(field), value)
-			fieldsUpdated++
 		}
 	}
 

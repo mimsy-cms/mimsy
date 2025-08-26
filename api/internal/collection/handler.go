@@ -88,7 +88,7 @@ func (h *Handler) UpdateResource(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	updatedResource, err := h.Service.UpdateResource(r.Context(), collection, resourceSlug, contentData)
+	updatedResource, err := h.Service.UpdateResource(r.Context(), collection, resourceSlug, user.ID, contentData)
 	if err != nil {
 		if err == ErrNotFound {
 			createdResource, createErr := h.Service.CreateResource(r.Context(), collection, resourceSlug, user.ID, contentData)
