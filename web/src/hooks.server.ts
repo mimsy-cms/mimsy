@@ -1,14 +1,15 @@
 import { redirect, type Handle, type RequestEvent } from '@sveltejs/kit';
 import { env } from '$env/dynamic/public';
+import type { AuthUser } from '$lib/types/user';
 
-async function fetchAuthUser(event: RequestEvent) {
+async function fetchAuthUser(event: RequestEvent): Promise<AuthUser | undefined> {
 	const response = await event.fetch(`${env.PUBLIC_API_URL}/v1/auth/me`);
 
 	if (response.ok) {
 		return await response.json();
 	}
 
-	return null;
+	return undefined;
 }
 
 export const handle: Handle = async ({ event, resolve }) => {
