@@ -2,7 +2,7 @@ import { z } from 'zod/v4';
 import type { Actions, PageServerLoad } from './$types';
 import { fail, superValidate } from 'sveltekit-superforms';
 import { zod4 } from 'sveltekit-superforms/adapters';
-import { error, redirect } from '@sveltejs/kit';
+import { redirect } from '@sveltejs/kit';
 import { env } from '$env/dynamic/public';
 
 const loginSchema = z.object({
@@ -19,7 +19,7 @@ export const load: PageServerLoad = async () => {
 };
 
 export const actions: Actions = {
-	default: async ({ request, cookies }) => {
+	default: async ({ request, cookies, fetch }) => {
 		const form = await superValidate(request, zod4(loginSchema));
 
 		if (!form.valid) {
@@ -32,13 +32,12 @@ export const actions: Actions = {
 			headers: {
 				'Content-Type': 'application/json'
 			},
-			body: JSON.stringify(form.data),
-			credentials: 'include'
+			body: JSON.stringify(form.data)
 		});
 
 		if (!res.ok) {
 			const msg = await res.text();
-			form.message = msg || 'Invalid credentials';
+			form.message = msg ?? 'Invalid credentials';
 			return fail(res.status, { form });
 		}
 
@@ -52,9 +51,9 @@ export const actions: Actions = {
 		});
 
 		if (data.mustChangePassword) {
-			throw redirect(303, '/password');
+			redirect(303, '/password');
 		}
 
-		throw redirect(302, '/');
+		redirect(302, '/');
 	}
 };
