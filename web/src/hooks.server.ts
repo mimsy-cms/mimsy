@@ -3,7 +3,17 @@ import { env } from '$env/dynamic/public';
 import type { AuthUser } from '$lib/types/user';
 
 async function fetchAuthUser(event: RequestEvent): Promise<AuthUser | undefined> {
-	const response = await event.fetch(`${env.PUBLIC_API_URL}/v1/auth/me`);
+	const token = event.cookies.get('session');
+
+	if (!token) {
+		return undefined;
+	}
+
+	const response = await fetch(`${env.PUBLIC_API_URL}/v1/auth/me`, {
+		headers: {
+			Authorization: `Bearer ${token}`
+		}
+	});
 
 	if (response.ok) {
 		return await response.json();
