@@ -54,6 +54,6 @@ export const actions: Actions = {
 			return fail(response.status, { form });
 		}
 
-		throw redirect(303, '/');
+		redirect(303, '/');
 	}
 };
