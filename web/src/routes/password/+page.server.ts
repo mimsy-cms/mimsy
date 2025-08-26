@@ -50,6 +50,7 @@ export const actions: Actions = {
 		if (!response.ok) {
 			const errorText = await response.text();
 			form.message = `Failed to change password: ${errorText}`;
+			console.error({ error: errorText, status: response.status });
 			return fail(response.status, { form });
 		}
 

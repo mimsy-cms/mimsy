@@ -3,25 +3,18 @@
 	import PasswordInput from '$lib/components/PasswordInput.svelte';
 	import { superForm } from 'sveltekit-superforms';
 	import SaveIcon from '@lucide/svelte/icons/save';
-	import UndoIcon from '@lucide/svelte/icons/undo-2';
 
-	export let data;
+	let { data } = $props();
 
-	const { form, errors, enhance, message, reset } = superForm(data.form, {
+	const { form, errors, enhance, message } = superForm(data.form, {
 		resetForm: true
 	});
-
-	const mustChangePassword = data.must_change_password;
-
-	function handleCancel() {
-		reset();
-	}
 </script>
 
 <div class="flex min-h-screen flex-col items-center justify-center p-6">
 	<h1 class="mb-6 text-4xl font-bold">Reset Password</h1>
 
-	{#if mustChangePassword}
+	{#if data.must_change_password}
 		<div
 			class="mb-6 w-full max-w-md rounded-md border border-yellow-400 bg-yellow-100 p-4 text-yellow-800"
 		>
@@ -70,14 +63,6 @@
 		</div>
 
 		<div class="mt-4 flex justify-end gap-2">
-			<button
-				type="button"
-				on:click={handleCancel}
-				class="flex items-center rounded-md border border-gray-300 px-3 py-1 text-gray-700 hover:bg-gray-100"
-			>
-				<UndoIcon class="mr-2 h-5 w-5" />
-				Cancel
-			</button>
 			<button type="submit" class="btn flex items-center">
 				<SaveIcon class="mr-2 h-5 w-5" />
 				Change
