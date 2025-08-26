@@ -140,16 +140,16 @@ func (mr *MockServiceMockRecorder) FindResources(ctx, collection interface{}) *g
 }
 
 // UpdateResource mocks base method.
-func (m *MockService) UpdateResource(ctx context.Context, arg1 *collection.Collection, resourceSlug string, content map[string]any) (*collection.Resource, error) {
+func (m *MockService) UpdateResource(ctx context.Context, arg1 *collection.Collection, resourceSlug string, updatedBy int64, content map[string]any) (*collection.Resource, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "UpdateResource", ctx, arg1, resourceSlug, content)
+	ret := m.ctrl.Call(m, "UpdateResource", ctx, arg1, resourceSlug, updatedBy, content)
 	ret0, _ := ret[0].(*collection.Resource)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // UpdateResource indicates an expected call of UpdateResource.
-func (mr *MockServiceMockRecorder) UpdateResource(ctx, collection, resourceSlug, content interface{}) *gomock.Call {
+func (mr *MockServiceMockRecorder) UpdateResource(ctx, collection, resourceSlug, updatedBy, content interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateResource", reflect.TypeOf((*MockService)(nil).UpdateResource), ctx, collection, resourceSlug, content)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateResource", reflect.TypeOf((*MockService)(nil).UpdateResource), ctx, collection, resourceSlug, updatedBy, content)
 }
