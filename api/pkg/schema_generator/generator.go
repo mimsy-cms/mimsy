@@ -326,13 +326,17 @@ func (s *schemaGenerator) HandleManyToOneField(name string, element mimsy_schema
 		IsNotNull: element.IsRequired(),
 	}
 
-	slugColumn := Column{
-		Name:        fmt.Sprintf("%s_slug", name),
-		Type:        "varchar",
-		GeneratedAs: fmt.Sprintf("SELECT slug FROM %s WHERE id = %s", referenceTable, pq.QuoteIdentifier(idColumnName)),
-	}
+	table.Columns = append(table.Columns, idColumn)
 
-	table.Columns = append(table.Columns, idColumn, slugColumn)
+	if !IsBuiltin(element.RelatesTo) {
+		slugColumn := Column{
+			Name:        fmt.Sprintf("%s_slug", name),
+			Type:        "varchar",
+			GeneratedAs: fmt.Sprintf("SELECT slug FROM %s WHERE id = %s", referenceTable, pq.QuoteIdentifier(idColumnName)),
+		}
+
+		table.Columns = append(table.Columns, slugColumn)
+	}
 
 	foreignKeyConstraint := &ForeignKeyConstraint{
 		Table:           table.Name,
