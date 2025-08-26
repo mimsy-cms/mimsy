@@ -217,45 +217,8 @@ func processColumnChangesWithSkipped(table, oldTable *schema_generator.Table) ([
 }
 
 func createAlterColumnOperation(tableName string, column schema_generator.Column, oldColumn *schema_generator.Column) migrations.Operation {
-	if column.Type != oldColumn.Type {
-		// return &migrations.OpAlterColumn{
-		// 	Table:  tableName,
-		// 	Column: column.Name,
-		// 	Type:   &column.Type,
-		// }
-		slog.Warn("Column type change detected but skipped",
-			"table", tableName,
-			"column", column.Name,
-			"oldType", oldColumn.Type,
-			"newType", column.Type)
-	}
-
-	if column.IsNotNull != oldColumn.IsNotNull {
-		// return &migrations.OpAlterColumn{
-		// 	Table:    tableName,
-		// 	Column:   column.Name,
-		// 	Nullable: &column.IsNotNull,
-		// }
-		slog.Warn("Column nullability change detected but skipped",
-			"table", tableName,
-			"column", column.Name,
-			"oldIsNotNull", oldColumn.IsNotNull,
-			"newIsNotNull", column.IsNotNull)
-	}
-
-	if column.DefaultValue != oldColumn.DefaultValue {
-		// return &migrations.OpAlterColumn{
-		// 	Table:   tableName,
-		// 	Column:  column.Name,
-		// 	Default: nullable.NewNullableWithValue(column.DefaultValue),
-		// }
-		slog.Warn("Column default value change detected but skipped",
-			"table", tableName,
-			"column", column.Name,
-			"oldDefault", oldColumn.DefaultValue,
-			"newDefault", column.DefaultValue)
-	}
-
+	// TODO: fix broken alter column migration command
+	slog.Error(fmt.Sprintf("Alter column operation not allowed for table %s, column %s", tableName, column.Name))
 	return nil
 }
 

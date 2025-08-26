@@ -84,18 +84,6 @@ func (m *Migrator) Migrate(ctx context.Context, activeSync *SyncStatus, newSql *
 
 	// Make the diff operation and check for skipped alterations
 	operations := schema_diff.Diff(*activeSql, *newSql)
-	skippedAlterations := checkForSkippedAlterations(*activeSql, *newSql)
-
-	if len(skippedAlterations) > 0 {
-		warningMsg := fmt.Sprintf("Skipped %d alterations", len(skippedAlterations))
-
-		// Throw an error if there are any skipped alterations
-		return &SkippedAlterationsError{
-			Message:     warningMsg,
-			Alterations: skippedAlterations,
-			CommitHash:  commitHash,
-		}
-	}
 
 	unrunMigrations := []*pgroll_migrations.Migration{
 		{
