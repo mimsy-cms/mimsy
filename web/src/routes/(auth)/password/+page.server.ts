@@ -2,7 +2,7 @@ import { z } from 'zod/v4';
 import type { Actions, PageServerLoad } from './$types';
 import { fail, superValidate } from 'sveltekit-superforms';
 import { zod4 } from 'sveltekit-superforms/adapters';
-import { error, redirect } from '@sveltejs/kit';
+import { redirect } from '@sveltejs/kit';
 import { env } from '$env/dynamic/public';
 
 const passwordSchema = z
@@ -30,13 +30,14 @@ export const load: PageServerLoad = async ({ locals }) => {
 export const actions: Actions = {
 	default: async ({ request, fetch }) => {
 		const form = await superValidate(request, zod4(passwordSchema));
-		if (!form.valid) return fail(400, { form });
+		if (!form.valid) {
+			return fail(400, { form });
+		}
 
 		const { old_password, new_password } = form.data;
 
-		const res = await fetch(`${env.PUBLIC_API_URL}/v1/auth/password`, {
+		const response = await fetch(`${env.PUBLIC_API_URL}/v1/auth/password`, {
 			method: 'POST',
-			credentials: 'include',
 			headers: {
 				'Content-Type': 'application/json'
 			},
@@ -46,12 +47,13 @@ export const actions: Actions = {
 			})
 		});
 
-		if (!res.ok) {
-			const errorText = await res.text();
+		if (!response.ok) {
+			const errorText = await response.text();
 			form.message = `Failed to change password: ${errorText}`;
-			return fail(res.status, { form });
+			console.error({ error: errorText, status: response.status });
+			return fail(response.status, { form });
 		}
 
-		throw redirect(303, '/');
+		redirect(303, '/');
 	}
 };

@@ -1,11 +1,16 @@
 {
   "name": "@mimsy-cms/sdk",
-  "version": "1.0.1",
+  "version": "1.1.0",
   "description": "",
   "private": false,
   "main": "dist/index.js",
   "module": "dist/index.js",
   "types": "dist/index.d.ts",
+  "repository": {
+    "url": "https://github.com/mimsy-cms/mimsy",
+    "directory": "sdk",
+    "type": "git"
+  },
   "scripts": {
     "prepare": "node --run build",
     "dev": "nodemon",

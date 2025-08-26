@@ -1,26 +1,28 @@
-import { redirect, type Handle } from '@sveltejs/kit';
+import { redirect, type Handle, type RequestEvent } from '@sveltejs/kit';
 import { env } from '$env/dynamic/public';
+import type { AuthUser } from '$lib/types/user';
+
+async function fetchAuthUser(event: RequestEvent): Promise<AuthUser | undefined> {
+	const response = await event.fetch(`${env.PUBLIC_API_URL}/v1/auth/me`);
+
+	if (response.ok) {
+		return await response.json();
+	}
+
+	return undefined;
+}
 
 export const handle: Handle = async ({ event, resolve }) => {
-	const token = event.cookies.get('session');
+	const user = await fetchAuthUser(event);
+	const isAdminRoute = event.route.id?.startsWith('/(admin)');
 
-	if (token) {
-		const res = await fetch(`${env.PUBLIC_API_URL}/v1/auth/me`, {
-			headers: {
-				Authorization: `Bearer ${token}`
-			}
-		});
-
-		if (res.ok) {
-			const user = await res.json();
-
-			if (user.must_change_password && event.url.pathname !== '/password') {
-				redirect(303, '/password');
-			}
-
-			event.locals.user = user;
-		}
+	// We redirect the user to the login page if they are not authenticated
+	// and trying to access an admin route
+	if (isAdminRoute && !user) {
+		redirect(302, '/login');
 	}
+
+	event.locals.user = user;
 
 	return resolve(event);
 };

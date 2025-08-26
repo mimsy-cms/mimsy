@@ -107,6 +107,10 @@ function serializeSchema(schema: Schema): SerializedSchema {
 
   const serialized: SerializedSchema = {};
   for (const [key, field] of Object.entries(schema)) {
+    // Skip fields that start with underscore
+    if (key.startsWith("_")) {
+      continue;
+    }
     serialized[key] = serializeField(field as Field<any>);
   }
   return serialized;

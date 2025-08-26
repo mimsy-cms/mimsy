@@ -5,6 +5,7 @@ on:
 
 permissions:
   contents: read
+  id-token: write # Required for OIDC
 
 jobs:
   publish-sdk:
@@ -31,6 +32,11 @@ jobs:
           cache-dependency-path: sdk/pnpm-lock.yaml
           registry-url: "https://registry.npmjs.org"
 
+      - name: Re-install npm
+        # TODO: OIDC requires npm >=11.5.1.
+        # Until Node.js v24 is LTS (with npm 11 as the default), we need to bump.
+        run: npm install -g npm@11
+
       - name: Install dependencies
         run: pnpm install
 
@@ -41,6 +47,7 @@ jobs:
         run: pnpm build
 
       - name: Publish to NPM
-        run: pnpm publish --access public
+        run: pnpm publish --access public --no-git-checks
         env:
+          NPM_CONFIG_PROVENANCE: true
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}

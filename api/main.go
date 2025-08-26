@@ -124,6 +124,7 @@ func main() {
 	v1.HandleFunc("GET /sync/active-migration", syncHandler.ActiveMigration)
 
 	handler := util.ApplyMiddlewares(
+		util.RequestLoggerMiddleware(),
 		config.WithDB(db),
 		auth.WithRequestUser(authService),
 	)

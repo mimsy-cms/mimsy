@@ -3,7 +3,6 @@
 	import Input from '$lib/components/Input.svelte';
 	import PasswordInput from '$lib/components/PasswordInput.svelte';
 	import { superForm } from 'sveltekit-superforms';
-	import { fa } from 'zod/v4/locales';
 
 	let { data } = $props();
 
