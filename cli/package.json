@@ -4,6 +4,11 @@
   "version": "1.2.0",
   "description": "",
   "main": "dist/index.js",
+  "repository": {
+    "url": "https://github.com/mimsy-cms/mimsy",
+    "directory": "cli",
+    "type": "git"
+  },
   "bin": {
     "msy": "./dist/index.js"
   },
