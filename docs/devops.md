@@ -12,7 +12,7 @@ The Mimsy application that is deployed on Kubernetes serves as a validation grou
 
 ## Develop
 
-The Mimsy project is structured as a monorepository, where each directory inside the repository corresponds to a different app or library. You can find more about each project's inside their respective `README.md` files.
+The Mimsy project is structured as a [monorepo](https://monorepo.tools/), where each directory inside the repository corresponds to a different app or library. You can find more about each project inside their respective `README.md` files.
 
 ## Test
 
