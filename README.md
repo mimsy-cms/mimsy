@@ -118,6 +118,8 @@ Kubernetes manifests managed by Flux for GitOps deployments:
 nix develop
 
 # All dependencies are now available
+# You can start a dev environment, with all required dependencies with:
+dev
 ```
 
 ### Manual Setup

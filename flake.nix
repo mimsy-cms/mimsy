@@ -20,6 +20,7 @@
         config,
         self',
         inputs',
+        outputs,
         pkgs,
         system,
         ...
@@ -56,6 +57,8 @@
             nil
             nixpkgs-fmt
             gh
+
+            self'.packages.dev
           ];
 
           shellHook = ''
