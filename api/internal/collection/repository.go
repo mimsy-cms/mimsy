@@ -18,17 +18,22 @@ import (
 	"github.com/mimsy-cms/mimsy/pkg/mimsy_schema"
 )
 
+// Red: In case you are wondering why the collections are named `c` instead of `collection`
+// it is because mocks import this package, that is called `collection`.
+// So when trying to access another type within one of the mocks, it will break.
+
 type Repository interface {
 	FindBySlug(ctx context.Context, slug string) (*Collection, error)
 	CollectionExists(ctx context.Context, slug string) (bool, error)
 	CreateCollection(ctx context.Context, slug string, name string, fieldsJson []byte, isGlobal bool) error
 	UpdateCollection(ctx context.Context, slug string, name string, fieldsJson []byte) error
-	FindResource(ctx context.Context, collection *Collection, slug string) (*Resource, error)
-	FindResources(ctx context.Context, collection *Collection) ([]Resource, error)
+	DeleteCollection(ctx context.Context, slug string) error
+	FindResource(ctx context.Context, c *Collection, slug string) (*Resource, error)
+	FindResources(ctx context.Context, c *Collection) ([]Resource, error)
 	FindAll(ctx context.Context, params *FindAllParams) ([]Collection, error)
 	FindAllGlobals(ctx context.Context, params *FindAllParams) ([]Collection, error)
-	CreateResource(ctx context.Context, collection *Collection, resourceSlug string, createdBy int64, content map[string]any) (*Resource, error)
-	UpdateResource(ctx context.Context, collection *Collection, resourceSlug string, updatedBy int64, content map[string]any) (*Resource, error)
+	CreateResource(ctx context.Context, c *Collection, resourceSlug string, createdBy int64, content map[string]any) (*Resource, error)
+	UpdateResource(ctx context.Context, c *Collection, resourceSlug string, updatedBy int64, content map[string]any) (*Resource, error)
 	DeleteResource(ctx context.Context, resource *Resource) error
 }
 
@@ -395,6 +400,20 @@ func (r *repository) UpdateCollection(ctx context.Context, slug string, name str
 	_, err := config.GetDB(ctx).ExecContext(ctx, query, slug, name, fieldsJson)
 	if err != nil {
 		return fmt.Errorf("failed to update collection: %w", err)
+	}
+
+	return nil
+}
+
+func (r *repository) DeleteCollection(ctx context.Context, slug string) error {
+	query := `
+		DELETE FROM "collection"
+		WHERE slug = $1
+	`
+
+	_, err := config.GetDB(ctx).ExecContext(ctx, query, slug)
+	if err != nil {
+		return fmt.Errorf("failed to delete collection: %w", err)
 	}
 
 	return nil
