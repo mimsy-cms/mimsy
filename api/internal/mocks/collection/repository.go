@@ -65,18 +65,32 @@ func (mr *MockRepositoryMockRecorder) CreateCollection(ctx, slug, name, fieldsJs
 }
 
 // CreateResource mocks base method.
-func (m *MockRepository) CreateResource(ctx context.Context, arg1 *collection.Collection, resourceSlug string, createdBy int64, content map[string]any) (*collection.Resource, error) {
+func (m *MockRepository) CreateResource(ctx context.Context, c *collection.Collection, resourceSlug string, createdBy int64, content map[string]any) (*collection.Resource, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "CreateResource", ctx, arg1, resourceSlug, createdBy, content)
+	ret := m.ctrl.Call(m, "CreateResource", ctx, c, resourceSlug, createdBy, content)
 	ret0, _ := ret[0].(*collection.Resource)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // CreateResource indicates an expected call of CreateResource.
-func (mr *MockRepositoryMockRecorder) CreateResource(ctx, collection, resourceSlug, createdBy, content interface{}) *gomock.Call {
+func (mr *MockRepositoryMockRecorder) CreateResource(ctx, c, resourceSlug, createdBy, content interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateResource", reflect.TypeOf((*MockRepository)(nil).CreateResource), ctx, collection, resourceSlug, createdBy, content)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateResource", reflect.TypeOf((*MockRepository)(nil).CreateResource), ctx, c, resourceSlug, createdBy, content)
+}
+
+// DeleteCollection mocks base method.
+func (m *MockRepository) DeleteCollection(ctx context.Context, slug string) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "DeleteCollection", ctx, slug)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// DeleteCollection indicates an expected call of DeleteCollection.
+func (mr *MockRepositoryMockRecorder) DeleteCollection(ctx, slug interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteCollection", reflect.TypeOf((*MockRepository)(nil).DeleteCollection), ctx, slug)
 }
 
 // DeleteResource mocks base method.
@@ -139,33 +153,33 @@ func (mr *MockRepositoryMockRecorder) FindBySlug(ctx, slug interface{}) *gomock.
 }
 
 // FindResource mocks base method.
-func (m *MockRepository) FindResource(ctx context.Context, arg1 *collection.Collection, slug string) (*collection.Resource, error) {
+func (m *MockRepository) FindResource(ctx context.Context, c *collection.Collection, slug string) (*collection.Resource, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "FindResource", ctx, arg1, slug)
+	ret := m.ctrl.Call(m, "FindResource", ctx, c, slug)
 	ret0, _ := ret[0].(*collection.Resource)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // FindResource indicates an expected call of FindResource.
-func (mr *MockRepositoryMockRecorder) FindResource(ctx, collection, slug interface{}) *gomock.Call {
+func (mr *MockRepositoryMockRecorder) FindResource(ctx, c, slug interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "FindResource", reflect.TypeOf((*MockRepository)(nil).FindResource), ctx, collection, slug)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "FindResource", reflect.TypeOf((*MockRepository)(nil).FindResource), ctx, c, slug)
 }
 
 // FindResources mocks base method.
-func (m *MockRepository) FindResources(ctx context.Context, arg1 *collection.Collection) ([]collection.Resource, error) {
+func (m *MockRepository) FindResources(ctx context.Context, c *collection.Collection) ([]collection.Resource, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "FindResources", ctx, arg1)
+	ret := m.ctrl.Call(m, "FindResources", ctx, c)
 	ret0, _ := ret[0].([]collection.Resource)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // FindResources indicates an expected call of FindResources.
-func (mr *MockRepositoryMockRecorder) FindResources(ctx, collection interface{}) *gomock.Call {
+func (mr *MockRepositoryMockRecorder) FindResources(ctx, c interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "FindResources", reflect.TypeOf((*MockRepository)(nil).FindResources), ctx, collection)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "FindResources", reflect.TypeOf((*MockRepository)(nil).FindResources), ctx, c)
 }
 
 // UpdateCollection mocks base method.
@@ -183,16 +197,16 @@ func (mr *MockRepositoryMockRecorder) UpdateCollection(ctx, slug, name, fieldsJs
 }
 
 // UpdateResource mocks base method.
-func (m *MockRepository) UpdateResource(ctx context.Context, arg1 *collection.Collection, resourceSlug string, updatedBy int64, content map[string]any) (*collection.Resource, error) {
+func (m *MockRepository) UpdateResource(ctx context.Context, c *collection.Collection, resourceSlug string, updatedBy int64, content map[string]any) (*collection.Resource, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "UpdateResource", ctx, arg1, resourceSlug, updatedBy, content)
+	ret := m.ctrl.Call(m, "UpdateResource", ctx, c, resourceSlug, updatedBy, content)
 	ret0, _ := ret[0].(*collection.Resource)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // UpdateResource indicates an expected call of UpdateResource.
-func (mr *MockRepositoryMockRecorder) UpdateResource(ctx, collection, resourceSlug, updatedBy, content interface{}) *gomock.Call {
+func (mr *MockRepositoryMockRecorder) UpdateResource(ctx, c, resourceSlug, updatedBy, content interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateResource", reflect.TypeOf((*MockRepository)(nil).UpdateResource), ctx, collection, resourceSlug, updatedBy, content)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateResource", reflect.TypeOf((*MockRepository)(nil).UpdateResource), ctx, c, resourceSlug, updatedBy, content)
 }
