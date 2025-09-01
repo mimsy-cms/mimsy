@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	"github.com/golang/mock/gomock"
+	"github.com/mimsy-cms/mimsy/internal/collection"
 	mocks_collection "github.com/mimsy-cms/mimsy/internal/mocks/collection"
 	"github.com/mimsy-cms/mimsy/internal/sync"
 	"github.com/mimsy-cms/mimsy/pkg/mimsy_schema"
@@ -98,6 +99,12 @@ func TestMigrator_UpdateCollections_NewCollection(t *testing.T) {
 		Return(nil).
 		Times(1)
 
+	// Expect FindAll to be called for deletion check
+	mockCollectionRepo.EXPECT().
+		FindAll(gomock.Any(), &collection.FindAllParams{Search: ""}).
+		Return([]collection.Collection{}, nil).
+		Times(1)
+
 	err := migrator.UpdateCollections(context.Background(), schema)
 	if err != nil {
 		t.Errorf("Expected no error, got %v", err)
@@ -137,6 +144,14 @@ func TestMigrator_UpdateCollections_ExistingCollection(t *testing.T) {
 	mockCollectionRepo.EXPECT().
 		UpdateCollection(gomock.Any(), "posts", "posts", expectedSchema).
 		Return(nil).
+		Times(1)
+
+	// Expect FindAll to be called for deletion check
+	mockCollectionRepo.EXPECT().
+		FindAll(gomock.Any(), &collection.FindAllParams{Search: ""}).
+		Return([]collection.Collection{
+			{Name: "posts", Slug: "posts"},
+		}, nil).
 		Times(1)
 
 	err := migrator.UpdateCollections(context.Background(), schema)
@@ -191,6 +206,15 @@ func TestMigrator_UpdateCollections_MultipleCollections(t *testing.T) {
 	mockCollectionRepo.EXPECT().
 		UpdateCollection(gomock.Any(), "users", "users", usersSchema).
 		Return(nil).
+		Times(1)
+
+	// Expect FindAll to be called for deletion check
+	mockCollectionRepo.EXPECT().
+		FindAll(gomock.Any(), &collection.FindAllParams{Search: ""}).
+		Return([]collection.Collection{
+			{Name: "posts", Slug: "posts"},
+			{Name: "users", Slug: "users"},
+		}, nil).
 		Times(1)
 
 	err := migrator.UpdateCollections(context.Background(), schema)
@@ -427,4 +451,203 @@ func TestMigrator_Migrate_InvalidActiveMigrationJSON(t *testing.T) {
 // Helper to check if error is related to JSON unmarshaling
 func jsonUnmarshalError(err error) bool {
 	return err.Error() == "Failed to unmarshal active schema: invalid character 'i' looking for beginning of value"
+}
+
+func TestMigrator_UpdateCollections_WithDeletion(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mockCollectionRepo := mocks_collection.NewMockRepository(ctrl)
+	migrator := sync.NewMigrator(mockCollectionRepo)
+
+	// Schema with only posts collection
+	schema := &mimsy_schema.Schema{
+		Collections: []mimsy_schema.Collection{
+			{
+				Name: "posts",
+				Schema: mimsy_schema.CollectionFields{
+					"title": mimsy_schema.SchemaElement{Type: "text"},
+				},
+			},
+		},
+	}
+
+	// Mock for posts collection (existing)
+	mockCollectionRepo.EXPECT().
+		CollectionExists(gomock.Any(), "posts").
+		Return(true, nil).
+		Times(1)
+
+	postsSchema, _ := json.Marshal(schema.Collections[0].Schema)
+	mockCollectionRepo.EXPECT().
+		UpdateCollection(gomock.Any(), "posts", "posts", postsSchema).
+		Return(nil).
+		Times(1)
+
+	// FindAll returns posts and an old collection that should be deleted
+	mockCollectionRepo.EXPECT().
+		FindAll(gomock.Any(), &collection.FindAllParams{Search: ""}).
+		Return([]collection.Collection{
+			{Name: "posts", Slug: "posts"},
+			{Name: "old_collection", Slug: "old_collection"},
+		}, nil).
+		Times(1)
+
+	// Expect deletion of old_collection
+	mockCollectionRepo.EXPECT().
+		DeleteCollection(gomock.Any(), "old_collection").
+		Return(nil).
+		Times(1)
+
+	err := migrator.UpdateCollections(context.Background(), schema)
+	if err != nil {
+		t.Errorf("Expected no error, got %v", err)
+	}
+}
+
+func TestMigrator_UpdateCollections_DeleteMultipleCollections(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mockCollectionRepo := mocks_collection.NewMockRepository(ctrl)
+	migrator := sync.NewMigrator(mockCollectionRepo)
+
+	// Empty schema - all collections should be deleted
+	schema := &mimsy_schema.Schema{
+		Collections: []mimsy_schema.Collection{},
+	}
+
+	// FindAll returns multiple collections that should all be deleted
+	mockCollectionRepo.EXPECT().
+		FindAll(gomock.Any(), &collection.FindAllParams{Search: ""}).
+		Return([]collection.Collection{
+			{Name: "posts", Slug: "posts"},
+			{Name: "users", Slug: "users"},
+			{Name: "comments", Slug: "comments"},
+		}, nil).
+		Times(1)
+
+	// Expect deletion of all collections
+	mockCollectionRepo.EXPECT().
+		DeleteCollection(gomock.Any(), "posts").
+		Return(nil).
+		Times(1)
+
+	mockCollectionRepo.EXPECT().
+		DeleteCollection(gomock.Any(), "users").
+		Return(nil).
+		Times(1)
+
+	mockCollectionRepo.EXPECT().
+		DeleteCollection(gomock.Any(), "comments").
+		Return(nil).
+		Times(1)
+
+	err := migrator.UpdateCollections(context.Background(), schema)
+	if err != nil {
+		t.Errorf("Expected no error, got %v", err)
+	}
+}
+
+func TestMigrator_UpdateCollections_DeleteCollectionError(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mockCollectionRepo := mocks_collection.NewMockRepository(ctrl)
+	migrator := sync.NewMigrator(mockCollectionRepo)
+
+	// Schema with only posts collection
+	schema := &mimsy_schema.Schema{
+		Collections: []mimsy_schema.Collection{
+			{
+				Name: "posts",
+				Schema: mimsy_schema.CollectionFields{
+					"title": mimsy_schema.SchemaElement{Type: "text"},
+				},
+			},
+		},
+	}
+
+	// Mock for posts collection (existing)
+	mockCollectionRepo.EXPECT().
+		CollectionExists(gomock.Any(), "posts").
+		Return(true, nil).
+		Times(1)
+
+	postsSchema, _ := json.Marshal(schema.Collections[0].Schema)
+	mockCollectionRepo.EXPECT().
+		UpdateCollection(gomock.Any(), "posts", "posts", postsSchema).
+		Return(nil).
+		Times(1)
+
+	// FindAll returns posts and an old collection that should be deleted
+	mockCollectionRepo.EXPECT().
+		FindAll(gomock.Any(), &collection.FindAllParams{Search: ""}).
+		Return([]collection.Collection{
+			{Name: "posts", Slug: "posts"},
+			{Name: "old_collection", Slug: "old_collection"},
+		}, nil).
+		Times(1)
+
+	// Expect deletion of old_collection to fail
+	mockCollectionRepo.EXPECT().
+		DeleteCollection(gomock.Any(), "old_collection").
+		Return(errors.New("deletion failed")).
+		Times(1)
+
+	err := migrator.UpdateCollections(context.Background(), schema)
+	if err == nil {
+		t.Error("Expected error, got nil")
+	}
+
+	if err.Error() != "Failed to delete collection old_collection: deletion failed" {
+		t.Errorf("Unexpected error message: %v", err)
+	}
+}
+
+func TestMigrator_UpdateCollections_FindAllError(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mockCollectionRepo := mocks_collection.NewMockRepository(ctrl)
+	migrator := sync.NewMigrator(mockCollectionRepo)
+
+	// Schema with posts collection
+	schema := &mimsy_schema.Schema{
+		Collections: []mimsy_schema.Collection{
+			{
+				Name: "posts",
+				Schema: mimsy_schema.CollectionFields{
+					"title": mimsy_schema.SchemaElement{Type: "text"},
+				},
+			},
+		},
+	}
+
+	// Mock for posts collection (existing)
+	mockCollectionRepo.EXPECT().
+		CollectionExists(gomock.Any(), "posts").
+		Return(true, nil).
+		Times(1)
+
+	postsSchema, _ := json.Marshal(schema.Collections[0].Schema)
+	mockCollectionRepo.EXPECT().
+		UpdateCollection(gomock.Any(), "posts", "posts", postsSchema).
+		Return(nil).
+		Times(1)
+
+	// FindAll returns an error
+	mockCollectionRepo.EXPECT().
+		FindAll(gomock.Any(), &collection.FindAllParams{Search: ""}).
+		Return(nil, errors.New("database error")).
+		Times(1)
+
+	err := migrator.UpdateCollections(context.Background(), schema)
+	if err == nil {
+		t.Error("Expected error, got nil")
+	}
+
+	if err.Error() != "Failed to list collections: database error" {
+		t.Errorf("Unexpected error message: %v", err)
+	}
 }
