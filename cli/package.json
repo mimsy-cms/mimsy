@@ -45,9 +45,11 @@
     "vitest": "^2.1.4"
   },
   "dependencies": {
-    "@mimsy-cms/sdk": "workspace:*",
     "commander": "^14.0.0",
     "esbuild-register": "^3.6.0",
     "inquirer": "^12.9.0"
+  },
+  "peerDependencies": {
+    "@mimsy-cms/sdk": "workspace:*"
   }
 }
