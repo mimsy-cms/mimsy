@@ -108,7 +108,7 @@ describe("fetchRelation", () => {
 
       const result = await fetchRelation(client, unfetchedPost);
 
-      expect(global.fetch).toHaveBeenCalledWith(`${baseUrl}/v1/posts/post-789`);
+      expect(global.fetch).toHaveBeenCalledWith(`${baseUrl}/v1/collections/posts/post-789`);
       expect(result).toHaveProperty("title", "Test Post");
       expect(result).toHaveProperty("content", "This is a test post content");
     });
@@ -142,7 +142,7 @@ describe("fetchRelation", () => {
 
       const result = await fetchRelation(client, unfetchedPost);
 
-      expect(global.fetch).toHaveBeenCalledWith(`${baseUrl}/v1/posts_with_category/post-999`);
+      expect(global.fetch).toHaveBeenCalledWith(`${baseUrl}/v1/collections/posts_with_category/post-999`);
       expect(result).toHaveProperty("title", "Post with Category");
       expect(result).toHaveProperty("category");
       expect((result as any).category).toHaveProperty("id", "5");
