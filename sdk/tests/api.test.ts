@@ -255,7 +255,7 @@ describe("MimsyCollectionClient", () => {
       const collectionClient = client.with(testCollection);
       const posts = await collectionClient.all();
 
-      expect(global.fetch).toHaveBeenCalledWith(`${baseUrl}/v1/posts`);
+      expect(global.fetch).toHaveBeenCalledWith(`${baseUrl}/v1/collections/posts`);
       expect(posts).toHaveLength(2);
       expect(posts[0]).toHaveProperty("title", "Post 1");
       expect(posts[0]).toHaveProperty("author");
@@ -280,7 +280,7 @@ describe("MimsyCollectionClient", () => {
       const collectionClient = client.with(testCollection);
       const post = await collectionClient.get("789");
 
-      expect(global.fetch).toHaveBeenCalledWith(`${baseUrl}/v1/posts/789`);
+      expect(global.fetch).toHaveBeenCalledWith(`${baseUrl}/v1/collections/posts/789`);
       expect(post).toHaveProperty("title", "Post Title");
       expect(post).toHaveProperty("author");
       expect(post.author).toHaveProperty("id", "5");

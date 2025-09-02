@@ -70,7 +70,7 @@ export class MimsyCollectionClient<T extends Collection<any>> {
   ) {}
 
   async all(): Promise<ObjectOfCollection<T>[]> {
-    const response = await this.client.fetch(`/v1/${this.collection.name}`);
+    const response = await this.client.fetch(this.getUrlForCollection());
     const data = await response.json();
 
     return data.map(
@@ -79,9 +79,17 @@ export class MimsyCollectionClient<T extends Collection<any>> {
     );
   }
 
+  private getUrlForCollection(): string {
+    if (this.collection.isGlobal) {
+      return `/v1/globals/${this.collection.name}`;
+    } else {
+      return `/v1/collections/${this.collection.name}`;
+    }
+  }
+
   async get(id: string): Promise<ObjectOfCollection<T>> {
     const response = await this.client.fetch(
-      `/v1/${this.collection.name}/${id}`,
+      `${this.getUrlForCollection()}/${id}`,
     );
     const data = await response.json();
 
