@@ -125,6 +125,7 @@ func main() {
 
 	handler := util.ApplyMiddlewares(
 		util.RequestLoggerMiddleware(),
+		util.CORSMiddleware(),
 		config.WithDB(db),
 		auth.WithRequestUser(authService),
 	)
