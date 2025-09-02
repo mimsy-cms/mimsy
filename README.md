@@ -42,6 +42,16 @@ Mimsy addresses common pain points with existing CMS solutions by:
 - 📋 Multi-language support
 - 📋 Plugin system
 
+## How it works
+
+<p align="center">
+    <picture>
+      <source media="(prefers-color-scheme: dark)" srcset="docs/imgs/how_it_works.dark.png">
+      <source media="(prefers-color-scheme: light)" srcset="docs/imgs/how_it_works.png">
+      <img alt="How it works diagram" src="docs/imgs/how_it_works.png">
+    </picture>
+</p>
+
 ## Architecture
 
 Mimsy follows a modular architecture with clear separation of concerns. For detailed architecture information, see [docs/architecture.md](./docs/architecture.md).
