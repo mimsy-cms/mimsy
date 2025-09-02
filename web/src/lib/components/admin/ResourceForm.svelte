@@ -41,7 +41,7 @@
 	}
 
 	function isRequired(field: Field): boolean {
-		return !!field.options.constraints.required;
+		return field.options.constraints?.required ?? false;
 	}
 </script>
 
@@ -52,7 +52,7 @@
 			<button
 				type="submit"
 				disabled={submitting}
-				class="rounded bg-blue-500 px-4 py-2 text-white hover:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed"
+				class="rounded bg-blue-500 px-4 py-2 text-white hover:bg-blue-600 disabled:cursor-not-allowed disabled:opacity-50"
 			>
 				{submitting ? 'Saving...' : 'Save Resource'}
 			</button>
