@@ -44,7 +44,7 @@ spec:
             - name: STORAGE
               value: swift
             - name: GH_REPO
-              value: mimsy-cms/mimsy
+              value: mimsy-cms/slides-demo
             - name: GH_APP_ID
               value: "1737622"
           ports:
