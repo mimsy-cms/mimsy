@@ -20,7 +20,7 @@ spec:
         - name: regcred
       containers:
         - name: landing
-          image: ghcr.io/mimsy-cms/landing:20250825-121915-595ac89 # {"$imagepolicy": "mimsy:landing"}
+          image: ghcr.io/mimsy-cms/landing:20250901-154958-a4c9a7a # {"$imagepolicy": "mimsy:landing"}
           ports:
             - name: http
               containerPort: 3000

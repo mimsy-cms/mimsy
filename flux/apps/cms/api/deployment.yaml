@@ -20,7 +20,7 @@ spec:
         - name: regcred
       containers:
         - name: api
-          image: ghcr.io/mimsy-cms/api:20250826-095103-68b676f # {"$imagepolicy": "mimsy:api"}
+          image: ghcr.io/mimsy-cms/api:20250901-154811-c4dd6dd # {"$imagepolicy": "mimsy:api"}
           envFrom:
             - secretRef:
                 name: api-secrets
@@ -44,7 +44,7 @@ spec:
             - name: STORAGE
               value: swift
             - name: GH_REPO
-              value: mimsy-cms/mimsy
+              value: mimsy-cms/slides-demo
             - name: GH_APP_ID
               value: "1737622"
           ports:

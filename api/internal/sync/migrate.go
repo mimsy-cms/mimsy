@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"log/slog"
 	"os"
+	"strings"
 
 	"github.com/mimsy-cms/mimsy/internal/collection"
 	"github.com/mimsy-cms/mimsy/internal/migrations"
@@ -46,7 +47,7 @@ func (m *Migrator) UpdateCollections(ctx context.Context, schema *mimsy_schema.S
 		}
 
 		// Generate slug from collection name (convert to lowercase, replace spaces with underscores)
-		slug := collection.Name
+		slug := toSlug(&collection)
 
 		// Check if collection exists
 		exists, err := m.collectionRepository.CollectionExists(ctx, slug)
@@ -69,7 +70,37 @@ func (m *Migrator) UpdateCollections(ctx context.Context, schema *mimsy_schema.S
 		}
 	}
 
+	// Delete collections that are no longer in the manifest
+	dbCollections, err := m.collectionRepository.FindAll(ctx, &collection.FindAllParams{
+		Search: "",
+	})
+	if err != nil {
+		return fmt.Errorf("Failed to list collections: %w", err)
+	}
+
+	for _, collection := range dbCollections {
+		if !containsCollection(schema.Collections, collection.Name) {
+			if err := m.collectionRepository.DeleteCollection(ctx, collection.Slug); err != nil {
+				return fmt.Errorf("Failed to delete collection %s: %w", collection.Slug, err)
+			}
+			slog.Info("Deleted collection", "slug", collection.Slug, "name", collection.Name)
+		}
+	}
+
 	return nil
+}
+
+func toSlug(collection *mimsy_schema.Collection) string {
+	return strings.ToLower(strings.ReplaceAll(collection.Name, " ", "_"))
+}
+
+func containsCollection(collections []mimsy_schema.Collection, name string) bool {
+	for _, collection := range collections {
+		if collection.Name == name {
+			return true
+		}
+	}
+	return false
 }
 
 func (m *Migrator) Migrate(ctx context.Context, activeSync *SyncStatus, newSql *schema_generator.SqlSchema, commitName string, commitHash string) error {

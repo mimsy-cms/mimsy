@@ -4,9 +4,9 @@
 	let spinnerIndex = 0;
 	let spinnerInterval: number | NodeJS.Timeout;
 	let progressBars: { [key: string]: number } = {
-		typescript: 35,
-		sveltekit: 60,
-		pgroll: 25
+		typescript: 95,
+		sveltekit: 95,
+		pgroll: 90
 	};
 
 	const spinnerChars = ['⠋', '⠙', '⠹', '⠸', '⠼', '⠴', '⠦', '⠧', '⠇', '⠏'];
@@ -41,13 +41,13 @@
 					<span class="font-bold text-green-700">></span> mimsy status --verbose
 				</div>
 				<div class="cli-line">
-					STATUS: <span class="text-yellow-700">Early Development</span>
+					STATUS: <span class="text-green-700">Nearly Complete</span>
 				</div>
 				<div class="cli-line">
-					VERSION: <span class="text-cyan-700">0.1.0</span>
+					VERSION: <span class="text-cyan-700">1.1.0</span>
 				</div>
 				<div class="cli-line">
-					STAGE: <span class="text-orange-700">Architecture & Core Implementation</span>
+					STAGE: <span class="text-green-700">Final Features & Polish</span>
 				</div>
 			</div>
 
@@ -62,28 +62,26 @@
 					<span class="font-bold text-green-700">✓</span> Go backend foundation
 				</div>
 				<div class="cli-line">
-					<span class="spinner font-bold text-yellow-700">{spinnerChars[spinnerIndex]}</span>
-					TypeScript SDK development
+					<span class="font-bold text-green-700">✓</span> TypeScript SDK development
 					<span class="ml-auto text-xs text-cyan-700"
 						>[{generateProgressBar(progressBars.typescript)}] {progressBars.typescript}%</span
 					>
 				</div>
 				<div class="cli-line">
-					<span class="spinner font-bold text-yellow-700">{spinnerChars[spinnerIndex]}</span>
-					SvelteKit admin panel
+					<span class="font-bold text-green-700">✓</span> SvelteKit admin panel
 					<span class="ml-auto text-xs text-cyan-700"
 						>[{generateProgressBar(progressBars.sveltekit)}] {progressBars.sveltekit}%</span
 					>
 				</div>
 				<div class="cli-line">
-					<span class="spinner font-bold text-yellow-700">{spinnerChars[spinnerIndex]}</span> pgroll
-					integration
+					<span class="font-bold text-green-700">✓</span> pgroll integration
 					<span class="ml-auto text-xs text-cyan-700"
 						>[{generateProgressBar(progressBars.pgroll)}] {progressBars.pgroll}%</span
 					>
 				</div>
 				<div class="cli-line">
-					<span class="text-gray-500">◯</span> Beta release
+					<span class="spinner font-bold text-yellow-700">{spinnerChars[spinnerIndex]}</span> Technical
+					demo with Slides
 				</div>
 				<div class="cli-line">
 					<span class="text-gray-500">◯</span> Production ready
