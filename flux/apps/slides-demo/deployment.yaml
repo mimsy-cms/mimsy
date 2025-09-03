@@ -20,7 +20,7 @@ spec:
         - name: regcred
       containers:
         - name: slides-demo
-          image: ghcr.io/mimsy-cms/slides-demo:20250903-084247-04af505 # {"$imagepolicy": "mimsy:slides-demo"}
+          image: ghcr.io/mimsy-cms/slides-demo:20250903-100155-5ff9688 # {"$imagepolicy": "mimsy:slides-demo"}
           ports:
             - name: http
               containerPort: 3000
