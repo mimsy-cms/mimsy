@@ -1,0 +1,10 @@
+apiVersion: image.toolkit.fluxcd.io/v1beta2
+kind: ImageRepository
+metadata:
+  name: slides-demo
+  namespace: mimsy
+spec:
+  image: ghcr.io/mimsy-cms/slides-demo
+  interval: 5m
+  secretRef:
+    name: regcred
