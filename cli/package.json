@@ -50,6 +50,6 @@
     "inquirer": "^12.9.0"
   },
   "peerDependencies": {
-    "@mimsy-cms/sdk": "^workspace:*"
+    "@mimsy-cms/sdk": "workspace:^"
   }
 }
