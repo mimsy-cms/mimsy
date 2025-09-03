@@ -1,0 +1,26 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: slides-demo-ingress
+  namespace: mimsy
+  labels:
+    kodai.ch/dns-create: "true"
+  annotations:
+    cert-manager.io/cluster-issuer: letsencrypt
+spec:
+  ingressClassName: nginx
+  tls:
+    - hosts:
+        - slides.mimsy.kodai.ch
+      secretName: slides-mimsy-kodai-ch-ingress-tls
+  rules:
+    - host: slides.mimsy.kodai.ch
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: slides-demo
+                port:
+                  name: http
