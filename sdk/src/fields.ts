@@ -43,6 +43,18 @@ export const shortString: FieldGenerator<
   ...options,
 });
 
+export const longString: FieldGenerator<
+  string,
+  {
+    minLength?: number;
+    maxLength?: number;
+  }
+> = (options) => ({
+  _marker: fieldType,
+  type: "long_string",
+  ...options,
+});
+
 export const richText: FieldGenerator<string> = (options?: FieldOptions) => ({
   _marker: fieldType,
   type: "rich_text",

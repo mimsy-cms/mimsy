@@ -122,6 +122,12 @@
 								{#if isRequired(field)}<span class="text-red-500">*</span>{/if}
 							</label>
 							<PlainTextField id={fieldName} name={fieldName} bind:value={$form[fieldName]} />
+						{:else if field.type === 'long_string'}
+							<label for={fieldName}>
+								{fieldName}
+								{#if isRequired(field)}<span class="text-red-500">*</span>{/if}
+							</label>
+							<PlainTextField id={fieldName} name={fieldName} multiline={true} bind:value={$form[fieldName]} />
 						{:else if field.type === 'relation'}
 							{@const name = `${fieldName}_id`}
 							<RelationshipField label={fieldName} {name} {field} bind:value={$form[fieldName]} />
