@@ -131,7 +131,7 @@ func processColumnChanges(table, oldTable *schema_generator.Table) []migrations.
 				Column: migrations.Column{
 					Name:     column.Name,
 					Type:     column.Type,
-					Nullable: column.IsNotNull,
+					Nullable: !column.IsNotNull,
 				},
 			}
 			operations = append(operations, &operation)
