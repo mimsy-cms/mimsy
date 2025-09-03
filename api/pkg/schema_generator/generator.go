@@ -209,6 +209,13 @@ func (s *schemaGenerator) HandleDirectField(name string, element mimsy_schema.Sc
 			IsNotNull:    element.IsRequired(),
 			DefaultValue: "",
 		}, nil
+	case "long_string":
+		return Column{
+			Name:         name,
+			Type:         "varchar",
+			IsNotNull:    element.IsRequired(),
+			DefaultValue: "",
+		}, nil
 	case "rich_text":
 		return Column{
 			Name:         name,

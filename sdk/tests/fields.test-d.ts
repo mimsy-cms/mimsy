@@ -27,10 +27,12 @@ describe("ObjectOf type", () => {
 describe("FieldValue type", () => {
   test("should extract correct value types from fields", () => {
     type StringValue = FieldValue<ReturnType<typeof fields.shortString>>;
+    type LongStringValue = FieldValue<ReturnType<typeof fields.longString>>;
     type NumberValue = FieldValue<ReturnType<typeof fields.number>>;
     type BooleanValue = FieldValue<ReturnType<typeof fields.checkbox>>;
 
     expectTypeOf<StringValue>().toEqualTypeOf<string>();
+    expectTypeOf<LongStringValue>().toEqualTypeOf<string>();
     expectTypeOf<NumberValue>().toEqualTypeOf<number>();
     expectTypeOf<BooleanValue>().toEqualTypeOf<boolean>();
   });
