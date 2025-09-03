@@ -126,12 +126,19 @@ func processColumnChanges(table, oldTable *schema_generator.Table) []migrations.
 	for _, column := range table.Columns {
 		oldColumn, exists := oldTable.GetColumn(column.Name)
 		if !exists {
+			var defaultValue *string = nil
+
+			if column.DefaultValue != "" {
+				defaultValue = &column.DefaultValue
+			}
+
 			operation := migrations.OpAddColumn{
 				Table: table.Name,
 				Column: migrations.Column{
 					Name:     column.Name,
 					Type:     column.Type,
 					Nullable: !column.IsNotNull,
+					Default:  defaultValue,
 				},
 			}
 			operations = append(operations, &operation)
