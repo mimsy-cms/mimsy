@@ -38,7 +38,7 @@ The `dev` command starts all the required dependencies (Postgres) along with all
 
 You can then access the CMS at [http://localhost:5173](http://localhost:5173).
 
-More information can be found in the [README](../../README.md).
+More information can be found in the [README](https://github.com/mimsy-cms/mimsy/blob/b1936d747e839338b20a7183cf1dbecc0c88f493/README.md).
 
 ## Continuous integration
 The CI/CD pipeline is fully automated and runs on GitHub Actions and Flux.
@@ -51,7 +51,7 @@ Once the changes are merged, the pipeline will automatically deploy the changes 
 2. The new image is found by the flux controller, and a commit is made to the `main` branch.
 3. The changes are deployed to the production environment.
 
-For more details, check the [devops documentation](../devops.md).
+For more details, check the [devops documentation](https://github.com/mimsy-cms/mimsy/blob/b1936d747e839338b20a7183cf1dbecc0c88f493/docs/devops.md).
 
 ## Contribution Guidelines
 
@@ -67,11 +67,10 @@ We will review your pull request and provide feedback if necessary. Once your ch
 If you want to get started quickly, check the issue tracker for open issues with the label "good first issue". These issues are usually well-suited for beginners.
 
 For more details, check:
-- [Contributing Guidelines](../../CONTRIBUTING.md)
-- [README](../../README.md)
-- [Workflow documentation](../workflow.md)
+- [Contributing Guidelines](https://github.com/mimsy-cms/mimsy/blob/b1936d747e839338b20a7183cf1dbecc0c88f493/CONTRIBUTING.md)
+- [README](https://github.com/mimsy-cms/mimsy/blob/b1936d747e839338b20a7183cf1dbecc0c88f493/README.md)
+- [Workflow documentation](https://github.com/mimsy-cms/mimsy/blob/b1936d747e839338b20a7183cf1dbecc0c88f493/docs/workflow.md)
 
 ## Video
 
-The Video is available at the following URL:
-TODO
+The Video is available [here](https://github.com/mimsy-cms/mimsy/blob/b1936d747e839338b20a7183cf1dbecc0c88f493/docs/MimsyVideo.mp4).
