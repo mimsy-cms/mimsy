@@ -1,29 +1,26 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: web
+  name: slides-demo
   namespace: mimsy
   labels:
-    app: web
+    app: slides-demo
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app: web
+      app: slides-demo
   template:
     metadata:
       namespace: mimsy
       labels:
-        app: web
+        app: slides-demo
     spec:
       imagePullSecrets:
         - name: regcred
       containers:
-        - name: web
-          image: ghcr.io/mimsy-cms/web:20250903-153631-8a2ce0f # {"$imagepolicy": "mimsy:web"}
-          env:
-            - name: PUBLIC_API_URL
-              value: "https://cms.mimsy.kodai.ch/api"
+        - name: slides-demo
+          image: ghcr.io/mimsy-cms/slides-demo:20250904-055051-4b31db3 # {"$imagepolicy": "mimsy:slides-demo"}
           ports:
             - name: http
               containerPort: 3000
@@ -33,7 +30,7 @@ spec:
               memory: 256Mi
             limits:
               cpu: 500m
-              memory: 1Gi
+              memory: 512Mi
           imagePullPolicy: IfNotPresent
       restartPolicy: Always
   strategy:

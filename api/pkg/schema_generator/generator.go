@@ -209,6 +209,13 @@ func (s *schemaGenerator) HandleDirectField(name string, element mimsy_schema.Sc
 			IsNotNull:    element.IsRequired(),
 			DefaultValue: "",
 		}, nil
+	case "long_string":
+		return Column{
+			Name:         name,
+			Type:         "varchar",
+			IsNotNull:    element.IsRequired(),
+			DefaultValue: "",
+		}, nil
 	case "rich_text":
 		return Column{
 			Name:         name,
@@ -222,6 +229,34 @@ func (s *schemaGenerator) HandleDirectField(name string, element mimsy_schema.Sc
 			Type:         "timestamptz",
 			IsNotNull:    element.IsRequired(),
 			DefaultValue: "CURRENT_TIMESTAMP",
+		}, nil
+	case "number":
+		return Column{
+			Name:         name,
+			Type:         "numeric",
+			IsNotNull:    element.IsRequired(),
+			DefaultValue: "0",
+		}, nil
+	case "date_time":
+		return Column{
+			Name:         name,
+			Type:         "timestamptz",
+			IsNotNull:    element.IsRequired(),
+			DefaultValue: "CURRENT_TIMESTAMP",
+		}, nil
+	case "checkbox":
+		return Column{
+			Name:         name,
+			Type:         "boolean",
+			IsNotNull:    element.IsRequired(),
+			DefaultValue: "false",
+		}, nil
+	case "email":
+		return Column{
+			Name:         name,
+			Type:         "varchar",
+			IsNotNull:    element.IsRequired(),
+			DefaultValue: "",
 		}, nil
 	default:
 		return Column{}, fmt.Errorf("unsupported type: %s", element.Type)
